@@ -55,7 +55,23 @@ npm run clean         # 清理 out/ release/ .tsbuild/
 `!node_modules/**` 是这几行里唯一有前提的：electron-vite 的 `externalizeDepsPlugin()`
 会把 `dependencies` 里出现过的包改写成运行时 `require()`。所以**主进程与 preload 不得从
 `dependencies` 导入任何包**（它们目前只依赖 `electron` 与 `node:` 内置模块）。
-这条约束由 `tests/packaging-contract.test.ts` 在 `npm test` 里守着，不需要等到打包才发现。
+
+**例外要显式声明。** `tyme4ts` 会被主进程通过 `@core` 间接用到（节假日覆盖层的校验），
+所以 `electron.vite.config.ts` 里把它列进 `externalizeDepsPlugin({ exclude: ['tyme4ts'] })`，
+**打进 bundle 而不是留成运行时 require**。不这么做的话，产物里会出现 `require("tyme4ts")`，
+而打包时 `node_modules` 已被排除——安装版一启动就崩；`npm run dev` 与 `npm test` 都发现不了，
+因为开发机上 `node_modules` 就在那里。
+
+这条约束由 `tests/packaging-contract.test.ts` 守，而且查的是**两处**：
+
+1. 源码里 `src/main`、`src/preload` 没有从 `dependencies` 导入任何包；
+2. **构建产物** `out/main/index.js` 与 `out/preload/index.js` 里的 `require()` 只有
+   `electron` 与 `node:` 内置模块。
+
+第 2 条是后加的，因为第 1 条看不见 `externalizeDepsPlugin()` 做的改写——源码可以很干净，
+产物却带着一个包里没有的 require。这条断言在 `out/` 不存在时会**失败而不是跳过**：
+静默跳过的检查读起来像通过，比没有更糟。`release.yml` 先测试后打包，所以发版路径上
+一定有一份产物可查。
 
 打包命令统一带 `--publish never`：electron-builder 的 `--publish` 默认值是 `onTagOrDraft`，
 在有 token 的自动化环境里会自作主张建 Release。发版统一走 `release.yml` 里的 `gh` 步骤，

@@ -11,7 +11,7 @@
  * Catching it here rather than at packaging time matters because packaging only
  * happens on a release tag, long after the change has landed.
  */
-import { readdirSync, readFileSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { join, relative, sep } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
@@ -62,6 +62,75 @@ function shortPath(absolute: string): string {
 }
 
 const processSources = PROCESS_DIRS.flatMap(collectSources)
+
+/**
+ * Bare `require()` calls in a built bundle.
+ *
+ * The source scan above cannot see this: `externalizeDepsPlugin()` is what turns
+ * an `import` into a runtime `require`, and it reads `package.json`. So a source
+ * file can look clean while the *bundle* ends up requiring a package that
+ * `electron-builder.yml` deliberately leaves out of the package — a breakage that
+ * `npm run dev` and `npm test` both hide, and that only shows up when someone
+ * launches a packaged build.
+ */
+function bundleRequires(bundle: string): string[] {
+  const found = new Set<string>()
+  for (const match of bundle.matchAll(/\brequire\s*\(\s*['"]([^'"]+)['"]\s*\)/g)) {
+    const specifier = match[1]
+    if (specifier) found.add(specifier)
+  }
+  return [...found]
+}
+
+/** `electron` plus Node's own modules are always present in the runtime. */
+function isRuntimeProvided(specifier: string): boolean {
+  return specifier === 'electron' || specifier.startsWith('node:')
+}
+
+describe('the built bundles carry no runtime node_modules', () => {
+  const MAIN_BUNDLE = join(ROOT, 'out', 'main', 'index.js')
+  const PRELOAD_BUNDLE = join(ROOT, 'out', 'preload', 'index.js')
+
+  it('has a build to inspect', () => {
+    // Deliberately an assertion, not a skip: a silently skipped check is worse
+    // than no check, because it reads as a pass. `release.yml` builds before it
+    // tests, so the gate always has a bundle to look at.
+    expect(
+      existsSync(MAIN_BUNDLE),
+      'out/main/index.js is missing — run `npm run build` before the packaging contract'
+    ).toBe(true)
+    expect(existsSync(PRELOAD_BUNDLE)).toBe(true)
+  })
+
+  it('requires only electron and Node builtins from the main bundle', () => {
+    const offenders = bundleRequires(readFileSync(MAIN_BUNDLE, 'utf8')).filter(
+      (specifier) => !isRuntimeProvided(specifier)
+    )
+
+    // Anything listed here would be resolved against a node_modules directory
+    // that `electron-builder.yml` excludes from the package.
+    expect(offenders).toEqual([])
+  })
+
+  it('requires only electron from the preload bundle', () => {
+    const offenders = bundleRequires(readFileSync(PRELOAD_BUNDLE, 'utf8')).filter(
+      (specifier) => !isRuntimeProvided(specifier)
+    )
+
+    expect(offenders).toEqual([])
+  })
+
+  it('detects the require forms it claims to detect', () => {
+    // Without this the two assertions above could pass vacuously on a regex that
+    // never matches.
+    expect(bundleRequires(`const a = require("tyme4ts")`)).toEqual(['tyme4ts'])
+    expect(bundleRequires(`const b = require('tyme4ts')`)).toEqual(['tyme4ts'])
+    expect(bundleRequires(`require( "electron" )`)).toEqual(['electron'])
+    expect(isRuntimeProvided('electron')).toBe(true)
+    expect(isRuntimeProvided('node:fs')).toBe(true)
+    expect(isRuntimeProvided('tyme4ts')).toBe(false)
+  })
+})
 
 describe('the packaged app carries no runtime node_modules', () => {
   it('keeps the main process and preload free of runtime dependencies', () => {
