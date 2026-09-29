@@ -34,7 +34,7 @@ npm install
 | `npm run typecheck`      | 主进程侧 + 渲染进程侧类型检查                                                  |
 | `npm run lint`           | ESLint                                                                         |
 | `npm run format`         | Prettier 格式化（会改写文件）                                                  |
-| `npm run format:check`   | Prettier 只检查不修改（CI 跑的就是这个）                                       |
+| `npm run format:check`   | Prettier 只检查不修改（提交前跑一次，免得格式问题混进提交）                    |
 | `npm test`               | Vitest 单测                                                                    |
 | `npm run test:watch`     | Vitest 监听模式                                                                |
 | `npm run release:patch`  | 出正式版本：升版本号 + 提交 + 打标签 + 推送（见 [packaging.md](packaging.md)） |
@@ -53,7 +53,7 @@ npm install
 | **preview**                                       | `npm run preview`      | 跑构建产物                         |
 | **clean**                                         | `npm run clean`        | 清理 `out/` `release/` `.tsbuild/` |
 | **typecheck / lint / test / test:watch / format** | 同名脚本               | 日常检查                           |
-| **format:check**                                  | `npm run format:check` | 提交前确认格式不会被 CI 打回       |
+| **format:check**                                  | `npm run format:check` | 提交前确认格式没问题               |
 
 `dev` 配了 problem matcher，以主进程打印的 `[tyme-app] main window ready` 作为就绪信号，因此
 `launch.json` 里的调试配置可以拿它当 `preLaunchTask`：按 F5 会先起应用再挂调试器。

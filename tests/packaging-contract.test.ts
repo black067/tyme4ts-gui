@@ -8,8 +8,8 @@
  * runtime `require()`, which would then resolve against a directory that is not
  * inside the package.
  *
- * Catching it here rather than in the packaging job matters because that job
- * only runs in CI, after the change is already merged.
+ * Catching it here rather than at packaging time matters because packaging only
+ * happens on a release tag, long after the change has landed.
  */
 import { readdirSync, readFileSync } from 'node:fs'
 import { join, relative, sep } from 'node:path'

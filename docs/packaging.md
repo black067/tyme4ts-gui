@@ -58,31 +58,25 @@ npm run clean         # 清理 out/ release/ .tsbuild/
 这条约束由 `tests/packaging-contract.test.ts` 在 `npm test` 里守着，不需要等到打包才发现。
 
 打包命令统一带 `--publish never`：electron-builder 的 `--publish` 默认值是 `onTagOrDraft`，
-在 CI 里跑且恰好能拿到 token 时会自作主张建 Release。发版统一走 `release.yml` 里的 `gh`
-步骤，行为更可预期。
+在有 token 的自动化环境里会自作主张建 Release。发版统一走 `release.yml` 里的 `gh` 步骤，
+行为更可预期。
 
 ## GitHub Actions
 
-两个工作流，都在 `windows-latest` 上跑（应用只面向 Windows，直接和目标平台保持一致）。
+只有一个工作流 `release.yml`，跑在 `windows-latest` 上（应用只面向 Windows，直接和目标平台
+保持一致）。
 
-### `ci.yml` — 提交即验证
-
-触发：push 到 `main`、所有 pull request、手动 `workflow_dispatch`。
-
-| Job       | 内容                                                      |
-| --------- | --------------------------------------------------------- |
-| `check`   | `npm ci` → `format:check` → `lint` → `typecheck` → `test` |
-| `package` | `npm ci` → `package:dir`，确认打包配置没被改坏            |
-
-`ci.yml` 的 `package` job 与 `release.yml` 都缓存了 `%LOCALAPPDATA%` 下的两个目录：`electron\Cache`
-（Electron 发行包 zip，约 120 MB）和 `electron-builder\Cache`（nsis / winCodeSign / 7zip 等工具）。
-缓存命中后打包基本只剩解包时间。同一分支上的新推送会取消上一次仍在跑的检查
-（`concurrency.cancel-in-progress`）。
+**没有常驻的 CI。** 检查在自己机器上跑——`npm run format:check && npm run lint && npm run
+typecheck && npm test`——比等远端快，而且 `release.yml` 本来就会在打包前把测试和打包各跑一遍，
+所以「提交即验证」那一层是重复的。
 
 ### `release.yml` — 出包与发版
 
-唯一触发方式是 push 一个 `v*` tag：打包 → 上传 workflow artifact → 创建 GitHub Release 并附上
-exe。没有第二条能创建 Release 的路径，所以不会出现同一个版本被发两次。
+唯一触发方式是 push 一个 `v*` tag：跑测试 → 打包 → 上传 workflow artifact → 创建 GitHub
+Release 并附上 exe。没有第二条能创建 Release 的路径，所以不会出现同一个版本被发两次。
+
+缓存了 `%LOCALAPPDATA%` 下的两个目录：`electron\Cache`（Electron 发行包 zip，约 120 MB）和
+`electron-builder\Cache`（nsis / winCodeSign / 7zip 等工具）。缓存命中后打包基本只剩解包时间。
 
 发版前会校验 tag 与 `package.json` 的 `version` 是否一致，不一致直接失败——避免出现
 「exe 文件名里的版本号和 Release 标题对不上」这种事后才发现的问题。

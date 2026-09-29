@@ -21,7 +21,7 @@
 
 ## 被测试强制的两条约束
 
-`tests/theme-tokens.test.ts` 直接用 `node:fs` 读源码树，CI 里也会跑：
+`tests/theme-tokens.test.ts` 直接用 `node:fs` 读源码树，`npm test` 时会跑：
 
 - `components/`、`features/`、`state/`、`styles/` 目录下**不得出现** `#rrggbb` / `rgb()`
   字面量——颜色只能来自 token；

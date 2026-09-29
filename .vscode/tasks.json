@@ -161,7 +161,7 @@
       "label": "format:check",
       "type": "npm",
       "script": "format:check",
-      "detail": "Prettier 只检查不修改（与 CI 的格式检查一致，提交前跑一次）",
+      "detail": "Prettier 只检查不修改（提交前跑一次，免得格式问题混进提交）",
       "presentation": {
         "reveal": "always",
         "panel": "shared",

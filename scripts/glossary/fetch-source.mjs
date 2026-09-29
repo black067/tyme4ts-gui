@@ -4,8 +4,8 @@
  *   node scripts/glossary/fetch-source.mjs          # 已有 fixture 就跳过
  *   node scripts/glossary/fetch-source.mjs --force  # 强制重新抓取
  *
- * 需要网络。**CI 不执行本脚本**——CI 只校验已提交的 fixture 与词条是否一致。
- * 词条里的 `quote` 必须逐字出现在这里的文本中，由 tests/glossary-contract.test.ts 守住。
+ * 需要网络，只在开发机上手动跑。词条里的 `quote` 必须逐字出现在抓下来的文本中，
+ * 由 tests/glossary-contract.test.ts 守住——那一步不需要网络。
  *
  * 源站是维基文库，有速率限制，所以每页之间退避，并且抓取结果会落盘当作缓存。
  */

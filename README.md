@@ -1,6 +1,5 @@
 # 万年历
 
-[![CI](https://github.com/black067/tyme4ts-gui/actions/workflows/ci.yml/badge.svg)](https://github.com/black067/tyme4ts-gui/actions/workflows/ci.yml)
 [![Release](https://github.com/black067/tyme4ts-gui/actions/workflows/release.yml/badge.svg)](https://github.com/black067/tyme4ts-gui/actions/workflows/release.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
@@ -52,7 +51,7 @@ npm run package   # → release/chinese-calendar-<version>-portable.exe
 | [docs/usage.md](docs/usage.md)                     | 视图、设置项、键盘快捷键                 |
 | [docs/development.md](docs/development.md)         | 环境准备、脚本、VS Code 任务与调试、测试 |
 | [docs/architecture.md](docs/architecture.md)       | 目录结构、模块边界、数据流               |
-| [docs/packaging.md](docs/packaging.md)             | 打包细节、CI/CD 与发版流程               |
+| [docs/packaging.md](docs/packaging.md)             | 打包细节与 GitHub Actions 发版流程       |
 | [docs/theming.md](docs/theming.md)                 | 新增一个主题                             |
 | [docs/data-boundaries.md](docs/data-boundaries.md) | tyme4ts 的能力边界与降级行为             |
 | [docs/licensing.md](docs/licensing.md)             | 第三方许可清单与资产署名                 |
