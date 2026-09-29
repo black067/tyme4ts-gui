@@ -20,6 +20,7 @@
  * a new table is installed (see {@link onHolidayOverlayChange}).
  */
 import { SOLAR_YEAR_MIN, fromIsoDate } from './date-key'
+import type { HolidayErrorCode } from '@shared/holidays'
 import type { HolidayRef } from './types'
 
 /** One validated rest/work day, as published by chinese-days. */
@@ -319,6 +320,40 @@ export function installHolidayPayloads(payloads: readonly unknown[]): string[] {
 /** Forgets every installed entry; used on a data reset and between tests. */
 export function resetHolidayOverlay(): void {
   setHolidayOverlay(emptyHolidayOverlay())
+}
+
+/**
+ * Decides whether a refresh deserves an error code, and which one.
+ *
+ * Lives here rather than in `src/main/holidays.ts` because it is pure policy with
+ * no IO, and because getting it wrong produced a user-visible bug: the source has
+ * no file for a year whose arrangement is not announced yet (2027 answers 404),
+ * and treating *any* unreachable year as failure made the settings screen claim
+ * permanently that the data could not be fetched.
+ *
+ * The rule: an error is worth showing only when a refresh was **materially worse
+ * than doing nothing** — nothing usable came back and nothing usable was already
+ * cached. One 404 among four years is normal and silent.
+ *
+ * `received` = years that answered with a document. `failed` = years where a
+ * source genuinely errored, as opposed to simply not having the file.
+ * `covered` = calendar years the assembled overlay actually has.
+ * `usableCached` = whether the on-disk cache already holds something.
+ */
+export function decideHolidayError(input: {
+  received: number
+  failed: number
+  covered: number
+  usableCached: boolean
+}): HolidayErrorCode | null {
+  // We have data: a missing, unpublished or broken year among several is not
+  // something to warn the user about.
+  if (input.covered > 0 || input.usableCached) return null
+  // Nothing to show at all. "Sources are broken" is actionable; "nothing is
+  // published yet" is normal for a new year and must stay silent.
+  if (input.failed > 0) return 'network'
+  if (input.received > 0) return 'invalid-data'
+  return null
 }
 
 /**

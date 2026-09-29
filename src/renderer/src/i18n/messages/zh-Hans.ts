@@ -398,24 +398,22 @@ export const zhHans = {
 
     updates: {
       title: '更新',
-      /** 当前版本行。 */
-      current: ({ version }: { version: string }): string => `当前版本 ${version}`,
-      /** 发现新版本时的一句话。 */
-      available: ({ version }: { version: string }): string => `发现新版本 ${version}`,
+      /** 版本号旁边的小标记：已是最新。 */
+      latest: '最新',
+      /** 当前版本，如「v0.1.3」。 */
+      current: ({ version }: { version: string }): string => `v${version}`,
+      /** 最近一次检查的时间；从未检查过时用 neverChecked。 */
+      lastChecked: ({ time }: { time: string }): string => `上次检查 ${time}`,
+      neverChecked: '尚未检查过',
       check: '检查更新',
-      checking: '正在检查…',
-      download: '下载更新',
-      downloading: ({ percent }: { percent: number }): string => `正在下载 ${percent}%`,
-      cancel: '取消下载',
+      checking: '检查中…',
+      download: '下载',
+      downloading: ({ percent }: { percent: number }): string => `下载中 ${percent}%`,
+      cancel: '取消',
       install: '重启并安装',
       /** 下载完成后的提示。 */
-      ready: '下载完成，可以重启安装了。',
-      upToDate: '已是最新版本。',
+      ready: '下载完成，重启后生效。',
       autoCheck: '启动时自动检查更新',
-      /** 最近一次检查的时间；从未检查过时用 neverChecked。 */
-      lastChecked: ({ time }: { time: string }): string => `上次检查：${time}`,
-      neverChecked: '尚未检查过',
-      releaseNotes: '查看发布说明',
       /** 各错误码的说法，一个错误码一句，不拼接。 */
       error: {
         network: '无法连接到 GitHub，请检查网络后重试。',

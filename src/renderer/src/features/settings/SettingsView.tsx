@@ -55,7 +55,7 @@ function Row({ label, value }: { label: string; value: string }): ReactElement {
 
 export function SettingsView({ onClose }: { onClose: () => void }): ReactElement {
   const { settings, update } = useSettings()
-  const { theme, resolvedThemeId } = useTheme()
+  const { theme } = useTheme()
   const t = useMessages()
   const [info, setInfo] = useState<AppInfo | null>(null)
 
@@ -118,12 +118,6 @@ export function SettingsView({ onClose }: { onClose: () => void }): ReactElement
               onChange={(appearance) => update({ appearance })}
             />
           </div>
-          <p className="settings-note">
-            {t.settings.appearance.current({
-              theme: themeName(theme.id),
-              resolved: resolvedThemeId
-            })}
-          </p>
         </Section>
 
         <Section title={t.settings.language.title}>

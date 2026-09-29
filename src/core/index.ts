@@ -34,6 +34,7 @@ export { buildDayInfo, buildDaySummary, clearDayCaches } from './day'
 
 export {
   buildHolidayOverlay,
+  decideHolidayError,
   emptyHolidayOverlay,
   getHolidayOverlay,
   getHolidayOverlayVersion,

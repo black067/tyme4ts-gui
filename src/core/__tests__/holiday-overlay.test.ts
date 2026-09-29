@@ -15,6 +15,7 @@ import {
   buildDaySummary,
   buildHolidayOverlay,
   buildYearInfo,
+  decideHolidayError,
   getHolidayOverlay,
   getHolidayOverlayVersion,
   installHolidayPayloads,
@@ -336,6 +337,47 @@ describe('resolveHoliday', () => {
     expect(resolveHoliday(null, overlay, '2027-01-01')).toBeNull()
     expect(resolveHoliday(null, overlay, '1999-10-01')).toBeNull()
     expect(resolveHoliday(null, overlay, '2050-02-01')).toBeNull()
+  })
+})
+
+describe('decideHolidayError', () => {
+  it('stays silent when a year among several is simply not published', () => {
+    // 这就是让设置页永远显示「无法获取」的那个 bug：2027 的安排还没公布，
+    // 数据源对它就返回 404；把任何一年取不到都当成失败，界面就永远在报错。
+    expect(
+      decideHolidayError({ received: 2, failed: 1, covered: 2, usableCached: false })
+    ).toBeNull()
+  })
+
+  it('stays silent when there is data, however many years were missing', () => {
+    expect(
+      decideHolidayError({ received: 1, failed: 3, covered: 1, usableCached: false })
+    ).toBeNull()
+  })
+
+  it('stays silent when nothing was fetched but the cache already has data', () => {
+    expect(
+      decideHolidayError({ received: 0, failed: 3, covered: 0, usableCached: true })
+    ).toBeNull()
+  })
+
+  it('reports a network error only when sources broke and nothing is usable', () => {
+    expect(decideHolidayError({ received: 0, failed: 2, covered: 0, usableCached: false })).toBe(
+      'network'
+    )
+  })
+
+  it('reports invalid data when a document arrived but yielded nothing', () => {
+    expect(decideHolidayError({ received: 1, failed: 0, covered: 0, usableCached: false })).toBe(
+      'invalid-data'
+    )
+  })
+
+  it('stays silent when nothing is published and nothing broke', () => {
+    // 全新的一年、安排还没公布、缓存也是空的：正常状态，不该报错。
+    expect(
+      decideHolidayError({ received: 0, failed: 0, covered: 0, usableCached: false })
+    ).toBeNull()
   })
 })
 

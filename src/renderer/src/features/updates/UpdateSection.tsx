@@ -1,5 +1,5 @@
 import type { ReactElement } from 'react'
-import type { UpdateErrorCode, UpdateState } from '@shared/update'
+import type { UpdateErrorCode } from '@shared/update'
 import { useMessages, type Messages } from '@renderer/i18n'
 import { Toggle } from '@renderer/components/Toggle'
 import { useSettings } from '@renderer/state/settings-context'
@@ -7,14 +7,12 @@ import { useUpdateState } from './update-context'
 import './updates.css'
 
 /**
- * Turns an absolute ISO timestamp into something readable.
+ * Formats an ISO timestamp, or returns null when absent/unparseable.
  *
- * Deliberately not `Intl.DateTimeFormat`: the app formats dates itself
- * everywhere else, and the stored value may be malformed (it comes from a JSON
- * file a user can edit), in which case showing the raw string beats "Invalid
- * Date".
+ * Deliberately not `Intl`: the app formats dates itself everywhere else, and the
+ * stored value can be hand-edited. Showing nothing beats "Invalid Date".
  */
-function formatCheckedAt(iso: string): string | null {
+function formatStamp(iso: string): string | null {
   if (iso.trim() === '') return null
   const parsed = new Date(iso)
   if (Number.isNaN(parsed.getTime())) return null
@@ -24,13 +22,7 @@ function formatCheckedAt(iso: string): string | null {
   )}:${pad(parsed.getMinutes())}`
 }
 
-/**
- * Maps an error code onto its wording.
- *
- * An explicit switch rather than `t[...][code]`: the codes are kebab-case
- * (`rate-limited`) while catalogue keys are camelCase, and a direct index would
- * hide the mismatch until runtime.
- */
+/** Explicit switch: the codes are kebab-case, catalogue keys are camelCase. */
 function errorText(t: Messages, code: UpdateErrorCode | null): string {
   const errors = t.settings.updates.error
   switch (code) {
@@ -51,108 +43,36 @@ function errorText(t: Messages, code: UpdateErrorCode | null): string {
   }
 }
 
-/** The status line plus the actions that make sense for the current phase. */
-function UpdateStatus({ state }: { state: UpdateState }): ReactElement {
-  const t = useMessages()
-  const { check, download, cancel, install } = useUpdateState()
-  const busy = state.phase === 'checking' || state.phase === 'downloading'
-
-  const percent =
-    state.progress && state.progress.total > 0
-      ? Math.floor((state.progress.transferred / state.progress.total) * 100)
-      : 0
-
-  return (
-    <>
-      <p className="settings-note">
-        {t.settings.updates.current({ version: state.currentVersion })}
-      </p>
-
-      {state.phase === 'checking' ? (
-        <p className="settings-note">{t.settings.updates.checking}</p>
-      ) : null}
-
-      {state.phase === 'up-to-date' ? (
-        <p className="settings-note">{t.settings.updates.upToDate}</p>
-      ) : null}
-
-      {state.latestVersion !== null && state.phase !== 'up-to-date' ? (
-        <p className="settings-note">
-          {t.settings.updates.available({ version: state.latestVersion })}
-        </p>
-      ) : null}
-
-      {state.phase === 'downloading' ? (
-        <>
-          <p className="settings-note">{t.settings.updates.downloading({ percent })}</p>
-          {/* A native progress element rather than a styled div: it comes with
-              the right accessibility semantics for free. */}
-          <progress
-            className="updates__progress"
-            value={state.progress?.transferred ?? 0}
-            max={state.progress?.total ?? 1}
-          />
-        </>
-      ) : null}
-
-      {state.phase === 'ready' ? <p className="settings-note">{t.settings.updates.ready}</p> : null}
-
-      {state.phase === 'error' ? (
-        <p className="tool__error">{errorText(t, state.errorCode)}</p>
-      ) : null}
-
-      <div className="updates__actions">
-        <button type="button" className="text-button" onClick={check} disabled={busy}>
-          {t.settings.updates.check}
-        </button>
-
-        {state.phase === 'available' ? (
-          <button type="button" className="primary-button" onClick={download}>
-            {t.settings.updates.download}
-          </button>
-        ) : null}
-
-        {state.phase === 'downloading' ? (
-          <button type="button" className="text-button" onClick={cancel}>
-            {t.settings.updates.cancel}
-          </button>
-        ) : null}
-
-        {state.canInstall ? (
-          <button type="button" className="primary-button" onClick={install}>
-            {t.settings.updates.install}
-          </button>
-        ) : null}
-
-        {state.releaseUrl !== null ? (
-          <a
-            className="credit__link"
-            href={state.releaseUrl}
-            target="_blank"
-            rel="noreferrer noopener"
-          >
-            {t.settings.updates.releaseNotes}
-          </a>
-        ) : null}
-      </div>
-    </>
-  )
-}
-
 /**
  * The settings screen's update block.
  *
- * Renders nothing until the first snapshot arrives: showing "checking" before
- * the main process has answered would be a lie on every mount.
+ * Layout is deliberately compact — a status line and an action line:
+ *
+ *   v0.1.3 [最新]                         ← version, badged when current
+ *   [检查更新] 上次检查 2026-09-29 18:36   ← action and its timestamp together
+ *
+ * "Already up to date" is a badge rather than a sentence: the state reads at a
+ * glance, and a whole sentence for the normal case is noise. Progress and errors
+ * appear only while they are true.
+ *
+ * Renders nothing until the first snapshot arrives, so it never claims "not
+ * checked yet" before the main process has answered.
  */
 export function UpdateSection(): ReactElement | null {
   const t = useMessages()
   const { settings, update } = useSettings()
-  const { state } = useUpdateState()
+  const { state, check, download, cancel, install } = useUpdateState()
 
   if (state === null) return null
 
-  const checkedAt = formatCheckedAt(settings.lastUpdateCheckAt)
+  const busy = state.phase === 'checking' || state.phase === 'downloading'
+  const percent =
+    state.progress && state.progress.total > 0
+      ? Math.floor((state.progress.transferred / state.progress.total) * 100)
+      : 0
+  const isLatest = state.phase === 'up-to-date'
+  const newer = state.latestVersion !== null && !isLatest ? state.latestVersion : null
+  const checkedAt = formatStamp(settings.lastUpdateCheckAt)
 
   return (
     <>
@@ -164,13 +84,64 @@ export function UpdateSection(): ReactElement | null {
         />
       </div>
 
-      <UpdateStatus state={state} />
-
-      <p className="settings-note">
-        {checkedAt === null
-          ? t.settings.updates.neverChecked
-          : t.settings.updates.lastChecked({ time: checkedAt })}
+      <p className="updates__version">
+        <span className="updates__number">
+          {t.settings.updates.current({ version: state.currentVersion })}
+        </span>
+        {isLatest ? <span className="updates__badge">{t.settings.updates.latest}</span> : null}
+        {newer !== null ? (
+          <span className="updates__badge updates__badge--new">
+            {t.settings.updates.current({ version: newer })}
+          </span>
+        ) : null}
       </p>
+
+      {state.phase === 'downloading' ? (
+        <progress
+          className="updates__progress"
+          value={state.progress?.transferred ?? 0}
+          max={state.progress?.total ?? 1}
+        />
+      ) : null}
+
+      {state.phase === 'ready' ? <p className="settings-note">{t.settings.updates.ready}</p> : null}
+
+      {state.phase === 'error' ? (
+        <p className="tool__error">{errorText(t, state.errorCode)}</p>
+      ) : null}
+
+      <div className="updates__row">
+        {state.phase === 'available' ? (
+          <button type="button" className="primary-button" onClick={download}>
+            {t.settings.updates.download}
+          </button>
+        ) : state.canInstall ? (
+          <button type="button" className="primary-button" onClick={install}>
+            {t.settings.updates.install}
+          </button>
+        ) : (
+          <button type="button" className="text-button" onClick={check} disabled={busy}>
+            {state.phase === 'checking'
+              ? t.settings.updates.checking
+              : state.phase === 'downloading'
+                ? t.settings.updates.downloading({ percent })
+                : t.settings.updates.check}
+          </button>
+        )}
+
+        {state.phase === 'downloading' ? (
+          <button type="button" className="text-button" onClick={cancel}>
+            {t.settings.updates.cancel}
+          </button>
+        ) : null}
+
+        {/* 时间戳与按钮同行：它是这次操作的上下文，不该另起一行占位。 */}
+        <span className="updates__stamp">
+          {checkedAt === null
+            ? t.settings.updates.neverChecked
+            : t.settings.updates.lastChecked({ time: checkedAt })}
+        </span>
+      </div>
     </>
   )
 }

@@ -27,8 +27,13 @@ import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from '
 import { get as httpsGet } from 'node:https'
 import { join } from 'node:path'
 import { app } from 'electron'
-import { buildHolidayOverlay, getHolidayOverlay, setHolidayOverlay } from '@core'
-import type { HolidayErrorCode, HolidayStatus } from '@shared/holidays'
+import {
+  buildHolidayOverlay,
+  decideHolidayError,
+  getHolidayOverlay,
+  setHolidayOverlay
+} from '@core'
+import type { HolidayStatus } from '@shared/holidays'
 
 const USER_AGENT = 'tyme-app-holidays (https://github.com/black067/tyme4ts-gui)'
 const REQUEST_TIMEOUT_MS = 10_000
@@ -88,11 +93,16 @@ class MissingDocumentError extends Error {}
 
 /**
  * Fetches a small JSON document as a string; rejects on a non-2xx status.
+ *
+ * The URL is carried alongside the request so a redirect can be resolved against
+ * it: a CDN may answer with a **relative** `Location`
+ * (`/chinese-days@1.5.9/dist/years/2027.json`), which only becomes a real
+ * address once combined with the URL it came from. Treating it as absolute threw
+ * `Invalid URL` and turned a working fallback into a reported failure.
  */
-function fetchJsonText(url: string): Promise<string> {
+function fetchJsonText(url: string, depth = 0): Promise<string> {
   return new Promise((resolve, reject) => {
     const request = httpsGet(url, { headers: { 'User-Agent': USER_AGENT } }, (response) => {
-      // Follow at most one redirect: both mirrors may bounce to a CDN.
       const location = response.headers.location
       if (
         response.statusCode !== undefined &&
@@ -101,7 +111,11 @@ function fetchJsonText(url: string): Promise<string> {
         typeof location === 'string'
       ) {
         response.resume()
-        fetchJsonText(location).then(resolve, reject)
+        if (depth >= 4) {
+          reject(new Error(`too many redirects from ${url}`))
+          return
+        }
+        fetchJsonText(new URL(location, url).toString(), depth + 1).then(resolve, reject)
         return
       }
 
@@ -235,22 +249,14 @@ export async function refreshHolidays(): Promise<HolidayStatus> {
   const cached = readCache(years)
   const built = buildHolidayOverlay([...cached, ...fetched])
 
-  if (fetched.length === 0 && networkFailures > 0) {
-    setStatus({ refreshing: false, errorCode: 'network' })
-    return status
-  }
+  const failure = decideHolidayError({
+    received: fetched.length,
+    failed: networkFailures,
+    covered: built.overlay.years.length,
+    usableCached: cached.length > 0
+  })
 
-  if (built.overlay.years.length === 0) {
-    // Nothing fetched and nothing cached: say so, but only call it a data
-    // problem when we actually received something unusable.
-    setStatus({ refreshing: false, errorCode: built.errors.length > 0 ? 'invalid-data' : null })
-    return status
-  }
-
-  setHolidayOverlay(built.overlay)
-
-  const failure: HolidayErrorCode | null =
-    networkFailures > 0 ? 'network' : built.errors.length > 0 ? 'invalid-data' : null
+  if (built.overlay.years.length > 0) setHolidayOverlay(built.overlay)
 
   return setStatus({
     years: built.overlay.years,
