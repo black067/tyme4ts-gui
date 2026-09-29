@@ -7,15 +7,17 @@
  */
 
 /** 术语家族。每个家族对应界面上的一组同类标签。 */
-export type GlossaryFamily = 'god' | 'duty' | 'twelveStar' | 'star28' | 'phase' | 'term'
+export type GlossaryFamily =
+  'god' | 'duty' | 'twelveStar' | 'star28' | 'phase' | 'term' | 'nineStar' | 'sixStar' | 'minorRen'
 
 /**
  * 依据分档。决定 `quote` 是否必需。
  *
  * - `xieji`   《钦定协纪辨方书》义例，有原文定义句
  * - `common`  天文/历法常识，不存在争议，无需典籍依据
+ * - `none`    整族拿不到公版依据，全部是缺口
  */
-export type GlossaryBasis = 'xieji' | 'common'
+export type GlossaryBasis = 'xieji' | 'common' | 'none'
 
 export interface GlossaryEntry {
   /**
@@ -34,13 +36,38 @@ export interface GlossaryEntry {
   source?: string
 }
 
+/**
+ * 缺口说明。
+ *
+ * 与其让一个标签悬停时毫无反应，不如老实说清楚缺什么；能找到位置的就把位置指出来，
+ * 让读者自己去查。缺口说明不冒充释义——`reason` 的措辞是受控的几句话，不逐条编故事。
+ */
+export interface GlossaryGapNote {
+  /** 为什么没有释义。 */
+  reason: string
+  /** 想自己查的话去哪儿找。确实没有可靠位置时省略。 */
+  source?: string
+}
+
 export interface GlossaryFamilyData {
   /** 家族显示名，用于详情标题与文档。 */
   label: string
   basis: GlossaryBasis
-  /** `basis === 'common'` 时必需：为什么这个概念不需要典籍依据。 */
+  /** `basis` 非 `xieji` 时必填：为什么这一族不需要／拿不到典籍依据。 */
   rationale?: string
-  /** fixture 路径（相对仓库根），`basis === 'xieji'` 时必需，供引文逐字校验。 */
+  /** fixture 路径（相对仓库根），`basis === 'xieji'` 时必填，供引文逐字校验。 */
   fixture?: string
+  /** 有释义的名字。 */
   entries: Readonly<Record<string, GlossaryEntry>>
+  /** 引擎会产出但没有释义的名字——两者合起来必须覆盖引擎的全部名单。 */
+  gaps: Readonly<Record<string, GlossaryGapNote>>
 }
+
+/**
+ * 一次查表的结果。
+ *
+ * `null` 表示这个名字连引擎都不认识（正常不会出现，界面上的值都来自引擎），
+ * 调用方据此渲染纯文本。
+ */
+export type TermLookup =
+  { kind: 'entry'; entry: GlossaryEntry } | { kind: 'gap'; note: GlossaryGapNote }

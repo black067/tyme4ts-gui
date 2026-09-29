@@ -68,7 +68,9 @@ export {
   type GlossaryBasis,
   type GlossaryEntry,
   type GlossaryFamily,
-  type GlossaryFamilyData
+  type GlossaryFamilyData,
+  type GlossaryGapNote,
+  type TermLookup
 } from './glossary'
 
 export {
