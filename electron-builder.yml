@@ -13,21 +13,31 @@ directories:
   buildResources: build
   output: release
 
-# 主进程与 preload 的产物已由 electron-vite 打到 out/，渲染层依赖也已全部
-# 打包进 bundle，因此只需要带上 out/ 与 package.json。
+# 主进程与 preload 的产物已由 electron-vite 打到 out/，而且只 require
+# `electron` 与 `node:` 内置模块（其余依赖全部被打进 bundle），渲染层的依赖
+# 也同样在 bundle 里。因此包里只需要 out/ 与 package.json。
+#
+# `!node_modules/**` 是这个前提的兑现：electron-builder 默认会把
+# dependencies 一起塞进 asar，实测多出约 9 MB 永远不会被 require 的文件。
+# 代价是主进程 / preload 不能从 dependencies 里导入任何包 —— 否则
+# electron-vite 的 externalizeDepsPlugin 会把它变成运行时 require。
+# 这条约束由 tests/packaging-contract.test.ts 守着。
 files:
   - '!**/.vscode/*'
+  - '!node_modules/**'
   - '!src/**'
   - '!tests/**'
   - '!scripts/**'
   - '!assets/**'
   - '!vendor/**'
   - '!release/**'
+  - '!docs/**'
+  - '!.github/**'
   - '!electron.vite.config.{js,ts,mjs,cjs}'
   - '!vitest.config.{js,ts,mjs,cjs}'
   - '!eslint.config.mjs'
   - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
-  - '!{.gitignore,.gitattributes,.prettierignore,.prettierrc.json,.eslintcache}'
+  - '!{.gitignore,.gitattributes,.gitmodules,.editorconfig,.prettierignore,.prettierrc.json,.eslintcache}'
   - '!{README.md,package-lock.json}'
 
 # 项目没有原生模块，跳过重建可以显著加快打包。
@@ -35,7 +45,7 @@ npmRebuild: false
 
 win:
   # electron-builder 会把 SVG 光栅化成多尺寸 .ico 再写入 exe（已实测生效）。
-  # 来源与署名见 assets/calendar-author.txt 与 README「许可」。
+  # 来源与署名见 assets/calendar-author.txt 与 docs/licensing.md。
   icon: assets/calendar.svg
   target:
     - target: portable
