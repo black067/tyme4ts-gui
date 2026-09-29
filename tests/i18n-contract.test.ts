@@ -16,7 +16,7 @@
  * 扫描范围刻意包含注释：注释里的中文不是缺陷，但把它排除在外需要解析语法，
  * 而这条测试的目的只是"防增长"，把注释一起计入反而更严格、也更简单。
  */
-import { readFileSync, readdirSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { join, relative, sep } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_LOCALE, LOCALES } from '../src/shared/ipc'
@@ -131,10 +131,13 @@ describe('渲染层硬编码中文只减不增', () => {
     expect(grown).toEqual([])
   })
 
-  it('基线里的文件都还在', () => {
-    // 文件被删除或改名时，基线会成为永不生效的死条目；提醒重新生成。
-    const missing = Object.keys(baseline).filter((file) => !current.has(file))
-    expect(missing).toEqual([])
+  it('基线里的文件都还在（彻底清干净的不算）', () => {
+    // 一个文件被完全抽干时它会从扫描结果里消失，那是好事，不是错误。
+    // 只有文件真的被删除或改名才该失败——否则基线会留下永不生效的死条目。
+    const vanished = Object.keys(baseline).filter((file) => !current.has(file))
+    const stillMissing = vanished.filter((file) => !existsSync(join(ROOT, file)))
+
+    expect(stillMissing).toEqual([])
   })
 
   it('基线本身有内容', () => {

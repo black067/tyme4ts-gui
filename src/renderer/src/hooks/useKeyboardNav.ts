@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import type { ViewId } from '@shared/ipc'
+import type { Messages } from '@renderer/i18n'
 
 export interface KeyboardNavHandlers {
   /** Arrow keys: ±1 day, ±7 days. */
@@ -103,13 +104,21 @@ export interface ShortcutDoc {
   label: string
 }
 
-export const SHORTCUTS: readonly ShortcutDoc[] = [
-  { keys: '← / →', label: '前一天 / 后一天' },
-  { keys: '↑ / ↓', label: '前一周 / 后一周' },
-  { keys: 'PgUp / PgDn', label: '前一个月 / 后一个月' },
-  { keys: 'Shift + PgUp / PgDn', label: '前一年 / 后一年' },
-  { keys: 'T', label: '回到今天' },
-  { keys: 'Alt + 1…4', label: '切换月 / 年 / 时间轴 / 工具' },
-  { keys: '?', label: '显示或隐藏本说明' },
-  { keys: 'Esc', label: '关闭说明' }
-]
+/**
+ * 快捷键说明的文案。
+ *
+ * 参数是文案集合而非 locale：这一层不认识语言，只负责把键位与说明配起来。
+ * 做成函数而不是模块级常量，是因为常量在 import 时冻结，切换语言后不会更新。
+ */
+export function shortcutDocs(t: Messages): readonly ShortcutDoc[] {
+  return [
+    { keys: '← / →', label: t.shortcuts.items.shiftDay },
+    { keys: '↑ / ↓', label: t.shortcuts.items.shiftWeek },
+    { keys: 'PgUp / PgDn', label: t.shortcuts.items.shiftMonth },
+    { keys: 'Shift + PgUp / PgDn', label: t.shortcuts.items.shiftYear },
+    { keys: 'T', label: t.shortcuts.items.goToday },
+    { keys: 'Alt + 1…4', label: t.shortcuts.items.switchView },
+    { keys: '?', label: t.shortcuts.items.toggleHelp },
+    { keys: 'Esc', label: t.shortcuts.items.closeHelp }
+  ]
+}

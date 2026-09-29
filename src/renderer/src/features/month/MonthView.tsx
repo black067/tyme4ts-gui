@@ -8,6 +8,7 @@ import {
   type DateKey,
   type DaySummary
 } from '@core'
+import { useMessages } from '@renderer/i18n'
 import { DayCell } from './DayCell'
 import './month-view.css'
 
@@ -30,6 +31,7 @@ export function MonthView({
   weekStartsOnMonday,
   onSelect
 }: MonthViewProps): ReactElement {
+  const t = useMessages()
   const grid = useMemo(
     () => buildMonthGrid(selected.year, selected.month, { weekStartsOnMonday }),
     [selected.year, selected.month, weekStartsOnMonday]
@@ -43,20 +45,28 @@ export function MonthView({
     return chunks
   }, [grid.cells])
 
-  const columns = weekdayOrder(weekStartsOnMonday)
+  // Weekend shading keys off the weekday index, not the rendered label: the
+  // labels come from the engine and would silently stop matching if they ever
+  // changed. `weekdayOrder` yields columns in display order, so a column's
+  // weekday index depends on which day the week starts on — Sunday is 0 when
+  // the week starts on Sunday, and 6 when it starts on Monday.
+  const columns = weekdayOrder(weekStartsOnMonday).map((label, columnIndex) => {
+    const weekdayIndex = weekStartsOnMonday ? (columnIndex + 1) % 7 : columnIndex
+    return { label, isWeekend: weekdayIndex === 0 || weekdayIndex === 6 }
+  })
   const monthPrefix = `${String(selected.year).padStart(4, '0')}-${String(selected.month).padStart(2, '0')}`
 
   const handleSelect = (summary: DaySummary): void => onSelect(summary.key)
 
   return (
-    <section className="month-view" aria-label="月视图">
+    <section className="month-view" aria-label={t.month.title}>
       <header className="month-view__toolbar">
         <div className="month-view__nav">
           <button
             type="button"
             className="icon-button"
             onClick={() => onSelect(addMonths(selected, -1))}
-            aria-label="上一个月"
+            aria-label={t.month.prevMonth}
           >
             ‹
           </button>
@@ -64,7 +74,7 @@ export function MonthView({
             type="button"
             className="icon-button"
             onClick={() => onSelect(addMonths(selected, 1))}
-            aria-label="下一个月"
+            aria-label={t.month.nextMonth}
           >
             ›
           </button>
@@ -78,21 +88,17 @@ export function MonthView({
           onClick={() => onSelect(today)}
           disabled={dateKeyEquals(selected, today)}
         >
-          回到今天
+          {t.month.goToday}
         </button>
       </header>
 
       <div className="month-view__weekdays" aria-hidden="true">
-        {columns.map((label) => (
+        {columns.map((column) => (
           <span
-            key={label}
-            className={
-              label === '日' || label === '六'
-                ? 'month-view__weekday is-weekend'
-                : 'month-view__weekday'
-            }
+            key={column.label}
+            className={column.isWeekend ? 'month-view__weekday is-weekend' : 'month-view__weekday'}
           >
-            {label}
+            {column.label}
           </span>
         ))}
       </div>
@@ -100,7 +106,11 @@ export function MonthView({
       <div
         className="month-view__grid"
         role="grid"
-        aria-label={`${grid.year}年${grid.month}月，共 ${rows.length} 周`}
+        aria-label={t.month.gridLabel({
+          year: grid.year,
+          month: grid.month,
+          weeks: rows.length
+        })}
       >
         {rows.map((row, rowIndex) => (
           <div key={rowIndex} className="month-view__row" role="row">

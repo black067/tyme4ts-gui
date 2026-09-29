@@ -23,7 +23,7 @@ import { YearView } from './features/year/YearView'
 import { TimelineView } from './features/timeline/TimelineView'
 import { ToolsView } from './features/tools/ToolsView'
 import { DayPanel } from './features/day/DayPanel'
-import { SHORTCUTS, useKeyboardNav, type KeyboardNavHandlers } from './hooks/useKeyboardNav'
+import { shortcutDocs, useKeyboardNav, type KeyboardNavHandlers } from './hooks/useKeyboardNav'
 import './styles/global.css'
 
 /** `day` is not a tab: the day detail is always visible as the side panel. */
@@ -167,6 +167,8 @@ function AppShell(): ReactElement {
     [t]
   )
 
+  const shortcuts = useMemo(() => shortcutDocs(t), [t])
+
   return (
     <div className="app-shell">
       <header className="app-header">
@@ -207,7 +209,7 @@ function AppShell(): ReactElement {
       {showShortcuts ? (
         <section className="shortcuts" aria-label={t.shortcuts.label}>
           <dl className="shortcuts__list">
-            {SHORTCUTS.map((shortcut) => (
+            {shortcuts.map((shortcut) => (
               <div key={shortcut.keys} className="shortcuts__item">
                 <dt>
                   <kbd>{shortcut.keys}</kbd>

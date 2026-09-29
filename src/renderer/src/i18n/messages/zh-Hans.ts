@@ -42,7 +42,90 @@ export const zhHans = {
 
   shortcuts: {
     /** 快捷键面板的区域名称，兼作无障碍标签。 */
-    label: '键盘快捷键'
+    label: '键盘快捷键',
+    items: {
+      shiftDay: '前一天 / 后一天',
+      shiftWeek: '前一周 / 后一周',
+      shiftMonth: '前一个月 / 后一个月',
+      shiftYear: '前一年 / 后一年',
+      goToday: '回到今天',
+      switchView: '切换月 / 年 / 时间轴 / 工具',
+      toggleHelp: '显示或隐藏本说明',
+      closeHelp: '关闭说明'
+    }
+  },
+
+  dayCell: {
+    /** 法定节假日的角标：调休上班。 */
+    workBadge: '班',
+    /** 法定节假日的角标：放假。 */
+    restBadge: '休'
+  },
+
+  year: {
+    /** 年视图的区域名称。 */
+    title: '年视图',
+    prevYear: '上一年',
+    nextYear: '下一年',
+    goThisYear: '回到今年',
+    /** 年标题，如「2024年」。 */
+    heading: ({ year }: { year: number }): string => `${year}年`,
+    /** 全年天数。 */
+    dayCount: ({ days }: { days: number }): string => `共 ${days} 天`,
+    /** 缩略月标题，如「6月」。 */
+    monthHeading: ({ month }: { month: number }): string => `${month}月`,
+    /** 缩略月的无障碍名称与展开按钮。 */
+    monthLabel: ({ year, month }: { year: number; month: number }): string => `${year}年${month}月`,
+    openMonth: '展开',
+    openMonthLabel: ({ year, month }: { year: number; month: number }): string =>
+      `在月视图中打开${year}年${month}月`,
+    /** 日期展示，如「6月26日」。 */
+    monthDay: ({ month, day }: { month: number; day: number }): string => `${month}月${day}日`,
+    terms: '二十四节气',
+    holidays: '法定假日',
+    /**
+     * 该年份没有内置节假日数据时的说明。
+     *
+     * 刻意不写出具体覆盖区间：区间随后续的在线数据更新而变，写进文案就一定会过期，
+     * 而且这条提示只在引擎表没有该年数据时出现。覆盖范围见 data-boundaries.md。
+     */
+    noHolidayData: 'tyme4ts 内置的法定假日数据不覆盖该年份。',
+    /** 假期统计角标：休 / 班。 */
+    holidayBadge: ({ rest, work }: { rest: number; work: number }): string =>
+      `休 ${rest} 天 · 班 ${work} 天`,
+    /** 假期列表条目角标。 */
+    workBadge: '班',
+    restBadge: '休'
+  },
+
+  month: {
+    /** 月视图的区域名称。 */
+    title: '月视图',
+    prevMonth: '上一个月',
+    nextMonth: '下一个月',
+    goToday: '回到今天',
+    /** 月标题，如「2024年6月」。 */
+    heading: ({ year, month }: { year: number; month: number }): string => `${year}年${month}月`,
+    /** 网格的无障碍标签。 */
+    gridLabel: ({ year, month, weeks }: { year: number; month: number; weeks: number }): string =>
+      `${year}年${month}月，共 ${weeks} 周`
+  },
+
+  timeline: {
+    /** 时间轴视图的区域名称，兼作标题。 */
+    title: '时间轴',
+    /** 日期行：月份 + 星期。 */
+    monthWithWeekday: ({ month, weekday }: { month: number; weekday: string }): string =>
+      `${month}月 · 星期${weekday}`,
+    /** 假期标签后缀：调休上班 / 放假。 */
+    holidayWork: '(班)',
+    holidayRest: '(休)',
+    /** 黄历两行的行首标签。 */
+    recommends: '宜',
+    avoids: '忌',
+    /** 工具栏：窗口起点与跨度。 */
+    span: ({ from, days }: { from: string; days: number }): string => `${from} 起 · 共 ${days} 天`,
+    goToday: '回到今天'
   },
 
   glossary: {
@@ -106,7 +189,14 @@ export const zhHans = {
 
     thirdParty: {
       title: '第三方许可',
-      description: '本应用基于以下开源项目与资产构建。'
+      description: '本应用基于以下开源项目与资产构建。',
+      usage: {
+        tyme4ts: '全部历法、节假日与黄历数据（公历 / 农历 / 藏历 / 回历 / 节气 / 宜忌 / 八字）',
+        electron: '桌面应用运行时（Chromium + Node.js）',
+        react: '界面渲染',
+        tanstackVirtual: '时间轴视图的虚拟滚动',
+        electronToolkit: '主进程开发期辅助（开发者快捷键等）'
+      }
     },
 
     assets: {
@@ -116,7 +206,10 @@ export const zhHans = {
       licenceSeeSource: '来源授权见下',
       authorLabel: '作者',
       licenceLabel: '许可',
-      fileLabel: '文件'
+      fileLabel: '文件',
+      names: {
+        calendarIcon: '应用图标（日历）'
+      }
     },
 
     runtime: {

@@ -11,6 +11,7 @@ import {
 } from 'react'
 import { createPortal } from 'react-dom'
 import { GLOSSARY, lookupTerm, type GlossaryFamily } from '@core'
+import { useMessages } from '@renderer/i18n'
 import { useSettings } from '@renderer/state/settings-context'
 import { cx } from './cx'
 import {
@@ -111,6 +112,7 @@ function place(anchor: HTMLElement, width: number, height: number): Placement {
  */
 function TermTipLayer(): ReactElement | null {
   const { active, close } = useTermTip()
+  const t = useMessages()
   const boxRef = useRef<HTMLDivElement>(null)
 
   useLayoutEffect(() => {
@@ -172,7 +174,7 @@ function TermTipLayer(): ReactElement | null {
         </>
       ) : (
         <>
-          <p className="term-tip__summary term-tip__summary--missing">暂无释义</p>
+          <p className="term-tip__summary term-tip__summary--missing">{t.glossary.missing}</p>
           <p className="term-tip__reason">{active.lookup.note.reason}</p>
           {active.lookup.note.source ? (
             <p className="term-tip__source">{active.lookup.note.source}</p>
@@ -182,7 +184,7 @@ function TermTipLayer(): ReactElement | null {
 
       {pinned ? (
         <button type="button" className="term-tip__close" onClick={close}>
-          关闭
+          {t.glossary.close}
         </button>
       ) : null}
     </div>,

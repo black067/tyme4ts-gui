@@ -192,7 +192,7 @@ export function SettingsView({ onClose }: { onClose: () => void }): ReactElement
                   <span className="credit__name">{entry.name}</span>
                   <span className="credit__licence">{entry.licence}</span>
                 </div>
-                <p className="credit__usage">{entry.usage}</p>
+                <p className="credit__usage">{t.settings.thirdParty.usage[entry.usageKey]}</p>
                 <a
                   className="credit__link"
                   href={entry.homepage}
@@ -211,7 +211,7 @@ export function SettingsView({ onClose }: { onClose: () => void }): ReactElement
             {ASSET_CREDITS.map((credit) => (
               <li key={credit.path} className="credit">
                 <div className="credit__head">
-                  <span className="credit__name">{credit.name}</span>
+                  <span className="credit__name">{t.settings.assets.names[credit.nameKey]}</span>
                   <span className="credit__licence">{t.settings.assets.licenceSeeSource}</span>
                 </div>
                 <p className="credit__usage">
