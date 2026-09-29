@@ -21,6 +21,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@tanstack/react-virtual": "^3.14.13",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "tyme4ts": "1.5.2"

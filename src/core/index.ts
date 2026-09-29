@@ -15,6 +15,7 @@ export {
   compareDateKey,
   dateKeyEquals,
   daysInMonth,
+  daysInYear,
   formatSolarDate,
   fromIsoDate,
   isLeapYear,
@@ -30,7 +31,18 @@ export { createLruCache, type LruCache } from './cache'
 
 export { buildDayInfo, buildDaySummary, clearDayCaches } from './day'
 
-export { buildMonthGrid, monthBounds } from './month'
+export { buildMonthGrid, monthBounds, monthGridShape, type MonthGridShape } from './month'
+
+export {
+  buildDayRange,
+  buildYearInfo,
+  clearYearCache,
+  type YearFestivalEntry,
+  type YearHolidayEntry,
+  type YearInfo,
+  type YearMonth,
+  type YearTermEntry
+} from './year'
 
 export {
   WEEKDAY_LABELS,

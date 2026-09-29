@@ -29,6 +29,15 @@ export function daysInMonth(year: number, month: number): number {
 }
 
 /**
+ * Days in the year, accounting for the ten days the Gregorian reform removed:
+ * 1582 really has 355 days.
+ */
+export function daysInYear(year: number): number {
+  const base = isLeapYear(year) ? 366 : 365
+  return year === 1582 ? base - 10 : base
+}
+
+/**
  * True when `key` is a real date inside tyme4ts's supported range. `SolarDay`
  * throws for illegal dates, so every entry point validates before converting.
  */
