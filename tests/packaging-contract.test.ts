@@ -10,7 +10,14 @@
  *
  * Catching it here rather than at packaging time matters because packaging only
  * happens on a release tag, long after the change has landed.
+ *
+ * The artefact check builds the bundles itself when they are absent. An earlier
+ * version of this file asserted that `out/` already existed, which passed on a
+ * machine where something had built before and failed on a clean checkout — an
+ * environment-dependent test that reported green while proving nothing. Building
+ * on demand makes the result independent of who ran what first.
  */
+import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { join, relative, sep } from 'node:path'
 import { describe, expect, it } from 'vitest'
@@ -91,18 +98,46 @@ describe('the built bundles carry no runtime node_modules', () => {
   const MAIN_BUNDLE = join(ROOT, 'out', 'main', 'index.js')
   const PRELOAD_BUNDLE = join(ROOT, 'out', 'preload', 'index.js')
 
-  it('has a build to inspect', () => {
-    // Deliberately an assertion, not a skip: a silently skipped check is worse
-    // than no check, because it reads as a pass. `release.yml` builds before it
-    // tests, so the gate always has a bundle to look at.
-    expect(
-      existsSync(MAIN_BUNDLE),
-      'out/main/index.js is missing — run `npm run build` before the packaging contract'
-    ).toBe(true)
-    expect(existsSync(PRELOAD_BUNDLE)).toBe(true)
-  })
+  /**
+   * Builds the bundles when they are not there yet.
+   *
+   * Runs once for the whole file. Reusing an existing `out/` when one happens to
+   * be present is deliberate — the check is then free — but the result no longer
+   * *depends* on one existing, which is what made an earlier version of this file
+   * pass locally and fail on a clean checkout.
+   */
+  let built = false
+  function ensureBuilt(): void {
+    if (built) return
+    if (!existsSync(MAIN_BUNDLE) || !existsSync(PRELOAD_BUNDLE)) {
+      execFileSync('npm', ['run', 'build'], { cwd: ROOT, stdio: 'pipe', shell: true })
+    }
+    built = true
+  }
+
+  /**
+   * A full electron-vite build takes a few seconds, well past vitest's 5s
+   * default. Only paid when `out/` is absent; a normal dev loop already has it.
+   */
+  const BUILD_TIMEOUT_MS = 120_000
+
+  it(
+    'produces a main bundle and a preload bundle to inspect',
+    () => {
+      ensureBuilt()
+
+      // If the build silently produced nothing, every assertion below would be
+      // vacuous, so this one failing loudly is the point.
+      expect(existsSync(MAIN_BUNDLE), 'npm run build produced no out/main/index.js').toBe(true)
+      expect(existsSync(PRELOAD_BUNDLE), 'npm run build produced no out/preload/index.js').toBe(
+        true
+      )
+    },
+    BUILD_TIMEOUT_MS
+  )
 
   it('requires only electron and Node builtins from the main bundle', () => {
+    ensureBuilt()
     const offenders = bundleRequires(readFileSync(MAIN_BUNDLE, 'utf8')).filter(
       (specifier) => !isRuntimeProvided(specifier)
     )
@@ -113,6 +148,7 @@ describe('the built bundles carry no runtime node_modules', () => {
   })
 
   it('requires only electron from the preload bundle', () => {
+    ensureBuilt()
     const offenders = bundleRequires(readFileSync(PRELOAD_BUNDLE, 'utf8')).filter(
       (specifier) => !isRuntimeProvided(specifier)
     )
