@@ -17,6 +17,7 @@ import { SettingsBar } from './features/settings/SettingsBar'
 import { MonthView } from './features/month/MonthView'
 import { YearView } from './features/year/YearView'
 import { TimelineView } from './features/timeline/TimelineView'
+import { ToolsView } from './features/tools/ToolsView'
 import { DayPanel } from './features/day/DayPanel'
 import './styles/global.css'
 
@@ -24,7 +25,8 @@ import './styles/global.css'
 const TABS: readonly ViewTab[] = [
   { id: 'month', label: '月视图' },
   { id: 'year', label: '年视图' },
-  { id: 'timeline', label: '时间轴' }
+  { id: 'timeline', label: '时间轴' },
+  { id: 'tools', label: '工具' }
 ]
 
 function initialView(stored: ViewId): ViewId {
@@ -130,6 +132,8 @@ function AppShell(): ReactElement {
             />
           ) : view === 'timeline' ? (
             <TimelineView selected={selected} today={today} onSelect={select} />
+          ) : view === 'tools' ? (
+            <ToolsView selected={selected} onSelect={select} onOpenMonth={openMonth} />
           ) : (
             <MonthView
               selected={selected}

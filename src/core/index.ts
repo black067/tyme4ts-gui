@@ -34,6 +34,33 @@ export { buildDayInfo, buildDaySummary, clearDayCaches } from './day'
 export { buildMonthGrid, monthBounds, monthGridShape, type MonthGridShape } from './month'
 
 export {
+  RAB_BYUNG_MAX_YEAR,
+  RAB_BYUNG_MIN_YEAR,
+  convert,
+  type CalendarInput,
+  type CalendarKind,
+  type ConversionOutcome,
+  type ConversionResult
+} from './convert'
+
+export {
+  SEARCH_DEFAULT_LIMIT,
+  SEARCH_MAX_DAYS,
+  searchDays,
+  searchSpanDays,
+  type SearchFilter,
+  type SearchHit,
+  type SearchResult
+} from './search'
+
+export {
+  ALL_TABOO_ITEMS,
+  COMMON_AVOID_ITEMS,
+  COMMON_TABOO_ITEMS,
+  SOLAR_TERM_NAMES
+} from './vocabulary'
+
+export {
   buildDayRange,
   buildYearInfo,
   clearYearCache,
