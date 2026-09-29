@@ -90,7 +90,11 @@ function buildFacts(info: DayInfo, t: Messages): RowSpec[] {
   return [
     [f.ganzhi, pillar ? `${pillar.year} ${pillar.month} ${pillar.day}` : null, undefined],
     [f.sound, pillar?.daySound ?? null, undefined],
-    [f.element, pillar?.dayElement ?? null, undefined],
+    [
+      f.element,
+      pillar?.dayElement ?? null,
+      pillar?.dayElement ? { family: 'fiveElement', name: pillar.dayElement } : undefined
+    ],
     [f.zodiac, info.lunar.zodiac, undefined],
     [f.constellation, info.constellation, undefined],
     [f.phase, info.phase, info.phase ? { family: 'phase', name: info.phase } : undefined]

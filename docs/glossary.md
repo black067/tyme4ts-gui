@@ -64,18 +64,19 @@
 
 ## 覆盖范围
 
-| 家族         | 界面位置               | basis    |
-| ------------ | ---------------------- | -------- |
-| `god`        | 日详情「吉神凶煞」     | xieji    |
-| `duty`       | 日详情「建除」         | xieji    |
-| `twelveStar` | 日详情「十二神」       | xieji    |
-| `star28`     | 日详情「二十八宿」     | xieji    |
-| `phase`      | 日详情「月相」         | common   |
-| `term`       | 节气标签、年视图节气表 | common   |
-| `taboo`      | 日详情「宜」「忌」     | authored |
-| `nineStar`   | 日详情「九星」         | none     |
-| `sixStar`    | 日详情「六曜」         | none     |
-| `minorRen`   | 日详情「小六壬」       | none     |
+| 家族          | 界面位置               | basis    |
+| ------------- | ---------------------- | -------- |
+| `god`         | 日详情「吉神凶煞」     | xieji    |
+| `duty`        | 日详情「建除」         | xieji    |
+| `twelveStar`  | 日详情「十二神」       | xieji    |
+| `star28`      | 日详情「二十八宿」     | xieji    |
+| `phase`       | 日详情「月相」         | common   |
+| `term`        | 节气标签、年视图节气表 | common   |
+| `fiveElement` | 日详情「五行」         | xieji    |
+| `taboo`       | 日详情「宜」「忌」     | authored |
+| `nineStar`    | 日详情「九星」         | none     |
+| `sixStar`     | 日详情「六曜」         | none     |
+| `minorRen`    | 日详情「小六壬」       | none     |
 
 **释义 + 缺口 = 引擎全部名单**，一个不多一个不少。这条由契约测试断言：任何名字被悄悄漏掉（悬停无反应），或写错字写成引擎不认识的名字，都会失败。
 

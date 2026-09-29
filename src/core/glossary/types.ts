@@ -14,6 +14,7 @@ export type GlossaryFamily =
   | 'star28'
   | 'phase'
   | 'term'
+  | 'fiveElement'
   | 'nineStar'
   | 'sixStar'
   | 'minorRen'

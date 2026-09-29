@@ -19,6 +19,7 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
   Duty,
+  Element,
   God,
   MinorRen,
   NineStar,
@@ -50,6 +51,7 @@ const ENGINE_NAMES: Readonly<Record<GlossaryFamily, readonly string[]>> = {
   star28: TwentyEightStar.NAMES,
   phase: Phase.NAMES,
   term: SolarTerm.NAMES,
+  fiveElement: Element.NAMES,
   nineStar: NINE_STAR_NAMES,
   sixStar: SixStar.NAMES,
   minorRen: MinorRen.NAMES,

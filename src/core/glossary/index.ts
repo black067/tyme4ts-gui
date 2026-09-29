@@ -15,6 +15,7 @@ import type {
   TermLookup
 } from './types'
 import { DUTY_ENTRIES } from './texts/duty'
+import { FIVE_ELEMENT_ENTRIES } from './texts/elements'
 import { GOD_ENTRIES } from './texts/gods'
 import { PHASE_ENTRIES } from './texts/phase'
 import { STAR28_ENTRIES } from './texts/star28'
@@ -85,6 +86,15 @@ export const GLOSSARY: Readonly<Record<GlossaryFamily, GlossaryFamilyData>> = {
     entries: TERM_ENTRIES,
     gaps: {}
   },
+  fiveElement: {
+    label: '五行',
+    // 引文取自卷一「本原一」的「五行」一节，逐字可验；但古籍不为单个字下定义句，
+    // 所以各条的时令方位是通行配属，不是原文训诂——rationale 里说明这一点。
+    basis: 'xieji',
+    fixture: XIEJI_FIXTURE,
+    entries: FIVE_ELEMENT_ENTRIES,
+    gaps: {}
+  },
   nineStar: {
     label: '九星',
     basis: 'none',
@@ -122,6 +132,7 @@ export const GLOSSARY_FAMILIES: readonly GlossaryFamily[] = [
   'star28',
   'phase',
   'term',
+  'fiveElement',
   'nineStar',
   'sixStar',
   'minorRen',
