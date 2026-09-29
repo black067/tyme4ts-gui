@@ -15,6 +15,8 @@ export type GlossaryFamily =
   | 'phase'
   | 'term'
   | 'fiveElement'
+  | 'heavenStem'
+  | 'earthBranch'
   | 'nineStar'
   | 'sixStar'
   | 'minorRen'

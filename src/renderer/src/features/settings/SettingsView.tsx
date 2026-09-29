@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactElement } from 'react'
 import { LOCALES, type AppearanceMode, type AppInfo, type Locale, type ViewId } from '@shared/ipc'
 import { SegmentedControl, type SegmentedOption } from '@renderer/components/SegmentedControl'
 import { Toggle } from '@renderer/components/Toggle'
-import { useMessages, type ThemeNameKey } from '@renderer/i18n'
+import { useMessages, type Messages, type ThemeNameKey } from '@renderer/i18n'
 import { UpdateSection } from '@renderer/features/updates/UpdateSection'
 import { HolidaySection } from '@renderer/features/holidays/HolidaySection'
 import { useSettings } from '@renderer/state/settings-context'
@@ -11,17 +11,19 @@ import { THEMES } from '@renderer/theme/themes'
 import { ASSET_CREDITS, THIRD_PARTY } from './third-party'
 import './settings-view.css'
 
-const APPEARANCE_OPTIONS: readonly SegmentedOption<AppearanceMode>[] = [
-  { value: 'system', label: '跟随系统' },
-  { value: 'light', label: '浅色' },
-  { value: 'dark', label: '深色' }
+// 选项文案做成 t 的函数而不是模块级常量：常量在 import 时求值，
+// 切换语言后不会更新。
+const appearanceOptions = (t: Messages): readonly SegmentedOption<AppearanceMode>[] => [
+  { value: 'system', label: t.settings.appearance.system },
+  { value: 'light', label: t.settings.appearance.light },
+  { value: 'dark', label: t.settings.appearance.dark }
 ]
 
-const START_VIEW_OPTIONS: readonly SegmentedOption<ViewId>[] = [
-  { value: 'month', label: '月视图' },
-  { value: 'year', label: '年视图' },
-  { value: 'timeline', label: '时间轴' },
-  { value: 'tools', label: '工具' }
+const startViewOptions = (t: Messages): readonly SegmentedOption<ViewId>[] => [
+  { value: 'month', label: t.nav.month },
+  { value: 'year', label: t.nav.year },
+  { value: 'timeline', label: t.nav.timeline },
+  { value: 'tools', label: t.nav.tools }
 ]
 
 function Section({
@@ -112,7 +114,7 @@ export function SettingsView({ onClose }: { onClose: () => void }): ReactElement
             <SegmentedControl
               label=""
               value={settings.appearance}
-              options={APPEARANCE_OPTIONS}
+              options={appearanceOptions(t)}
               onChange={(appearance) => update({ appearance })}
             />
           </div>
@@ -162,7 +164,7 @@ export function SettingsView({ onClose }: { onClose: () => void }): ReactElement
             <SegmentedControl
               label=""
               value={settings.defaultView}
-              options={START_VIEW_OPTIONS}
+              options={startViewOptions(t)}
               onChange={(defaultView) => update({ defaultView })}
             />
           </div>

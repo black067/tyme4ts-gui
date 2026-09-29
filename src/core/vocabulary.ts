@@ -1,4 +1,4 @@
-import { SolarTerm, Taboo } from 'tyme4ts'
+import { EarthBranch, HeavenStem, SolarTerm, Taboo } from 'tyme4ts'
 
 /**
  * The almanac vocabulary the tools let users pick from.
@@ -10,6 +10,15 @@ import { SolarTerm, Taboo } from 'tyme4ts'
 
 /** Every 宜/忌 item tyme4ts knows about. */
 export const ALL_TABOO_ITEMS: readonly string[] = Taboo.NAMES
+
+/**
+ * 十干与十二支。
+ *
+ * 界面按字把干支串拆开挂术语浮层（`GanzhiText`），需要能判断某个字是干还是支；
+ * 从引擎的表派生而不是手抄，理由同上面：引擎改名时这里会跟着变，不会静默失配。
+ */
+export const HEAVEN_STEMS: ReadonlySet<string> = new Set(HeavenStem.NAMES)
+export const EARTH_BRANCHES: ReadonlySet<string> = new Set(EarthBranch.NAMES)
 
 /** The items offered first in the picker — the ones people actually search for. */
 export const COMMON_TABOO_ITEMS: readonly string[] = [

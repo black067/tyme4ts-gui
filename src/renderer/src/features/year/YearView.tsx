@@ -196,6 +196,7 @@ export function YearView({
   onSelect,
   onOpenMonth
 }: YearViewProps): ReactElement {
+  const t = useMessages()
   const year = useMemo(
     () => buildYearInfo(selected.year, { weekStartsOnMonday }),
     [selected.year, weekStartsOnMonday]
@@ -208,14 +209,14 @@ export function YearView({
   }
 
   return (
-    <section className="year-view" aria-label="年视图">
+    <section className="year-view" aria-label={t.year.title}>
       <header className="year-view__toolbar">
         <div className="month-view__nav">
           <button
             type="button"
             className="icon-button"
             onClick={() => shiftYear(-1)}
-            aria-label="上一年"
+            aria-label={t.year.prevYear}
           >
             ‹
           </button>
@@ -223,20 +224,20 @@ export function YearView({
             type="button"
             className="icon-button"
             onClick={() => shiftYear(1)}
-            aria-label="下一年"
+            aria-label={t.year.nextYear}
           >
             ›
           </button>
         </div>
-        <h2 className="year-view__title">{year.year}年</h2>
-        <span className="year-view__meta">共 {year.dayCount} 天</span>
+        <h2 className="year-view__title">{t.year.heading({ year: year.year })}</h2>
+        <span className="year-view__meta">{t.year.dayCount({ days: year.dayCount })}</span>
         <button
           type="button"
           className="text-button"
           onClick={() => onSelect(today)}
           disabled={selected.year === today.year}
         >
-          回到今年
+          {t.year.goThisYear}
         </button>
       </header>
 

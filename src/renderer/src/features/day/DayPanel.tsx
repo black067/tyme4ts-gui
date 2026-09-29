@@ -8,6 +8,7 @@ import {
   type GlossaryFamily
 } from '@core'
 import { TermTip } from '@renderer/components/TermTip'
+import { GanzhiText } from '@renderer/components/GanzhiText'
 import { useMessages, type Messages } from '@renderer/i18n'
 import { useSettings } from '@renderer/state/settings-context'
 import './day-panel.css'
@@ -23,30 +24,44 @@ interface TermRef {
 }
 
 /** 一个标签/值 + 它的术语家族。`value` 为空表示引擎推不出来，整行不渲染。 */
-type RowSpec = [label: string, value: string | null, term: TermRef | undefined]
+type RowSpec = [
+  label: string,
+  value: string | null,
+  term: TermRef | undefined,
+  /**
+   * 自定义值内容，覆盖 `value` 的纯文本渲染。
+   *
+   * 用于一个值里含多个术语的情形——目前只有干支：它要逐字挂浮层，而 `term`
+   * 只能带一个名字。省略时按 `value` 渲染。
+   */
+  content?: ReactNode
+]
 
 /** A label/value line. Renders nothing when the engine could not derive a value. */
 function Row({
   label,
   value,
-  term
+  term,
+  content
 }: {
   label: string
   value: string | null | undefined
   term?: TermRef
+  content?: ReactNode
 }): ReactElement | null {
   if (!value) return null
   return (
     <div className="almanac-row">
       <dt>{label}</dt>
       <dd>
-        {term ? (
-          <TermTip family={term.family} name={term.name}>
-            {value}
-          </TermTip>
-        ) : (
-          value
-        )}
+        {content ??
+          (term ? (
+            <TermTip family={term.family} name={term.name}>
+              {value}
+            </TermTip>
+          ) : (
+            value
+          ))}
       </dd>
     </div>
   )
@@ -88,7 +103,13 @@ function buildFacts(info: DayInfo, t: Messages): RowSpec[] {
   const f = t.dayPanel.facts
   const pillar = info.ganzhi
   return [
-    [f.ganzhi, pillar ? `${pillar.year} ${pillar.month} ${pillar.day}` : null, undefined],
+    [
+      f.ganzhi,
+      pillar ? `${pillar.year} ${pillar.month} ${pillar.day}` : null,
+      undefined,
+      // 干支整串没有「整体释义」，含义来自干与支各自的训诂，所以逐字挂浮层。
+      pillar ? <GanzhiText value={`${pillar.year} ${pillar.month} ${pillar.day}`} /> : undefined
+    ],
     [f.sound, pillar?.daySound ?? null, undefined],
     [
       f.element,
@@ -192,8 +213,8 @@ export function DayPanel({ selected }: DayPanelProps): ReactElement {
       ) : null}
 
       <dl className="almanac">
-        {buildFacts(info, t).map(([label, value, term]) => (
-          <Row key={label} label={label} value={value} term={term} />
+        {buildFacts(info, t).map(([label, value, term, content]) => (
+          <Row key={label} label={label} value={value} term={term} content={content} />
         ))}
       </dl>
 
@@ -213,8 +234,8 @@ export function DayPanel({ selected }: DayPanelProps): ReactElement {
 
           <Section title={t.dayPanel.almanac}>
             <dl className="almanac">
-              {buildAlmanacRows(info, t).map(([label, value, term]) => (
-                <Row key={label} label={label} value={value} term={term} />
+              {buildAlmanacRows(info, t).map(([label, value, term, content]) => (
+                <Row key={label} label={label} value={value} term={term} content={content} />
               ))}
             </dl>
           </Section>

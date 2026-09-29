@@ -21,6 +21,56 @@ const BASELINE = join(ROOT, 'tests', 'fixtures', 'i18n-contract', 'cjk-baseline.
 const SKIP_DIRS = new Set(['i18n', '__tests__', 'test'])
 const CJK = /[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]/
 
+/**
+ * 数「注释以外的代码行」里含汉字的行数。
+ *
+ * 注释里的中文不是待翻译的文案——它是给读代码的人看的，而且往往是刻意写中文的
+ * （本仓库的注释风格）。把注释算进来会让「加一段中文注释」也触发失败，那样这条
+ * 规则就会被人用加基线的方式绕过去，反而失去意义。
+ *
+ * 处理方式是逐行剥掉块注释与整行注释，再看剩下的代码里有没有汉字。字符串里的
+ * 中文照数——那才是要迁进文案目录的东西。
+ */
+function countCodeLines(source) {
+  let inBlock = false
+  let count = 0
+  for (const raw of source.split('\n')) {
+    let line = raw
+    let kept = ''
+
+    while (line.length > 0) {
+      if (inBlock) {
+        const end = line.indexOf('*/')
+        if (end === -1) {
+          line = ''
+          break
+        }
+        line = line.slice(end + 2)
+        inBlock = false
+        continue
+      }
+      const start = line.indexOf('/*')
+      const lineComment = line.indexOf('//')
+      if (lineComment !== -1 && (start === -1 || lineComment < start)) {
+        kept += line.slice(0, lineComment)
+        line = ''
+        break
+      }
+      if (start === -1) {
+        kept += line
+        line = ''
+        break
+      }
+      kept += line.slice(0, start)
+      line = line.slice(start + 2)
+      inBlock = true
+    }
+
+    if (CJK.test(kept)) count += 1
+  }
+  return count
+}
+
 /** 返回 `相对路径 → 含汉字行数`，按路径排序，便于 diff 稳定。 */
 function scan(dir) {
   const counts = new Map()
@@ -33,8 +83,7 @@ function scan(dir) {
     if (!entry.isFile() || !/\.tsx?$/.test(entry.name)) continue
 
     const file = join(dir, entry.name)
-    const lines = readFileSync(file, 'utf8').split('\n')
-    const hit = lines.filter((line) => CJK.test(line)).length
+    const hit = countCodeLines(readFileSync(file, 'utf8'))
     if (hit > 0) counts.set(relative(ROOT, file).split(sep).join('/'), hit)
   }
   return counts

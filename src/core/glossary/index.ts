@@ -15,8 +15,10 @@ import type {
   TermLookup
 } from './types'
 import { DUTY_ENTRIES } from './texts/duty'
+import { EARTH_BRANCH_ENTRIES } from './texts/earth-branch'
 import { FIVE_ELEMENT_ENTRIES } from './texts/elements'
 import { GOD_ENTRIES } from './texts/gods'
+import { HEAVEN_STEM_ENTRIES } from './texts/heaven-stem'
 import { PHASE_ENTRIES } from './texts/phase'
 import { STAR28_ENTRIES } from './texts/star28'
 import { TABOO_ENTRIES } from './texts/taboo'
@@ -89,10 +91,24 @@ export const GLOSSARY: Readonly<Record<GlossaryFamily, GlossaryFamilyData>> = {
   fiveElement: {
     label: '五行',
     // 引文取自卷一「本原一」的「五行」一节，逐字可验；但古籍不为单个字下定义句，
-    // 所以各条的时令方位是通行配属，不是原文训诂——rationale 里说明这一点。
+    // 所以各条的时令方位是通行配属，不是原文训诂——注释里说明这一点。
     basis: 'xieji',
     fixture: XIEJI_FIXTURE,
     entries: FIVE_ELEMENT_ENTRIES,
+    gaps: {}
+  },
+  heavenStem: {
+    label: '十干',
+    basis: 'xieji',
+    fixture: XIEJI_FIXTURE,
+    entries: HEAVEN_STEM_ENTRIES,
+    gaps: {}
+  },
+  earthBranch: {
+    label: '十二支',
+    basis: 'xieji',
+    fixture: XIEJI_FIXTURE,
+    entries: EARTH_BRANCH_ENTRIES,
     gaps: {}
   },
   nineStar: {
@@ -133,6 +149,8 @@ export const GLOSSARY_FAMILIES: readonly GlossaryFamily[] = [
   'phase',
   'term',
   'fiveElement',
+  'heavenStem',
+  'earthBranch',
   'nineStar',
   'sixStar',
   'minorRen',

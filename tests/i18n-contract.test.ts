@@ -32,6 +32,52 @@ const SKIP_DIRS = new Set(['i18n', '__tests__', 'test'])
 const CJK = /[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]/
 
 /**
+ * 数「注释以外的代码行」里含汉字的行数，口径与 `scripts/i18n/cjk-scan.mjs` 一致。
+ *
+ * 注释里的中文不算：那是给读代码的人看的，本仓库的注释本来就写中文；把注释算进来
+ * 会让「加一段中文注释」也失败，规则就会被人用加基线的方式绕过去。
+ */
+function countCodeLines(source: string): number {
+  let inBlock = false
+  let count = 0
+  for (const raw of source.split('\n')) {
+    let line = raw
+    let kept = ''
+
+    while (line.length > 0) {
+      if (inBlock) {
+        const end = line.indexOf('*/')
+        if (end === -1) {
+          line = ''
+          break
+        }
+        line = line.slice(end + 2)
+        inBlock = false
+        continue
+      }
+      const start = line.indexOf('/*')
+      const lineComment = line.indexOf('//')
+      if (lineComment !== -1 && (start === -1 || lineComment < start)) {
+        kept += line.slice(0, lineComment)
+        line = ''
+        break
+      }
+      if (start === -1) {
+        kept += line
+        line = ''
+        break
+      }
+      kept += line.slice(0, start)
+      line = line.slice(start + 2)
+      inBlock = true
+    }
+
+    if (CJK.test(kept)) count += 1
+  }
+  return count
+}
+
+/**
  * 把目录结构压成 `键路径 → 值` 的扁平表，用来比较不同语言目录的键集合。
  *
  * 函数与字符串都算"一个键"，因为两者的差别（是否需要参数）由 TypeScript 在
@@ -71,8 +117,7 @@ function scanCjk(root: string): Map<string, number> {
       if (!/\.tsx?$/.test(entry.name)) continue
 
       const file = join(dir, entry.name)
-      const lines = readFileSync(file, 'utf8').split('\n')
-      const hit = lines.filter((line) => CJK.test(line)).length
+      const hit = countCodeLines(readFileSync(file, 'utf8'))
       if (hit > 0) counts.set(relative(ROOT, file).split(sep).join('/'), hit)
     }
   }
@@ -140,7 +185,15 @@ describe('渲染层硬编码中文只减不增', () => {
     expect(stillMissing).toEqual([])
   })
 
-  it('基线本身有内容', () => {
-    expect(Object.keys(baseline).length).toBeGreaterThan(5)
+  it('扫描器数的是代码里的中文，不是注释里的', () => {
+    // 让上面几条断言不可能空转通过：如果扫描器把注释也算进去（或什么都不算），
+    // 「只减不增」要么会误报、要么永远通过。
+    expect(countCodeLines(`const a = '中文'`)).toBe(1)
+    expect(countCodeLines(`// 这是一行中文注释`)).toBe(0)
+    expect(countCodeLines(`/* 中文块注释 */`)).toBe(0)
+    expect(countCodeLines(`/**\n * 中文文档注释\n */`)).toBe(0)
+    expect(countCodeLines('const b = 1')).toBe(0)
+    // 注释在同一行、代码在后面时，仍要数到代码里的中文。
+    expect(countCodeLines(`/* 中文 */ const c = '中文'`)).toBe(1)
   })
 })
