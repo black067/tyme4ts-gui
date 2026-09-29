@@ -1,0 +1,16 @@
+# 编辑器基础约定。与 .gitattributes 的 `* text=auto eol=lf` 保持一致：
+# 仓库内所有文本文件统一 LF，避免 Prettier（endOfLine: lf）和 git 在 Windows
+# 上就换行符反复互相改写。
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 2
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.md]
+# Markdown 里行尾两个空格是硬换行，不能裁掉。
+trim_trailing_whitespace = false
