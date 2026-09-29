@@ -72,6 +72,50 @@ export function dateKeyEquals(a: DateKey, b: DateKey): boolean {
   return a.year === b.year && a.month === b.month && a.day === b.day
 }
 
+/**
+ * The day after `key`, mirroring tyme4ts's own stepping.
+ *
+ * The 1582-10-04 → 1582-10-15 jump is deliberate: the Gregorian reform removed
+ * those ten days, so they are never produced. No range validation happens here
+ * — callers use `isValidDateKey` to decide whether the result is representable.
+ */
+export function nextDay(key: DateKey): DateKey {
+  if (key.year === 1582 && key.month === 10 && key.day === 4) {
+    return { year: 1582, month: 10, day: 15 }
+  }
+  if (key.day < daysInMonth(key.year, key.month)) {
+    return { year: key.year, month: key.month, day: key.day + 1 }
+  }
+  if (key.month < 12) {
+    return { year: key.year, month: key.month + 1, day: 1 }
+  }
+  return { year: key.year + 1, month: 1, day: 1 }
+}
+
+/** The day before `key`; the inverse of {@link nextDay}, reform gap included. */
+export function prevDay(key: DateKey): DateKey {
+  if (key.year === 1582 && key.month === 10 && key.day === 15) {
+    return { year: 1582, month: 10, day: 4 }
+  }
+  if (key.day > 1) {
+    return { year: key.year, month: key.month, day: key.day - 1 }
+  }
+  if (key.month > 1) {
+    const month = key.month - 1
+    return { year: key.year, month, day: daysInMonth(key.year, month) }
+  }
+  return { year: key.year - 1, month: 12, day: 31 }
+}
+
+/** Steps `delta` days from `key` (negative steps backwards). */
+export function addDays(key: DateKey, delta: number): DateKey {
+  let cursor = key
+  for (let i = 0; i < Math.abs(delta); i += 1) {
+    cursor = delta < 0 ? prevDay(cursor) : nextDay(cursor)
+  }
+  return cursor
+}
+
 /** The local calendar day of the machine clock. */
 export function todayKey(now: Date = new Date()): DateKey {
   return { year: now.getFullYear(), month: now.getMonth() + 1, day: now.getDate() }
