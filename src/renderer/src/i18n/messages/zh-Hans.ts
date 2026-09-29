@@ -62,6 +62,51 @@ export const zhHans = {
     restBadge: '休'
   },
 
+  dayPanel: {
+    /** 日详情侧栏的区域名称。 */
+    title: '日详情',
+    /** 星期前缀，后接星期名。 */
+    weekdayPrefix: '星期',
+    /** 标签后缀：调休上班 / 放假。 */
+    holidayWork: '班',
+    holidayRest: '休',
+    /** 黄历各小节标题。 */
+    recommends: '宜',
+    avoids: '忌',
+    almanac: '黄历',
+    gods: '吉神凶煞',
+    /** 引擎推不出的日期（超出历法范围）时的说明。 */
+    outOfRange: '该日期超出历法可推算范围。',
+    /**
+     * 黄历各行的标签。
+     *
+     * 这些名字同时是术语名（干支、纳音、五行…），属于历法数据而非界面文案：
+     * 它们不随界面语言变化，正如术语释义的正文也不翻译。集中放在这里是为了
+     * 便于查阅，而不是为了将来翻译。
+     */
+    facts: {
+      ganzhi: '干支',
+      sound: '纳音',
+      element: '五行',
+      zodiac: '生肖',
+      constellation: '星座',
+      phase: '月相',
+      term: '节气',
+      phenology: '物候',
+      nineDay: '数九',
+      dogDay: '三伏',
+      plumRain: '梅雨',
+      duty: '建除',
+      twelveStar: '十二神',
+      sixStar: '六曜',
+      nineStar: '九星',
+      fetus: '胎神',
+      star28: '二十八宿',
+      minorRen: '小六壬',
+      pengZu: '彭祖百忌'
+    }
+  },
+
   year: {
     /** 年视图的区域名称。 */
     title: '年视图',

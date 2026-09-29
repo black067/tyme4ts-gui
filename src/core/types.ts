@@ -69,10 +69,15 @@ export interface StarInfo {
   direction: string
 }
 
+/**
+ * 吉神 / 凶煞。
+ *
+ * `luck` 是**结构化**的取值而非引擎里的「吉/凶」字面量：界面要按吉凶分组，
+ * 而按渲染文本分组会在文案本地化后静默失效。显示用哪个字由界面决定。
+ */
 export interface GodInfo {
   name: string
-  /** 吉 / 凶 */
-  luck: string
+  luck: 'good' | 'bad'
 }
 
 export interface GanzhiInfo {

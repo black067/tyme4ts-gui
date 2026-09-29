@@ -151,11 +151,13 @@ function buildInfo(key: DateKey): DayInfo {
   const solar = solarDayOf(key)
   const lunar = solar.getLunarDay()
 
+  // `Luck` 的顺序是 [吉, 凶]，所以按索引判定比按名字判定稳：引擎的显示名可能变，
+  // 索引不会，而且界面不该依赖中文字面量来分组。见 src/core/types.ts 的 GodInfo。
   const gods: GodInfo[] | null =
     safe(() =>
       lunar.getGods().map((god) => ({
         name: god.getName(),
-        luck: god.getLuck().getName()
+        luck: god.getLuck().getIndex() === 0 ? ('good' as const) : ('bad' as const)
       }))
     ) ?? null
 

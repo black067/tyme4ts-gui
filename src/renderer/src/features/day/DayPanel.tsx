@@ -8,6 +8,7 @@ import {
   type GlossaryFamily
 } from '@core'
 import { TermTip } from '@renderer/components/TermTip'
+import { useMessages, type Messages } from '@renderer/i18n'
 import { useSettings } from '@renderer/state/settings-context'
 import './day-panel.css'
 
@@ -83,78 +84,90 @@ function ChipList({
 }
 
 /** Fields that are always available, shown right under the header. */
-function buildFacts(info: DayInfo): RowSpec[] {
+function buildFacts(info: DayInfo, t: Messages): RowSpec[] {
+  const f = t.dayPanel.facts
   const pillar = info.ganzhi
   return [
-    ['干支', pillar ? `${pillar.year} ${pillar.month} ${pillar.day}` : null, undefined],
-    ['纳音', pillar?.daySound ?? null, undefined],
-    ['五行', pillar?.dayElement ?? null, undefined],
-    ['生肖', info.lunar.zodiac, undefined],
-    ['星座', info.constellation, undefined],
-    ['月相', info.phase, info.phase ? { family: 'phase', name: info.phase } : undefined]
+    [f.ganzhi, pillar ? `${pillar.year} ${pillar.month} ${pillar.day}` : null, undefined],
+    [f.sound, pillar?.daySound ?? null, undefined],
+    [f.element, pillar?.dayElement ?? null, undefined],
+    [f.zodiac, info.lunar.zodiac, undefined],
+    [f.constellation, info.constellation, undefined],
+    [f.phase, info.phase, info.phase ? { family: 'phase', name: info.phase } : undefined]
   ]
 }
 
 /** The almanac block: terms, season markers, star gods and the day's 建除. */
-function buildAlmanacRows(info: DayInfo): RowSpec[] {
+function buildAlmanacRows(info: DayInfo, t: Messages): RowSpec[] {
+  const f = t.dayPanel.facts
   const star = info.twentyEightStar
   return [
     [
-      '节气',
+      f.term,
       info.currentTerm ? `${info.currentTerm.name} 第${info.currentTerm.dayIndex + 1}天` : null,
       undefined
     ],
-    ['物候', info.phenology, undefined],
-    ['数九', info.nineDay, undefined],
-    ['三伏', info.dogDay, undefined],
-    ['梅雨', info.plumRainDay, undefined],
-    ['建除', info.duty, info.duty ? { family: 'duty', name: info.duty } : undefined],
+    [f.phenology, info.phenology, undefined],
+    [f.nineDay, info.nineDay, undefined],
+    [f.dogDay, info.dogDay, undefined],
+    [f.plumRain, info.plumRainDay, undefined],
+    [f.duty, info.duty, info.duty ? { family: 'duty', name: info.duty } : undefined],
     [
-      '十二神',
+      f.twelveStar,
       info.twelveStar,
       info.twelveStar ? { family: 'twelveStar', name: info.twelveStar } : undefined
     ],
-    ['六曜', info.sixStar, info.sixStar ? { family: 'sixStar', name: info.sixStar } : undefined],
+    [f.sixStar, info.sixStar, info.sixStar ? { family: 'sixStar', name: info.sixStar } : undefined],
     [
-      '九星',
+      f.nineStar,
       info.nineStar,
       info.nineStar ? { family: 'nineStar', name: info.nineStar } : undefined
     ],
-    ['胎神', info.fetus, undefined],
+    [f.fetus, info.fetus, undefined],
     [
-      '二十八宿',
+      f.star28,
       star ? `${star.name}宿（${star.zone}方${star.beast}）· ${star.luck}` : null,
       star ? { family: 'star28', name: star.name } : undefined
     ],
     [
-      '小六壬',
+      f.minorRen,
       info.minorRen,
       info.minorRen ? { family: 'minorRen', name: info.minorRen } : undefined
     ],
-    ['彭祖百忌', info.ganzhi?.pengZu ?? null, undefined]
+    [f.pengZu, info.ganzhi?.pengZu ?? null, undefined]
   ]
 }
 
 export function DayPanel({ selected }: DayPanelProps): ReactElement {
   const { settings } = useSettings()
+  const t = useMessages()
   const info = useMemo(() => buildDayInfo(selected), [selected])
 
   const tags: Array<{ text: string; term?: TermRef }> = [
     info.term ? { text: info.term.name, term: { family: 'term', name: info.term.name } } : null,
     ...info.festivals.map((festival) => ({ text: festival.name })),
-    info.holiday ? { text: `${info.holiday.name}(${info.holiday.isWork ? '班' : '休'})` } : null
+    info.holiday
+      ? {
+          text: `${info.holiday.name}(${
+            info.holiday.isWork ? t.dayPanel.holidayWork : t.dayPanel.holidayRest
+          })`
+        }
+      : null
   ].filter((tag): tag is { text: string; term?: TermRef } => tag !== null)
 
-  const luckGods = info.gods?.filter((god) => god.luck === '吉').map((god) => god.name) ?? null
-  const evilGods = info.gods?.filter((god) => god.luck === '凶').map((god) => god.name) ?? null
+  const luckGods = info.gods?.filter((god) => god.luck === 'good').map((god) => god.name) ?? null
+  const evilGods = info.gods?.filter((god) => god.luck === 'bad').map((god) => god.name) ?? null
 
   return (
-    <aside className="day-panel" aria-label="日详情">
+    <aside className="day-panel" aria-label={t.dayPanel.title}>
       <header className="day-panel__header">
         <p className="day-panel__date">
           {formatFullDate(selected.year, selected.month, selected.day)}
         </p>
-        <p className="day-panel__week">星期{weekDayLabel(info.weekDay) || info.weekName}</p>
+        <p className="day-panel__week">
+          {t.dayPanel.weekdayPrefix}
+          {weekDayLabel(info.weekDay) || info.weekName}
+        </p>
         <p className="day-panel__lunar">{info.lunar.full}</p>
       </header>
 
@@ -175,34 +188,34 @@ export function DayPanel({ selected }: DayPanelProps): ReactElement {
       ) : null}
 
       <dl className="almanac">
-        {buildFacts(info).map(([label, value, term]) => (
+        {buildFacts(info, t).map(([label, value, term]) => (
           <Row key={label} label={label} value={value} term={term} />
         ))}
       </dl>
 
       {settings.showAlmanac ? (
         <>
-          <Section title="宜">
+          <Section title={t.dayPanel.recommends}>
             {info.recommends === null ? (
-              <p className="almanac-note">该日期超出历法可推算范围。</p>
+              <p className="almanac-note">{t.dayPanel.outOfRange}</p>
             ) : (
               <ChipList items={info.recommends} tone="luck" family="taboo" />
             )}
           </Section>
 
-          <Section title="忌">
+          <Section title={t.dayPanel.avoids}>
             <ChipList items={info.avoids} tone="avoid" family="taboo" />
           </Section>
 
-          <Section title="黄历">
+          <Section title={t.dayPanel.almanac}>
             <dl className="almanac">
-              {buildAlmanacRows(info).map(([label, value, term]) => (
+              {buildAlmanacRows(info, t).map(([label, value, term]) => (
                 <Row key={label} label={label} value={value} term={term} />
               ))}
             </dl>
           </Section>
 
-          <Section title="吉神凶煞">
+          <Section title={t.dayPanel.gods}>
             <div className="almanac-gods">
               <ChipList items={luckGods} tone="luck" family="god" />
               <ChipList items={evilGods} tone="avoid" family="god" />
