@@ -5,14 +5,14 @@
 
 ## 功能范围
 
-| 模块 | 内容 |
-| --- | --- |
-| 基础日历 | 公历、农历、星期、节气、传统节日、公历节日 |
-| 黄历 | 宜忌、建除十二神、神煞、二十八宿、胎神、五行、彭祖百忌 |
-| 附加信息 | 干支、生肖、星座、月相、纳音 |
-| 视图 | 月视图、日详情、年视图、时间轴流式列表 |
-| 工具 | 日期换算器（公历↔农历↔干支↔藏历↔回历↔儒略日）、择日检索 |
-| 排盘 | 八字：四柱、藏干、十神、大运流年 |
+| 模块     | 内容                                                    |
+| -------- | ------------------------------------------------------- |
+| 基础日历 | 公历、农历、星期、节气、传统节日、公历节日              |
+| 黄历     | 宜忌、建除十二神、神煞、二十八宿、胎神、五行、彭祖百忌  |
+| 附加信息 | 干支、生肖、星座、月相、纳音                            |
+| 视图     | 月视图、日详情、年视图、时间轴流式列表                  |
+| 工具     | 日期换算器（公历↔农历↔干支↔藏历↔回历↔儒略日）、择日检索 |
+| 排盘     | 八字：四柱、藏干、十神、大运流年                        |
 
 当前**不在**范围内：备忘录/日程、提醒、系统托盘、开机自启、云同步、打包分发（后续阶段评估）。
 
@@ -29,21 +29,27 @@ npm install
 npm run dev
 ```
 
+> **首次运行的额外下载**：Electron 44 不再提供 `postinstall` 脚本，改为惰性安装 ——
+> 第一次执行 `npm run dev`（或任何 `require('electron')`）时才会下载约 100 MB 的运行时到
+> `node_modules/electron/dist`。若下载失败（网络受限），可手动执行
+> `node node_modules/electron/install.js`；或先设置镜像
+> `$env:ELECTRON_MIRROR='https://npmmirror.com/mirrors/electron/'` 再重试。
+
 > 首次 clone 后如果 `vendor/tyme4ts` 是空的，执行：
 > `git submodule update --init --depth 1`
 
 ## 常用脚本
 
-| 命令 | 说明 |
-| --- | --- |
-| `npm run dev` | 启动 Electron 开发模式（主进程 / preload / 渲染进程均带 HMR） |
-| `npm run build` | 类型检查 + 构建产物 |
-| `npm run preview` | 预览构建产物 |
-| `npm run typecheck` | 主进程侧 + 渲染进程侧类型检查 |
-| `npm run lint` | ESLint |
-| `npm run format` | Prettier 格式化 |
-| `npm test` | Vitest 单测 |
-| `npm run test:watch` | Vitest 监听模式 |
+| 命令                 | 说明                                                          |
+| -------------------- | ------------------------------------------------------------- |
+| `npm run dev`        | 启动 Electron 开发模式（主进程 / preload / 渲染进程均带 HMR） |
+| `npm run build`      | 类型检查 + 构建产物                                           |
+| `npm run preview`    | 预览构建产物                                                  |
+| `npm run typecheck`  | 主进程侧 + 渲染进程侧类型检查                                 |
+| `npm run lint`       | ESLint                                                        |
+| `npm run format`     | Prettier 格式化                                               |
+| `npm test`           | Vitest 单测                                                   |
+| `npm run test:watch` | Vitest 监听模式                                               |
 
 ## 目录结构
 

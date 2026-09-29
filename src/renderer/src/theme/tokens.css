@@ -1,0 +1,128 @@
+/*
+ * Design tokens.
+ *
+ * This is the ONLY file allowed to contain literal colour values. Every
+ * component must consume the semantic names below, which is what makes a new
+ * theme a matter of adding one `[data-theme='…']` block and nothing else.
+ *
+ * A test (`src/renderer/src/theme/__tests__/tokens.test.ts`) enforces that.
+ */
+
+:root {
+  /* Typography */
+  --font-display:
+    'Segoe UI Variable Display', 'Segoe UI', 'Microsoft YaHei', 'PingFang SC', system-ui, sans-serif;
+  --font-body:
+    'Segoe UI Variable Text', 'Segoe UI', 'Microsoft YaHei', 'PingFang SC', system-ui, sans-serif;
+  --font-mono: 'Cascadia Mono', 'JetBrains Mono', Consolas, 'Courier New', monospace;
+
+  --font-size-xs: 12px;
+  --font-size-sm: 13px;
+  --font-size-md: 14px;
+  --font-size-lg: 16px;
+  --font-size-xl: 20px;
+  --font-size-2xl: 28px;
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  /* Shape */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-pill: 999px;
+
+  /* Motion */
+  --transition-fast: 120ms ease;
+  --transition-base: 200ms ease;
+}
+
+:root[data-theme='minimal-light'] {
+  color-scheme: light;
+
+  --color-bg: #f6f6f4;
+  --color-surface: #ffffff;
+  --color-surface-alt: #f1f1ee;
+  --color-surface-sunken: #ececea;
+  --color-border: #e3e3df;
+  --color-border-strong: #cfcfc9;
+
+  --color-text: #1f2328;
+  --color-text-muted: #6b7280;
+  --color-text-subtle: #9aa1aa;
+  --color-text-inverse: #ffffff;
+
+  --color-accent: #c2453c;
+  --color-accent-hover: #a93a32;
+  --color-accent-soft: #fbeceb;
+
+  /* Calendar semantics */
+  --color-lunar: #8b7f6b;
+  --color-term: #2f7d5d;
+  --color-festival: #c2453c;
+  --color-weekend: #b5651d;
+  --color-holiday-rest: #c2453c;
+  --color-holiday-work: #6b7280;
+  --color-today-ring: #c2453c;
+  --color-selected-bg: #c2453c;
+  --color-selected-text: #ffffff;
+  --color-outside-month: #b8bcc2;
+
+  /* Almanac semantics */
+  --color-luck: #2f7d5d;
+  --color-luck-soft: #e9f4ef;
+  --color-avoid: #b5651d;
+  --color-avoid-soft: #faf0e6;
+  --color-danger: #c0392b;
+
+  --shadow-sm: 0 1px 2px rgb(20 22 26 / 6%);
+  --shadow-md: 0 2px 10px rgb(20 22 26 / 8%);
+  --shadow-lg: 0 8px 28px rgb(20 22 26 / 12%);
+}
+
+:root[data-theme='minimal-dark'] {
+  color-scheme: dark;
+
+  --color-bg: #15171b;
+  --color-surface: #1d2025;
+  --color-surface-alt: #24282e;
+  --color-surface-sunken: #121418;
+  --color-border: #2f343b;
+  --color-border-strong: #414751;
+
+  --color-text: #e7e9ec;
+  --color-text-muted: #9aa3ad;
+  --color-text-subtle: #6f7883;
+  --color-text-inverse: #15171b;
+
+  --color-accent: #e0655a;
+  --color-accent-hover: #ef7b70;
+  --color-accent-soft: #3a2422;
+
+  --color-lunar: #a99a80;
+  --color-term: #5fbd93;
+  --color-festival: #e0655a;
+  --color-weekend: #d69a5e;
+  --color-holiday-rest: #e0655a;
+  --color-holiday-work: #9aa3ad;
+  --color-today-ring: #e0655a;
+  --color-selected-bg: #e0655a;
+  --color-selected-text: #15171b;
+  --color-outside-month: #565e68;
+
+  --color-luck: #5fbd93;
+  --color-luck-soft: #1d302a;
+  --color-avoid: #d69a5e;
+  --color-avoid-soft: #33261a;
+  --color-danger: #ef7b70;
+
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 30%);
+  --shadow-md: 0 2px 10px rgb(0 0 0 / 38%);
+  --shadow-lg: 0 8px 28px rgb(0 0 0 / 48%);
+}

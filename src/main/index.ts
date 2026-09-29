@@ -1,0 +1,87 @@
+import { join } from 'node:path'
+import { app, BrowserWindow, ipcMain, nativeTheme, shell } from 'electron'
+import { electronApp, is, optimizer } from '@electron-toolkit/utils'
+import { IPC, type AppInfo, type AppSettings, type AppearanceMode } from '@shared/ipc'
+import { readSettings, updateSettings } from './settings'
+
+function applyNativeAppearance(mode: AppearanceMode): void {
+  nativeTheme.themeSource = mode
+}
+
+function registerIpcHandlers(): void {
+  ipcMain.handle(IPC.settingsGet, (): AppSettings => readSettings())
+
+  ipcMain.handle(IPC.settingsSet, (_event, patch: Partial<AppSettings>): AppSettings => {
+    const next = updateSettings(patch)
+    // Keep Electron's own theme source in step so native chrome follows the app.
+    if (patch.appearance !== undefined) applyNativeAppearance(next.appearance)
+    return next
+  })
+
+  ipcMain.handle(IPC.themeSetNative, (_event, mode: AppearanceMode): void => {
+    applyNativeAppearance(mode)
+  })
+
+  ipcMain.handle(IPC.appGetInfo, (): AppInfo => ({
+    version: app.getVersion(),
+    electron: process.versions.electron ?? '',
+    chrome: process.versions.chrome ?? '',
+    node: process.versions.node,
+    userDataPath: app.getPath('userData')
+  }))
+}
+
+function createWindow(): void {
+  const mainWindow = new BrowserWindow({
+    width: 1240,
+    height: 860,
+    minWidth: 960,
+    minHeight: 640,
+    show: false,
+    autoHideMenuBar: true,
+    title: '万年历',
+    backgroundColor: '#f6f6f4',
+    webPreferences: {
+      preload: join(__dirname, '../preload/index.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true
+    }
+  })
+
+  mainWindow.on('ready-to-show', () => {
+    mainWindow.show()
+    console.log('[tyme-app] main window ready')
+  })
+
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    void shell.openExternal(url)
+    return { action: 'deny' }
+  })
+
+  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+    void mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
+  } else {
+    void mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
+  }
+}
+
+app.whenReady().then(() => {
+  electronApp.setAppUserModelId('com.tyme.app')
+
+  app.on('browser-window-created', (_, window) => {
+    optimizer.watchWindowShortcuts(window)
+  })
+
+  applyNativeAppearance(readSettings().appearance)
+  registerIpcHandlers()
+  createWindow()
+
+  app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) createWindow()
+  })
+})
+
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') app.quit()
+})
