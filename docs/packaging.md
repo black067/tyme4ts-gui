@@ -66,10 +66,6 @@ npm run clean         # 清理 out/ release/ .tsbuild/
 只有一个工作流 `release.yml`，跑在 `windows-latest` 上（应用只面向 Windows，直接和目标平台
 保持一致）。
 
-**没有常驻的 CI。** 检查在自己机器上跑——`npm run format:check && npm run lint && npm run
-typecheck && npm test`——比等远端快，而且 `release.yml` 本来就会在打包前把测试和打包各跑一遍，
-所以「提交即验证」那一层是重复的。
-
 ### `release.yml` — 出包与发版
 
 唯一触发方式是 push 一个 `v*` tag：跑测试 → 打包 → 上传 workflow artifact → 创建 GitHub
