@@ -3,17 +3,20 @@
   //
   // 否则 VS Code 的文件服务进程会一直持有 release/win-unpacked/resources/app.asar，
   // 下一次 electron-builder 打包时会以 EBUSY 失败（Windows 不允许删除被占用的文件）。
+  //
+  // 用 `release*` 而不是 `release`：临时换个输出目录验证打包（release-check、
+  // release-measure…）同样会被盯上，而被盯住的目录又会被 electron-builder 扫进 asar。
   "files.watcherExclude": {
     "**/node_modules/**": true,
     "**/out/**": true,
-    "**/release/**": true,
+    "**/release*/**": true,
     "**/.tsbuild/**": true,
     "**/vendor/**": true
   },
   "search.exclude": {
     "**/node_modules": true,
     "**/out": true,
-    "**/release": true,
+    "**/release*": true,
     "**/coverage": true
   },
   // 使用仓库里安装的 TypeScript，保证与 npm run typecheck 行为一致。
