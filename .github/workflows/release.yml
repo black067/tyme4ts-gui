@@ -16,10 +16,10 @@ jobs:
     timeout-minutes: 40
     steps:
       - name: 检出
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: 准备 Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
@@ -35,7 +35,7 @@ jobs:
       # （nsis / winCodeSign / 7zip）都在 %LOCALAPPDATA% 下，缓存之后后续构建
       # 只剩解包时间。
       - name: 缓存 electron 与打包工具
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             ~/AppData/Local/electron/Cache
@@ -60,11 +60,13 @@ jobs:
         run: npm run package
 
       - name: 上传 artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: tyme-app-portable-${{ github.ref_name }}
           path: release/*.exe
           if-no-files-found: error
+          # artifact 是不可变的：同一个 tag 重跑一次会因为同名而失败，这里允许覆盖。
+          overwrite: true
 
       # 建成 draft，人工确认 exe 能跑之后再在 Releases 页面点 Publish。
       # 重复推送同一个 tag 时会走 upload --clobber，不会报「已存在」。

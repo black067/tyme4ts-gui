@@ -21,10 +21,10 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: 检出
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: 准备 Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
@@ -50,10 +50,10 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: 检出
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: 准备 Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
@@ -65,7 +65,7 @@ jobs:
       # （nsis / winCodeSign / 7zip）都在 %LOCALAPPDATA% 下，缓存之后后续构建
       # 只剩解包时间。
       - name: 缓存 electron 与打包工具
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             ~/AppData/Local/electron/Cache
