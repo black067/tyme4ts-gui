@@ -45,6 +45,21 @@ export {
 } from './convert'
 
 export {
+  PORTABLE_ASSET_PATTERN,
+  compareVersions,
+  isNewerVersion,
+  parseReleases,
+  selectLatestPortableRelease,
+  selectPortableAsset,
+  type GitHubAsset,
+  type GitHubRelease,
+  type PortableAssetOptions,
+  type PortableAssetSelection,
+  type ReleasesOutcome,
+  type SelectionOutcome
+} from './update'
+
+export {
   SEARCH_DEFAULT_LIMIT,
   SEARCH_MAX_DAYS,
   searchDays,
