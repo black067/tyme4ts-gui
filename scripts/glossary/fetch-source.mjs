@@ -19,20 +19,37 @@ const API = 'https://zh.wikisource.org/w/api.php'
 const USER_AGENT = 'tyme-app-glossary/1.0 (https://github.com/black067/tyme4ts-gui)'
 
 /**
- * 一份要抓的原文。`pages` 是维基文库标题，`out` 决定 fixture 文件名。
+ * 一份要抓的原文。`pages` 是维基文库标题，`name` 决定 fixture 文件名。
  *
  * 协纪辨方书：卷三–卷八是「义例」，即神煞释义所在；卷一本原、卷二本原也一并入库，
  * 因为部分神煞名只在其中出现。实测这八卷覆盖 151 个日神里的 147 个。
+ *
+ * `卷首` 是**书前的主页面**（御制序、奏议、职名、目录），不在卷 01–36 里，所以
+ * 只抓卷 01–08 会漏掉它。奏议里有一份逐条列举的「应删去」清单，每条都以
+ * 「X乃Y」的形式给出定义（月恩、复日、九空、大败、喜神…），是义例之外的第二处释义来源。
  */
 const SOURCES = [
   {
     id: 'xieji-bianfangshu',
     label: '《钦定协纪辨方书》四库全书本',
     dir: join(ROOT, 'tests', 'fixtures', 'xieji-bianfangshu'),
-    pages: Array.from(
-      { length: 8 },
-      (_, i) => `欽定協紀辨方書 (四庫全書本)/卷${String(i + 1).padStart(2, '0')}`
-    )
+    pages: [
+      ...Array.from({ length: 8 }, (_, i) => ({
+        title: `欽定協紀辨方書 (四庫全書本)/卷${String(i + 1).padStart(2, '0')}`,
+        name: `juan-${String(i + 1).padStart(2, '0')}.txt`
+      })),
+      { title: '欽定協紀辨方書 (四庫全書本)', name: 'juan-00-frontmatter.txt' }
+    ]
+  },
+  {
+    id: 'jinshu-tianwenzhi',
+    label: '《晋书·天文志》',
+    dir: join(ROOT, 'tests', 'fixtures', 'jinshu-tianwenzhi'),
+    // 二十八宿里昴毕觜井鬼五宿不在《史记·律书》那段里，另引天文志。
+    pages: [11, 12, 13].map((n) => ({
+      title: `晉書/卷${String(n).padStart(3, '0')}`,
+      name: `juan-${n}.txt`
+    }))
   }
 ]
 
@@ -79,17 +96,16 @@ let skipped = 0
 for (const source of SOURCES) {
   mkdirSync(source.dir, { recursive: true })
   console.log(`\n${source.label}`)
-  for (const [index, title] of source.pages.entries()) {
-    const name = `juan-${String(index + 1).padStart(2, '0')}.txt`
-    const target = join(source.dir, name)
+  for (const page of source.pages) {
+    const target = join(source.dir, page.name)
     if (existsSync(target) && !force) {
-      console.log(`  ${name}  已存在，跳过`)
+      console.log(`  ${page.name}  已存在，跳过`)
       skipped += 1
       continue
     }
-    const text = await fetchPage(title)
+    const text = await fetchPage(page.title)
     writeFileSync(target, text, 'utf8')
-    console.log(`  ${name}  ${text.length.toLocaleString()} 字符`)
+    console.log(`  ${page.name}  ${text.length.toLocaleString()} 字符`)
     written += 1
     await sleep(2500)
   }

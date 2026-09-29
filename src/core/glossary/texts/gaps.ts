@@ -41,10 +41,6 @@ export const GOD_GAPS: Readonly<Record<string, GlossaryGapNote>> = {
   阴神: { reason: MENTIONED_ONLY, source: '《协纪辨方书》卷四·义例二' },
   解除: { reason: MENTIONED_ONLY, source: '《协纪辨方书》卷五·义例三' },
   致死: { reason: MENTIONED_ONLY, source: '《协纪辨方书》卷六·义例四' },
-  大败: {
-    reason: MENTIONED_ONLY,
-    source: '《协纪辨方书》卷五·义例三、卷六·义例四、卷七·义例五'
-  },
   咸池: { reason: MENTIONED_ONLY, source: '《协纪辨方书》卷五·义例三、卷六·义例四' },
   厌对: {
     reason: MENTIONED_ONLY,
