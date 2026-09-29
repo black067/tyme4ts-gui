@@ -8,7 +8,8 @@ export interface SegmentedOption<T extends string> {
 }
 
 interface SegmentedControlProps<T extends string> {
-  label: string
+  /** Omit when the surrounding row already carries the label. */
+  label?: string
   value: T
   options: readonly SegmentedOption<T>[]
   onChange: (value: T) => void
@@ -22,7 +23,7 @@ export function SegmentedControl<T extends string>({
 }: SegmentedControlProps<T>): ReactElement {
   return (
     <div className="segmented" role="group" aria-label={label}>
-      <span className="segmented__label">{label}</span>
+      {label ? <span className="segmented__label">{label}</span> : null}
       <div className="segmented__options">
         {options.map((option) => (
           <button

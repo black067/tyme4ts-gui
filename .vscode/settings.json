@@ -1,0 +1,21 @@
+{
+  // 构建产物很大，必须排除在文件监听与搜索之外。
+  //
+  // 否则 VS Code 的文件服务进程会一直持有 release/win-unpacked/resources/app.asar，
+  // 下一次 electron-builder 打包时会以 EBUSY 失败（Windows 不允许删除被占用的文件）。
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/out/**": true,
+    "**/release/**": true,
+    "**/.tsbuild/**": true,
+    "**/vendor/**": true
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/out": true,
+    "**/release": true,
+    "**/coverage": true
+  },
+  // 使用仓库里安装的 TypeScript，保证与 npm run typecheck 行为一致。
+  "typescript.tsdk": "node_modules/typescript/lib"
+}

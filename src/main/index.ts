@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { app, BrowserWindow, ipcMain, nativeTheme, shell } from 'electron'
 import { electronApp, is, optimizer } from '@electron-toolkit/utils'
@@ -6,6 +7,27 @@ import { readSettings, updateSettings } from './settings'
 
 function applyNativeAppearance(mode: AppearanceMode): void {
   nativeTheme.themeSource = mode
+}
+
+/**
+ * The shipped `package.json`, read at runtime so the About panel can never
+ * disagree with the executable's own metadata.
+ */
+function readManifest(): { name?: string; author?: string | { name?: string; email?: string } } {
+  try {
+    return JSON.parse(readFileSync(join(app.getAppPath(), 'package.json'), 'utf8')) as {
+      name?: string
+      author?: string | { name?: string; email?: string }
+    }
+  } catch {
+    return {}
+  }
+}
+
+function formatAuthor(author: { name?: string; email?: string } | string | undefined): string {
+  if (typeof author === 'string') return author
+  if (!author?.name) return ''
+  return author.email ? `${author.name} <${author.email}>` : author.name
 }
 
 function registerIpcHandlers(): void {
@@ -22,13 +44,18 @@ function registerIpcHandlers(): void {
     applyNativeAppearance(mode)
   })
 
-  ipcMain.handle(IPC.appGetInfo, (): AppInfo => ({
-    version: app.getVersion(),
-    electron: process.versions.electron ?? '',
-    chrome: process.versions.chrome ?? '',
-    node: process.versions.node,
-    userDataPath: app.getPath('userData')
-  }))
+  ipcMain.handle(IPC.appGetInfo, (): AppInfo => {
+    const manifest = readManifest()
+    return {
+      name: app.getName(),
+      version: app.getVersion(),
+      author: formatAuthor(manifest.author),
+      electron: process.versions.electron ?? '',
+      chrome: process.versions.chrome ?? '',
+      node: process.versions.node,
+      userDataPath: app.getPath('userData')
+    }
+  })
 }
 
 function createWindow(): void {
@@ -41,6 +68,10 @@ function createWindow(): void {
     autoHideMenuBar: true,
     title: '万年历',
     backgroundColor: '#f6f6f4',
+    // No `icon` here on purpose: Electron's nativeImage cannot decode SVG, and
+    // that is the only icon source in the repo. A packaged build carries the
+    // icon inside the executable via electron-builder's `win.icon`, so only the
+    // dev window (the stock electron.exe) shows the default Electron icon.
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,

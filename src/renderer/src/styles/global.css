@@ -97,6 +97,19 @@ h3 {
   gap: var(--space-3);
 }
 
+.app-toolbar__settings {
+  margin-left: auto;
+}
+
+.app-toolbar__settings[aria-pressed='true'] {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.app-body--settings {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 /* Shortcut help ------------------------------------------------------------ */
 
 .shortcuts {

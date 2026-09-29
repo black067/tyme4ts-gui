@@ -1,0 +1,48 @@
+# electron-builder 配置。
+#
+# 只产出免安装的 Windows 便携版单文件 exe（不生成安装程序）。
+# 产物落在 release/ 下，已在 .gitignore 中忽略。
+#
+# 注意：这里的 productName 必须与 package.json 保持一致 —— Electron 用
+# productName 推导 app.getName()，进而决定 userData 目录。
+
+appId: com.tyme.app
+productName: 万年历
+
+directories:
+  # 图标等构建资源目录。放置 build/icon.ico（256x256）即会自动使用；
+  # 缺失时 electron-builder 退回 Electron 默认图标并给出警告。
+  buildResources: build
+  output: release
+
+# 主进程与 preload 的产物已由 electron-vite 打到 out/，渲染层依赖也已全部
+# 打包进 bundle，因此只需要带上 out/ 与 package.json。
+files:
+  - '!**/.vscode/*'
+  - '!src/**'
+  - '!tests/**'
+  - '!scripts/**'
+  - '!assets/**'
+  - '!vendor/**'
+  - '!release/**'
+  - '!electron.vite.config.{js,ts,mjs,cjs}'
+  - '!vitest.config.{js,ts,mjs,cjs}'
+  - '!eslint.config.mjs'
+  - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
+  - '!{.gitignore,.gitattributes,.prettierignore,.prettierrc.json,.eslintcache}'
+  - '!{README.md,package-lock.json}'
+
+# 项目没有原生模块，跳过重建可以显著加快打包。
+npmRebuild: false
+
+win:
+  # electron-builder 会把 SVG 光栅化成多尺寸 .ico 再写入 exe（已实测生效）。
+  # 来源与署名见 assets/calendar-author.txt 与 README「许可」。
+  icon: assets/calendar.svg
+  target:
+    - target: portable
+      arch:
+        - x64
+
+portable:
+  artifactName: ${productName}-${version}-portable.${ext}

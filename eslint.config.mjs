@@ -43,6 +43,7 @@ export default tseslint.config(
       'electron.vite.config.ts',
       'vitest.config.ts',
       'eslint.config.mjs',
+      'scripts/**/*.mjs',
       'src/main/**/*.ts',
       'src/preload/**/*.ts',
       'src/shared/**/*.ts',
@@ -53,9 +54,9 @@ export default tseslint.config(
     }
   },
 
-  // The main process owns the application log stream.
+  // The main process and the CLI scripts own the application log stream.
   {
-    files: ['src/main/**/*.ts'],
+    files: ['src/main/**/*.ts', 'scripts/**/*.mjs'],
     rules: {
       'no-console': 'off'
     }

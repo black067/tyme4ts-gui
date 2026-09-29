@@ -94,8 +94,9 @@ describe('app shell', () => {
     expect(other).toHaveAttribute('tabindex', '-1')
   })
 
-  it('switches theme and appearance through the settings bar', async () => {
+  it('switches theme and appearance through the settings screen', async () => {
     await setup()
+    await click(screen.getByRole('button', { name: '设置' }))
 
     await click(screen.getByRole('button', { name: '中国传统' }))
     expect(bridge.settings.themeId).toBe('classic')
@@ -120,6 +121,78 @@ describe('app shell', () => {
     const grid = screen.getByRole('grid', { name: /^2024年6月/ })
     expect(screen.getByText('一')).toBeInTheDocument()
     expect(within(grid).getByRole('gridcell', { name: /^2024年6月1日/ })).toBeInTheDocument()
+  })
+})
+
+describe('settings screen', () => {
+  async function openSettings(): Promise<void> {
+    await setup()
+    await click(screen.getByRole('button', { name: '设置' }))
+  }
+
+  it('opens as a separate screen and hides the calendar', async () => {
+    await openSettings()
+
+    expect(screen.getByRole('region', { name: '设置' })).toBeInTheDocument()
+    // The month view and the day panel give way to the settings screen.
+    expect(screen.queryByRole('heading', { name: '2024年6月' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: '日详情' })).not.toBeInTheDocument()
+  })
+
+  it('closes again from the 返回 button', async () => {
+    await openSettings()
+    await click(screen.getByRole('button', { name: '返回' }))
+    expect(screen.getByRole('heading', { name: '2024年6月' })).toBeInTheDocument()
+  })
+
+  it('closes on Escape', async () => {
+    await openSettings()
+    await act(async () => {
+      fireEvent.keyDown(window, { key: 'Escape' })
+    })
+    expect(screen.getByRole('heading', { name: '2024年6月' })).toBeInTheDocument()
+  })
+
+  it('shows the author information from the main process', async () => {
+    await openSettings()
+    expect(await screen.findByText('万年历 v0.0.0-test')).toBeInTheDocument()
+    expect(screen.getByText('Tester <tester@example.com>')).toBeInTheDocument()
+  })
+
+  it('lists third-party licences and the asset credit', async () => {
+    await openSettings()
+
+    expect(screen.getByRole('heading', { name: '第三方许可' })).toBeInTheDocument()
+    expect(screen.getByText('tyme4ts')).toBeInTheDocument()
+    expect(screen.getByText('@tanstack/react-virtual')).toBeInTheDocument()
+    // Each entry links to its upstream project.
+    expect(
+      screen.getByRole('link', { name: 'https://github.com/6tail/tyme4ts' })
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('link', { name: 'https://github.com/electron/electron' })
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('link', { name: 'https://github.com/TanStack/virtual' })
+    ).toBeInTheDocument()
+
+    expect(screen.getByRole('heading', { name: '资产署名' })).toBeInTheDocument()
+    expect(screen.getByText(/paomedia \(Arnaud\)/)).toBeInTheDocument()
+    expect(screen.getByText('assets/calendar.svg')).toBeInTheDocument()
+  })
+
+  it('shows where the settings file lives', async () => {
+    await openSettings()
+    expect(screen.getByText('/tmp/tyme-app-test')).toBeInTheDocument()
+    expect(screen.getByText('/tmp/tyme-app-test\\settings.json')).toBeInTheDocument()
+  })
+
+  it('persists the start view choice', async () => {
+    await openSettings()
+    // Scoped to the settings region: 年视图 also exists as a toolbar tab.
+    const pane = screen.getByRole('region', { name: '设置' })
+    await click(within(pane).getByRole('button', { name: '年视图' }))
+    expect(bridge.patches.some((patch) => patch.defaultView === 'year')).toBe(true)
   })
 })
 

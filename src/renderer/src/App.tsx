@@ -15,7 +15,7 @@ import { ViewTabs, type ViewTab } from './components/ViewTabs'
 import { SettingsProvider } from './state/SettingsProvider'
 import { useSettings } from './state/settings-context'
 import { ThemeProvider } from './theme/ThemeProvider'
-import { SettingsBar } from './features/settings/SettingsBar'
+import { SettingsView } from './features/settings/SettingsView'
 import { MonthView } from './features/month/MonthView'
 import { YearView } from './features/year/YearView'
 import { TimelineView } from './features/timeline/TimelineView'
@@ -76,6 +76,7 @@ function AppShell(): ReactElement {
     isTabView(settings.defaultView) ? settings.defaultView : 'month'
   )
   const [showShortcuts, setShowShortcuts] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
   const skipFirstPersist = useRef(true)
 
   // Persist the selection, debounced so rapid navigation stays cheap. The
@@ -106,17 +107,23 @@ function AppShell(): ReactElement {
 
   const keyboard = useMemo<KeyboardNavHandlers>(
     () => ({
-      shiftDays: (delta) => setSelected((current) => addDays(current, delta)),
-      shiftMonths: (delta) => setSelected((current) => addMonths(current, delta)),
+      shiftDays: (delta) =>
+        setSelected((current) => (showSettings ? current : addDays(current, delta))),
+      shiftMonths: (delta) =>
+        setSelected((current) => (showSettings ? current : addMonths(current, delta))),
       goToday: () => setSelected(today),
       setView: (next) => {
+        setShowSettings(false)
         setView(next)
         update({ defaultView: next })
       },
       toggleShortcuts: () => setShowShortcuts((current) => !current),
-      closeOverlays: () => setShowShortcuts(false)
+      closeOverlays: () => {
+        setShowShortcuts(false)
+        setShowSettings(false)
+      }
     }),
-    [today, update]
+    [today, update, showSettings]
   )
 
   useKeyboardNav(keyboard)
@@ -147,6 +154,14 @@ function AppShell(): ReactElement {
         >
           快捷键
         </button>
+        <button
+          type="button"
+          className="text-button app-toolbar__settings"
+          aria-pressed={showSettings}
+          onClick={() => setShowSettings((current) => !current)}
+        >
+          设置
+        </button>
       </div>
 
       {showShortcuts ? (
@@ -164,39 +179,47 @@ function AppShell(): ReactElement {
         </section>
       ) : null}
 
-      <SettingsBar />
+      {showSettings ? (
+        // Settings take over the whole body: they are a separate screen rather
+        // than a strip competing with the calendar for attention.
+        <div className="app-body app-body--settings">
+          <main className="app-main">
+            <SettingsView onClose={() => setShowSettings(false)} />
+          </main>
+        </div>
+      ) : (
+        <div className="app-body">
+          <main className="app-main">
+            {view === 'year' ? (
+              <YearView
+                selected={selected}
+                today={today}
+                weekStartsOnMonday={settings.weekStartsOnMonday}
+                onSelect={select}
+                onOpenMonth={openMonth}
+              />
+            ) : view === 'timeline' ? (
+              <TimelineView selected={selected} today={today} onSelect={select} />
+            ) : view === 'tools' ? (
+              <ToolsView selected={selected} onSelect={select} onOpenMonth={openMonth} />
+            ) : (
+              <MonthView
+                selected={selected}
+                today={today}
+                weekStartsOnMonday={settings.weekStartsOnMonday}
+                onSelect={select}
+              />
+            )}
+          </main>
 
-      <div className="app-body">
-        <main className="app-main">
-          {view === 'year' ? (
-            <YearView
-              selected={selected}
-              today={today}
-              weekStartsOnMonday={settings.weekStartsOnMonday}
-              onSelect={select}
-              onOpenMonth={openMonth}
-            />
-          ) : view === 'timeline' ? (
-            <TimelineView selected={selected} today={today} onSelect={select} />
-          ) : view === 'tools' ? (
-            <ToolsView selected={selected} onSelect={select} onOpenMonth={openMonth} />
-          ) : (
-            <MonthView
-              selected={selected}
-              today={today}
-              weekStartsOnMonday={settings.weekStartsOnMonday}
-              onSelect={select}
-            />
-          )}
-        </main>
+          {/* Announced by screen readers whenever the focused day changes. */}
+          <output className="visually-hidden" aria-live="polite">
+            当前选中 {formatFullDate(selected.year, selected.month, selected.day)}
+          </output>
 
-        {/* Announced by screen readers whenever the focused day changes. */}
-        <output className="visually-hidden" aria-live="polite">
-          当前选中 {formatFullDate(selected.year, selected.month, selected.day)}
-        </output>
-
-        <DayPanel selected={selected} />
-      </div>
+          <DayPanel selected={selected} />
+        </div>
+      )}
     </div>
   )
 }

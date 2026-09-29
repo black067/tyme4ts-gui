@@ -34,9 +34,13 @@ export interface AppSettings {
   weekStartsOnMonday: boolean
 }
 
-/** Runtime facts about the host, surfaced in the about panel. */
+/** Runtime facts about the host, surfaced in the settings screen's About panel. */
 export interface AppInfo {
+  /** The application name Electron resolved, i.e. `productName`. */
+  name: string
   version: string
+  /** Author as recorded in the shipped `package.json`, e.g. `name <email>`. */
+  author: string
   electron: string
   chrome: string
   node: string

@@ -17,7 +17,9 @@ export interface FakeBridge {
 }
 
 const APP_INFO: AppInfo = {
+  name: '万年历',
   version: '0.0.0-test',
+  author: 'Tester <tester@example.com>',
   electron: 'test',
   chrome: 'test',
   node: 'test',

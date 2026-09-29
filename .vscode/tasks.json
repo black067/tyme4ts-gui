@@ -1,0 +1,213 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "dev",
+      "type": "npm",
+      "script": "dev",
+      "detail": "启动 Electron 开发模式（主进程 / preload / 渲染进程均带热更新）",
+      "isBackground": true,
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": false,
+        "group": "dev"
+      },
+      "problemMatcher": {
+        "owner": "electron-vite",
+        "source": "electron-vite",
+        "fileLocation": ["relative", "${workspaceFolder}"],
+        "pattern": {
+          "regexp": "^(?:.{0})$"
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^> electron-vite dev",
+          "endsPattern": "\\[tyme-app\\] main window ready"
+        }
+      }
+    },
+    {
+      "label": "build",
+      "type": "npm",
+      "script": "build",
+      "detail": "类型检查 + 构建生产产物到 out/（快速验证用，不产出安装包）",
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      },
+      "problemMatcher": ["$tsc"]
+    },
+    {
+      "label": "package",
+      "type": "npm",
+      "script": "package",
+      "detail": "构建并打包为免安装便携版 exe，产物在 release/",
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      },
+      "problemMatcher": ["$tsc"]
+    },
+    {
+      "label": "package:dir",
+      "type": "npm",
+      "script": "package:dir",
+      "detail": "只解包到 release/win-unpacked（打包速度更快，用于先验证再出单文件 exe）",
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      },
+      "problemMatcher": ["$tsc"]
+    },
+    {
+      "label": "clean",
+      "type": "npm",
+      "script": "clean",
+      "detail": "删除 out/ release/ .tsbuild/（打包报 EBUSY 时用它清理被占用的产物目录）",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "preview",
+      "type": "npm",
+      "script": "preview",
+      "detail": "用构建产物启动应用（等价于跑一次 npm run build 后的成品）",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": false,
+        "group": "dev"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "typecheck",
+      "type": "npm",
+      "script": "typecheck",
+      "detail": "主进程侧 + 渲染进程侧类型检查（不改动任何文件）",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      },
+      "problemMatcher": ["$tsc"]
+    },
+    {
+      "label": "lint",
+      "type": "npm",
+      "script": "lint",
+      "detail": "ESLint",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      },
+      "problemMatcher": ["$eslint-stylish"]
+    },
+    {
+      "label": "test",
+      "type": "npm",
+      "script": "test",
+      "detail": "Vitest 全量单测（一次性运行）",
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "test:watch",
+      "type": "npm",
+      "script": "test:watch",
+      "detail": "Vitest 监听模式",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": false,
+        "group": "test"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "format",
+      "type": "npm",
+      "script": "format",
+      "detail": "Prettier 格式化整个仓库（会改写文件）",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "dev:inspect",
+      "type": "shell",
+      "command": "npm run dev -- --inspect=5858",
+      "detail": "以主进程调试端口 5858 启动开发模式（供 launch.json 的调试配置使用）",
+      "isBackground": true,
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": false,
+        "group": "dev"
+      },
+      "problemMatcher": {
+        "owner": "electron-vite",
+        "source": "electron-vite",
+        "fileLocation": ["relative", "${workspaceFolder}"],
+        "pattern": {
+          "regexp": "^(?:.{0})$"
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^> electron-vite dev",
+          "endsPattern": "\\[tyme-app\\] main window ready"
+        }
+      }
+    },
+    {
+      "label": "dev:remote-debug",
+      "type": "shell",
+      "command": "npm run dev -- --remoteDebuggingPort=9222",
+      "detail": "以渲染进程调试端口 9222 启动开发模式（供 launch.json 的调试配置使用）",
+      "isBackground": true,
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": false,
+        "group": "dev"
+      },
+      "problemMatcher": {
+        "owner": "electron-vite",
+        "source": "electron-vite",
+        "fileLocation": ["relative", "${workspaceFolder}"],
+        "pattern": {
+          "regexp": "^(?:.{0})$"
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^> electron-vite dev",
+          "endsPattern": "\\[tyme-app\\] main window ready"
+        }
+      }
+    }
+  ]
+}

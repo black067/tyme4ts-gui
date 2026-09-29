@@ -13,9 +13,11 @@
 | 视图     | 月视图、日详情侧栏、年视图（12 个月缩略 + 节气表 + 假期表）、时间轴    |
 | 工具     | 日期换算（公历↔农历↔回历↔藏历↔儒略日）、择日区间检索、八字排盘         |
 | 外观     | 两套可切换主题（现代简约 / 中国传统）× 浅色深色 × 跟随系统             |
+| 设置     | 独立设置界面：外观 / 显示 / 数据 / 作者信息 / 第三方许可 / 资产署名    |
 | 交互     | 全键盘导航、可切换的快捷键说明、ARIA 网格语义、选中日期朗读            |
 
-当前**不在**范围内：备忘录/日程、提醒、系统托盘、开机自启、云同步、打包分发。
+当前**不在**范围内：备忘录/日程、提醒、系统托盘、开机自启、云同步。打包仅支持
+**Windows x64 免安装便携版**（`npm run package`），不生成安装程序。
 
 ## 环境要求
 
@@ -41,16 +43,56 @@ npm run dev
 
 ## 常用脚本
 
-| 命令                 | 说明                                                          |
-| -------------------- | ------------------------------------------------------------- |
-| `npm run dev`        | 启动 Electron 开发模式（主进程 / preload / 渲染进程均带 HMR） |
-| `npm run build`      | 类型检查 + 构建产物                                           |
-| `npm run preview`    | 预览构建产物                                                  |
-| `npm run typecheck`  | 主进程侧 + 渲染进程侧类型检查                                 |
-| `npm run lint`       | ESLint                                                        |
-| `npm run format`     | Prettier 格式化                                               |
-| `npm test`           | Vitest 单测                                                   |
-| `npm run test:watch` | Vitest 监听模式                                               |
+| 命令                  | 说明                                                          |
+| --------------------- | ------------------------------------------------------------- |
+| `npm run dev`         | 启动 Electron 开发模式（主进程 / preload / 渲染进程均带 HMR） |
+| `npm run build`       | 类型检查 + 构建生产产物到 `out/`（快速验证用）                |
+| `npm run preview`     | 用构建产物启动应用                                            |
+| `npm run package`     | 构建 + 打包为免安装便携版 exe，产物在 `release/`              |
+| `npm run package:dir` | 只解包到 `release/win-unpacked`（更快，用于先验证再出单文件） |
+| `npm run clean`       | 删除 `out/` `release/` `.tsbuild/`                            |
+| `npm run typecheck`   | 主进程侧 + 渲染进程侧类型检查                                 |
+| `npm run lint`        | ESLint                                                        |
+| `npm run format`      | Prettier 格式化                                               |
+| `npm test`            | Vitest 单测                                                   |
+| `npm run test:watch`  | Vitest 监听模式                                               |
+
+## 在 VS Code 里开发
+
+仓库内置 `.vscode/tasks.json` 与 `.vscode/launch.json`，`Ctrl+Shift+P` → **Tasks: Run Task** 即可看到：
+
+| Task                                              | 对应命令              | 用途                               |
+| ------------------------------------------------- | --------------------- | ---------------------------------- |
+| **dev**（默认构建任务）                           | `npm run dev`         | `Ctrl+Shift+B` 直接起开发模式      |
+| **build**                                         | `npm run build`       | 快速验证生产产物                   |
+| **package**                                       | `npm run package`     | 出便携版 exe 到 `release/`         |
+| **package:dir**                                   | `npm run package:dir` | 只解包，快速验证打包配置           |
+| **preview**                                       | `npm run preview`     | 跑构建产物                         |
+| **clean**                                         | `npm run clean`       | 清理 `out/` `release/` `.tsbuild/` |
+| **typecheck / lint / test / test:watch / format** | 同名脚本              | 日常检查                           |
+
+`dev` 配了 problem matcher，以主进程打印的 `[tyme-app] main window ready` 作为就绪信号，因此
+`launch.json` 里的调试配置可以拿它当 `preLaunchTask`：按 F5 会先起应用再挂调试器。
+
+| 调试配置             | 说明                                                       |
+| -------------------- | ---------------------------------------------------------- |
+| 调试主进程（dev）    | 以 `--inspect=5858` 起开发模式并自动附加，可断点主进程代码 |
+| 调试渲染进程（dev）  | 以 `--remoteDebuggingPort=9222` 起开发模式并自动附加       |
+| 调试主进程（仅附加） | 应用已在运行时手动附加                                     |
+
+渲染层也可以直接按 `F12` 打开 DevTools（开发模式下由 `@electron-toolkit/utils` 提供）。
+
+### 打包注意事项
+
+- **打包前先关掉正在运行的「万年历」**，否则 `release/win-unpacked` 被占用会报 `EBUSY`。
+- **编辑器也可能锁住产物**：`.vscode/settings.json` 已把 `out/**`、`release/**`、`node_modules/**`、
+  `.tsbuild/**`、`vendor/**` 加进 `files.watcherExclude` 与 `search.exclude`，避免 VS Code 的文件服务
+  长期持有 `release/win-unpacked/resources/app.asar`。改动该配置之前若已被锁住，**重载一次 VS Code
+  窗口**（`Developer: Reload Window`）即可释放。
+- 清理产物用 `npm run clean`（或 VS Code 的 **clean** task），哪个目录被占用会明确报出来。
+- 应用图标由 `electron-builder.yml` 的 `win.icon: assets/calendar.svg` 指定，electron-builder 会
+  光栅化成多尺寸 `.ico` 写入 exe（已实测）。开发模式跑的是原版 `electron.exe`，而 Electron 的
+  `nativeImage` 不支持 SVG，所以开发时任务栏仍是 Electron 默认图标。
 
 ## 键盘快捷键
 
@@ -79,9 +121,14 @@ src/
 ├─ core/        纯 TypeScript 历法内核（零 Electron / React / DOM 依赖）
 └─ renderer/    React 界面：视图、组件、主题、hooks
 tests/          读取源码树的架构契约测试（配色、主题 token 完整性）
-scripts/        开发辅助脚本（capture-window.ps1：截取 Electron 窗口用于验证）
+scripts/        开发辅助脚本（clean.mjs 清理产物、capture-window.ps1 截图验证）
+.vscode/        tasks.json / launch.json / settings.json（构建产物监听排除）
+electron-builder.yml  便携版打包配置
 vendor/tyme4ts/ 只读 git submodule，用于查阅 tyme4ts 源码
 ```
+
+main 与 preload 的产物只 `require('electron')` 和 `node:` 内置模块（依赖已全部被 Vite 打进
+bundle），因此打包时不需要任何运行时 `node_modules`。
 
 ### 模块边界（由 ESLint 强制）
 
@@ -151,4 +198,36 @@ vendor/tyme4ts/ 只读 git submodule，用于查阅 tyme4ts 源码
 
 ## 许可
 
-见 `LICENSE`（待补）。历法算法与数据来自 MIT 许可的 [tyme4ts](https://github.com/6tail/tyme4ts)。
+本仓库自身代码见 `LICENSE`（待补）。
+
+### 第三方项目
+
+许可证标识取自各自安装包内的 `package.json`，并非照抄文档；应用内「设置 → 第三方许可」展示同一份清单。
+
+| 项目                    | 许可 | 用途                                                             |
+| ----------------------- | ---- | ---------------------------------------------------------------- |
+| [tyme4ts][tyme4ts]      | MIT  | 全部历法、节假日与黄历数据（公历/农历/藏历/回历/节气/宜忌/八字） |
+| [Electron][electron]    | MIT  | 桌面应用运行时（Chromium + Node.js）                             |
+| [React][react]          | MIT  | 界面渲染                                                         |
+| [TanStack Virtual][tv]  | MIT  | 时间轴视图的虚拟滚动                                             |
+| [electron-toolkit][etk] | MIT  | 主进程开发期辅助工具                                             |
+
+[tyme4ts]: https://github.com/6tail/tyme4ts
+[electron]: https://github.com/electron/electron
+[react]: https://github.com/facebook/react
+[tv]: https://github.com/TanStack/virtual
+[etk]: https://github.com/alex8088/electron-toolkit
+
+### 资产署名
+
+| 资产             | 作者              | 来源                                                                                                  |
+| ---------------- | ----------------- | ----------------------------------------------------------------------------------------------------- |
+| 应用图标（日历） | paomedia (Arnaud) | [github.com/paomedia][icon-src]（`assets/calendar.svg`；同目录 `calendar-author.txt` 为原始署名信息） |
+
+[icon-src]: https://github.com/paomedia
+
+图标的具体授权条款以来源页面为准；该署名同时展示在应用内「设置 → 资产署名」。
+
+> 打包时 electron-builder 会把 `assets/calendar.svg` 光栅化成多尺寸 `.ico` 写入 exe。
+> 开发模式下运行的是原版 `electron.exe`，而 Electron 的 `nativeImage` 不支持 SVG，
+> 因此**开发时任务栏显示的是 Electron 默认图标**，打包后才显示本图标。

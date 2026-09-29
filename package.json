@@ -3,6 +3,11 @@
   "version": "0.1.0",
   "description": "Windows 桌面万年历（Electron + React + TypeScript + tyme4ts）",
   "private": true,
+  "productName": "万年历",
+  "author": {
+    "name": "black067",
+    "email": "24395526+black067@users.noreply.github.com"
+  },
   "main": "./out/main/index.js",
   "license": "MIT",
   "engines": {
@@ -12,6 +17,9 @@
     "dev": "electron-vite dev",
     "build": "npm run typecheck && electron-vite build",
     "preview": "electron-vite preview",
+    "clean": "node scripts/clean.mjs",
+    "package": "npm run build && electron-builder --win portable",
+    "package:dir": "npm run build && electron-builder --win --dir",
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
@@ -36,6 +44,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.2.0",
     "electron": "^44.4.5",
+    "electron-builder": "^26.15.3",
     "electron-vite": "^5.0.0",
     "eslint": "^9.39.1",
     "eslint-config-prettier": "^10.1.8",
