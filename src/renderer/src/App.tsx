@@ -1,75 +1,83 @@
-import { useEffect, useState, type ReactElement } from 'react'
-import type { AppInfo, AppSettings } from '@shared/ipc'
-import { formatSolarDate, todayKey } from '@core'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from 'react'
+import {
+  buildDaySummary,
+  formatFullDate,
+  fromIsoDate,
+  toIsoDate,
+  todayKey,
+  weekDayLabel,
+  type DateKey
+} from '@core'
+import { SettingsProvider } from './state/SettingsProvider'
+import { useSettings } from './state/settings-context'
+import { MonthView } from './features/month/MonthView'
+import { DayPanel } from './features/day/DayPanel'
+import './styles/global.css'
+
+export function App(): ReactElement {
+  return (
+    <SettingsProvider>
+      <AppShell />
+    </SettingsProvider>
+  )
+}
 
 /**
- * Phase 0 shell: proves the preload bridge, settings persistence and the core
- * engine all work end to end. Replaced by the view router in Phase 1.
+ * Application shell: a header, the active view, and the focused day's panel.
+ *
+ * `selected` is the single source of truth for "which day is the user looking
+ * at"; the month view derives its visible month from it, so paging and picking
+ * can never drift apart.
  */
-export function App(): ReactElement {
-  const [info, setInfo] = useState<AppInfo | null>(null)
-  const [settings, setSettings] = useState<AppSettings | null>(null)
-  const [error, setError] = useState<string | null>(null)
+function AppShell(): ReactElement {
+  const { settings, ready, update, error } = useSettings()
+  const today = useMemo(() => todayKey(), [])
+  const [selected, setSelected] = useState<DateKey>(today)
+  const restored = useRef(false)
 
+  // Restore the last browsed day once the persisted settings arrive.
   useEffect(() => {
-    let cancelled = false
-    Promise.all([window.tyme.app.getInfo(), window.tyme.settings.get()])
-      .then(([nextInfo, nextSettings]) => {
-        if (cancelled) return
-        setInfo(nextInfo)
-        setSettings(nextSettings)
-      })
-      .catch((cause: unknown) => {
-        if (cancelled) return
-        setError(cause instanceof Error ? cause.message : String(cause))
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [])
+    if (!ready || restored.current) return
+    restored.current = true
+    setSelected(fromIsoDate(settings.lastViewedDate) ?? today)
+  }, [ready, settings.lastViewedDate, today])
 
-  const today = todayKey()
+  // Persist the selection, debounced so rapid navigation stays cheap.
+  useEffect(() => {
+    if (!ready || !restored.current) return
+    const timer = setTimeout(() => update({ lastViewedDate: toIsoDate(selected) }), 600)
+    return () => clearTimeout(timer)
+  }, [ready, selected, update])
+
+  const select = useCallback((key: DateKey) => setSelected(key), [])
+
+  const todaySummary = useMemo(() => buildDaySummary(today), [today])
 
   return (
     <div className="app-shell">
       <header className="app-header">
         <h1 className="app-title">万年历</h1>
-        <p className="app-subtitle">{formatSolarDate(today)}</p>
+        <p className="app-subtitle">
+          <span>{formatFullDate(today.year, today.month, today.day)}</span>
+          <span className="app-subtitle__sep">·</span>
+          <span>星期{weekDayLabel(todaySummary.weekDay)}</span>
+          <span className="app-subtitle__sep">·</span>
+          <span className="app-subtitle__lunar">{todaySummary.lunar.full}</span>
+        </p>
+        {error ? <p className="app-error">{error}</p> : null}
       </header>
 
-      <main className="app-main">
-        <section className="panel">
-          <h2 className="panel-title">运行环境</h2>
-          {error ? <p className="panel-error">{error}</p> : null}
-          <dl className="kv">
-            <div className="kv-row">
-              <dt>应用版本</dt>
-              <dd>{info?.version ?? '…'}</dd>
-            </div>
-            <div className="kv-row">
-              <dt>Electron</dt>
-              <dd>{info?.electron ?? '…'}</dd>
-            </div>
-            <div className="kv-row">
-              <dt>Chromium</dt>
-              <dd>{info?.chrome ?? '…'}</dd>
-            </div>
-            <div className="kv-row">
-              <dt>Node.js</dt>
-              <dd>{info?.node ?? '…'}</dd>
-            </div>
-            <div className="kv-row">
-              <dt>数据目录</dt>
-              <dd>{info?.userDataPath ?? '…'}</dd>
-            </div>
-          </dl>
-        </section>
-
-        <section className="panel">
-          <h2 className="panel-title">已加载设置</h2>
-          <pre className="code-block">{settings ? JSON.stringify(settings, null, 2) : '…'}</pre>
-        </section>
-      </main>
+      <div className="app-body">
+        <main className="app-main">
+          <MonthView
+            selected={selected}
+            today={today}
+            weekStartsOnMonday={settings.weekStartsOnMonday}
+            onSelect={select}
+          />
+        </main>
+        <DayPanel selected={selected} />
+      </div>
     </div>
   )
 }

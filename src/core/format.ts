@@ -34,10 +34,32 @@ export function weekDayLabel(weekDay: number): string {
   return WEEKDAY_LABELS[weekDay] ?? ''
 }
 
+const MONDAY_FIRST_LABELS = ['一', '二', '三', '四', '五', '六', '日'] as const
+
+/** Weekday column headers in the same order the grid lays its columns out. */
+export function weekdayOrder(weekStartsOnMonday: boolean): readonly string[] {
+  return weekStartsOnMonday ? MONDAY_FIRST_LABELS : WEEKDAY_LABELS
+}
+
 export function formatMonthTitle(year: number, month: number): string {
   return `${year}年${month}月`
 }
 
 export function formatFullDate(year: number, month: number, day: number): string {
   return `${year}年${month}月${day}日`
+}
+
+/** Screen-reader label for a calendar cell, suitable for `aria-label`. */
+export function describeDay(summary: DaySummary): string {
+  const parts = [
+    formatFullDate(summary.key.year, summary.key.month, summary.key.day),
+    `星期${summary.weekName}`,
+    summary.lunar.full
+  ]
+  if (summary.term) parts.push(summary.term.name)
+  for (const festival of summary.festivals) parts.push(festival.name)
+  if (summary.holiday) {
+    parts.push(`${summary.holiday.name}${summary.holiday.isWork ? '调休上班' : '放假'}`)
+  }
+  return parts.join(' ')
 }

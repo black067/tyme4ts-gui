@@ -35,9 +35,11 @@ export { buildMonthGrid, monthBounds } from './month'
 export {
   WEEKDAY_LABELS,
   dayCellText,
+  describeDay,
   formatFullDate,
   formatMonthTitle,
   weekDayLabel,
+  weekdayOrder,
   type DayCellText,
   type DayCellTone
 } from './format'
