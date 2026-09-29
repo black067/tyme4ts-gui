@@ -32,6 +32,23 @@ export { createLruCache, type LruCache } from './cache'
 
 export { buildDayInfo, buildDaySummary, clearDayCaches } from './day'
 
+export {
+  buildHolidayOverlay,
+  emptyHolidayOverlay,
+  getHolidayOverlay,
+  getHolidayOverlayVersion,
+  installHolidayPayloads,
+  normalizeHolidayPayload,
+  onHolidayOverlayChange,
+  resetHolidayOverlay,
+  resolveHoliday,
+  setHolidayOverlay,
+  type HolidayEntry,
+  type HolidayOverlay,
+  type HolidayOverlayBuild,
+  type HolidayPayloadOutcome
+} from './holiday-overlay'
+
 export { buildMonthGrid, monthBounds, monthGridShape, type MonthGridShape } from './month'
 
 export {

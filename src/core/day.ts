@@ -1,6 +1,7 @@
 import { SolarDay, type LunarDay } from 'tyme4ts'
 import { createLruCache } from './cache'
 import { isValidDateKey, toIsoDate, type DateKey } from './date-key'
+import { getHolidayOverlay, onHolidayOverlayChange, resolveHoliday } from './holiday-overlay'
 import type {
   DayInfo,
   DaySummary,
@@ -76,13 +77,17 @@ function collectFestivals(solar: SolarDay, lunar: LunarDay): FestivalRef[] {
   return festivals
 }
 
-function readHoliday(solar: SolarDay): HolidayRef | null {
-  return (
+/**
+ * The engine's frozen table (`null` past 2026-10-10, and for years before its
+ * start) unless the holiday overlay has an entry for this exact date.
+ */
+function readHoliday(solar: SolarDay, iso: string): HolidayRef | null {
+  const engineHoliday =
     safe(() => {
       const holiday = solar.getLegalHoliday()
       return holiday ? { name: holiday.getName(), isWork: holiday.isWork() } : null
     }) ?? null
-  )
+  return resolveHoliday(engineHoliday, getHolidayOverlay(), iso)
 }
 
 function readTerm(solar: SolarDay): TermInfo | null {
@@ -99,17 +104,18 @@ function buildSummary(key: DateKey): DaySummary {
   const lunar = solar.getLunarDay()
   const week = solar.getWeek()
   const weekDay = week.getIndex()
+  const iso = toIsoDate(key)
 
   return {
     key,
-    iso: toIsoDate(key),
+    iso,
     weekDay,
     weekName: week.getName(),
     isWeekend: weekDay === 0 || weekDay === 6,
     lunar: toLunarInfo(lunar),
     term: readTerm(solar),
     festivals: collectFestivals(solar, lunar),
-    holiday: readHoliday(solar)
+    holiday: readHoliday(solar, iso)
   }
 }
 
@@ -217,3 +223,8 @@ export function clearDayCaches(): void {
   summaryCache.clear()
   infoCache.clear()
 }
+
+// A new holiday overlay changes what these memoized days report, so the caches
+// must go with it. `holiday-overlay.ts` cannot call this directly (that would be
+// circular), so the subscription is registered here instead.
+onHolidayOverlayChange(clearDayCaches)

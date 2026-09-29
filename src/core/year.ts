@@ -8,6 +8,7 @@ import {
   type DateKey
 } from './date-key'
 import { buildDaySummary } from './day'
+import { onHolidayOverlayChange } from './holiday-overlay'
 import { monthGridShape } from './month'
 import type { DaySummary, MonthGridOptions } from './types'
 
@@ -162,3 +163,7 @@ export function buildDayRange(start: DateKey, count: number): DateKey[] {
 export function clearYearCache(): void {
   yearCache.clear()
 }
+
+// A year's `holidays` list is a projection of the day summaries it cached, so a
+// new holiday overlay must drop it too (see `holiday-overlay.ts`).
+onHolidayOverlayChange(clearYearCache)

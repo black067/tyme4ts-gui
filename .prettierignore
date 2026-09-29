@@ -7,3 +7,6 @@ vendor/
 .eslintcache
 *.tsbuildinfo
 package-lock.json
+
+# Verbatim third-party data snapshots (see tests/fixtures/holiday-cn/README.md).
+tests/fixtures/holiday-cn/*.json
