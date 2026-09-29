@@ -14,6 +14,7 @@ import {
   type SearchResult
 } from '@core'
 import { cx } from '@renderer/components/cx'
+import { useMessages } from '@renderer/i18n'
 import { PickerGroup } from './PickerGroup'
 import './tools.css'
 
@@ -34,6 +35,7 @@ function defaultRange(selected: DateKey): { from: string; to: string } {
  * year, so the button defers it by one tick to let the loading state paint.
  */
 export function SearchTool({ selected, onSelect, onOpenMonth }: SearchToolProps): ReactElement {
+  const t = useMessages()
   const initial = useMemo(() => defaultRange(selected), [selected])
   const [from, setFrom] = useState(initial.from)
   const [to, setTo] = useState(initial.to)
@@ -66,12 +68,12 @@ export function SearchTool({ selected, onSelect, onOpenMonth }: SearchToolProps)
 
   const run = (): void => {
     if (!parsedFrom || !parsedTo) {
-      setError('日期范围无效，请检查起止日期。')
+      setError(t.search.errors.invalidRange)
       setResult(null)
       return
     }
     if (compareDateKey(parsedFrom, parsedTo) > 0) {
-      setError('起始日期不能晚于结束日期。')
+      setError(t.search.errors.reversedRange)
       setResult(null)
       return
     }
@@ -104,23 +106,23 @@ export function SearchTool({ selected, onSelect, onOpenMonth }: SearchToolProps)
   }
 
   return (
-    <section className="tool" aria-label="择日检索">
+    <section className="tool" aria-label={t.search.title}>
       <header className="tool__header">
-        <h2 className="tool__title">择日检索</h2>
+        <h2 className="tool__title">{t.search.title}</h2>
         <span className="tool__meta">
           {span
-            ? `共 ${span.days} 天${span.clipped ? `（已截断至上限 ${SEARCH_MAX_DAYS} 天）` : ''}`
+            ? t.search.span({ days: span.days, clipped: span.clipped, max: SEARCH_MAX_DAYS })
             : '—'}
         </span>
         <button type="button" className="text-button" onClick={reset}>
-          清空条件
+          {t.search.clear}
         </button>
       </header>
 
       <div className="search-form">
         <div className="search-form__range">
           <label className="field">
-            <span className="field__label">起始</span>
+            <span className="field__label">{t.search.rangeLabel}</span>
             <input
               className="field__input"
               type="date"
@@ -131,7 +133,7 @@ export function SearchTool({ selected, onSelect, onOpenMonth }: SearchToolProps)
             />
           </label>
           <label className="field">
-            <span className="field__label">结束</span>
+            <span className="field__label">{t.search.rangeEndLabel}</span>
             <input
               className="field__input"
               type="date"
@@ -144,9 +146,9 @@ export function SearchTool({ selected, onSelect, onOpenMonth }: SearchToolProps)
 
           <div className="search-form__presets">
             {[
-              { label: '未来 30 天', days: 29 },
-              { label: '未来 90 天', days: 89 },
-              { label: '未来一年', days: 365 }
+              { label: t.search.presets.days30, days: 29 },
+              { label: t.search.presets.days90, days: 89 },
+              { label: t.search.presets.year, days: 365 }
             ].map((preset) => (
               <button
                 key={preset.label}
@@ -164,13 +166,23 @@ export function SearchTool({ selected, onSelect, onOpenMonth }: SearchToolProps)
         </div>
 
         <PickerGroup
-          label="宜（需同时包含）"
+          label={t.search.pickers.recommends}
           tone="luck"
           selected={recommends}
           onChange={setRecommends}
         />
-        <PickerGroup label="忌（需同时包含）" tone="avoid" selected={avoids} onChange={setAvoids} />
-        <PickerGroup label="节气（任一）" tone="term" selected={terms} onChange={setTerms} />
+        <PickerGroup
+          label={t.search.pickers.avoids}
+          tone="avoid"
+          selected={avoids}
+          onChange={setAvoids}
+        />
+        <PickerGroup
+          label={t.search.pickers.terms}
+          tone="term"
+          selected={terms}
+          onChange={setTerms}
+        />
 
         <div className="search-form__switches">
           <label className="checkbox">
@@ -179,7 +191,7 @@ export function SearchTool({ selected, onSelect, onOpenMonth }: SearchToolProps)
               checked={weekendsOnly}
               onChange={(event) => setWeekendsOnly(event.target.checked)}
             />
-            仅周末
+            {t.search.switches.weekendsOnly}
           </label>
           <label className="checkbox">
             <input
@@ -187,7 +199,7 @@ export function SearchTool({ selected, onSelect, onOpenMonth }: SearchToolProps)
               checked={restDaysOnly}
               onChange={(event) => setRestDaysOnly(event.target.checked)}
             />
-            仅法定休息日
+            {t.search.switches.restDaysOnly}
           </label>
           <label className="checkbox">
             <input
@@ -195,30 +207,32 @@ export function SearchTool({ selected, onSelect, onOpenMonth }: SearchToolProps)
               checked={excludeMakeupDays}
               onChange={(event) => setExcludeMakeupDays(event.target.checked)}
             />
-            排除调休上班
+            {t.search.switches.excludeMakeupDays}
           </label>
         </div>
 
         <div className="search-form__actions">
           <button type="button" className="primary-button" onClick={run} disabled={running}>
-            {running ? '检索中…' : '开始检索'}
+            {running ? t.search.running : t.search.run}
           </button>
           {error ? <span className="tool__error">{error}</span> : null}
         </div>
       </div>
 
       <div className="search-results">
-        {running ? <p className="tool__note">正在检索，请稍候…</p> : null}
+        {running ? <p className="tool__note">{t.search.progress}</p> : null}
 
         {!running && result ? (
           result.hits.length === 0 ? (
-            <p className="tool__note">没有符合条件的日期。</p>
+            <p className="tool__note">{t.search.empty}</p>
           ) : (
             <>
               <p className="tool__note">
-                命中 {result.hits.length} 天
-                {result.limitReached ? '（已达结果上限，请缩小范围）' : ''}，共扫描{' '}
-                {result.scannedDays} 天。
+                {t.search.summary({
+                  hits: result.hits.length,
+                  scanned: result.scannedDays,
+                  limitReached: result.limitReached
+                })}
               </p>
               <ul className="hit-list">
                 {result.hits.map((hit) => (
@@ -227,8 +241,8 @@ export function SearchTool({ selected, onSelect, onOpenMonth }: SearchToolProps)
                       type="button"
                       className="hit__main"
                       onClick={() => openHit(hit)}
-                      title="在月视图中打开"
-                      aria-label={`在月视图中打开 ${hit.iso}`}
+                      title={t.search.openInMonth}
+                      aria-label={t.search.openInMonthLabel({ iso: hit.iso })}
                     >
                       <span className="hit__date">
                         {formatFullDate(hit.key.year, hit.key.month, hit.key.day)}
@@ -246,7 +260,7 @@ export function SearchTool({ selected, onSelect, onOpenMonth }: SearchToolProps)
                         <span
                           className={cx('hit__holiday', hit.holiday.isWork ? 'is-work' : 'is-rest')}
                         >
-                          {hit.holiday.isWork ? '班' : '休'}
+                          {hit.holiday.isWork ? t.badges.work : t.badges.rest}
                         </span>
                       ) : null}
                       {hit.ganzhiDay ? <span className="hit__ganzhi">{hit.ganzhiDay}</span> : null}
@@ -258,7 +272,7 @@ export function SearchTool({ selected, onSelect, onOpenMonth }: SearchToolProps)
           )
         ) : null}
 
-        {!running && !result ? <p className="tool__note">设置条件后点击「开始检索」。</p> : null}
+        {!running && !result ? <p className="tool__note">{t.search.hint}</p> : null}
       </div>
     </section>
   )

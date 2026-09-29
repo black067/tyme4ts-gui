@@ -15,6 +15,19 @@ export const zhHans = {
     'zh-Hans': '简体中文'
   } satisfies Record<Locale, string>,
 
+  /**
+   * 法定节假日角标。
+   *
+   * 月视图、年视图、检索结果三处都显示同一对字，所以放在共享位置：
+   * 各写一份会在改动时漏掉其中一处。
+   */
+  badges: {
+    /** 调休上班。 */
+    work: '班',
+    /** 放假。 */
+    rest: '休'
+  },
+
   app: {
     title: '万年历',
     /** 标题行 + 版本号，如「万年历 v0.1.3」。 */
@@ -53,13 +66,6 @@ export const zhHans = {
       toggleHelp: '显示或隐藏本说明',
       closeHelp: '关闭说明'
     }
-  },
-
-  dayCell: {
-    /** 法定节假日的角标：调休上班。 */
-    workBadge: '班',
-    /** 法定节假日的角标：放假。 */
-    restBadge: '休'
   },
 
   tools: {
@@ -104,6 +110,119 @@ export const zhHans = {
     /** 藏历的年份范围提示。范围是引擎的能力边界，所以由参数传入。 */
     rabByungRange: ({ from, to }: { from: number; to: number }): string =>
       `藏历仅支持 ${from}–${to} 饶迥年。`
+  },
+
+  pillars: {
+    /** 区域名称与标题共用。 */
+    title: '八字排盘',
+    genderLabel: '性别',
+    male: '男',
+    female: '女',
+    birthTimeLabel: '出生时刻',
+    /** 排盘规则说明：日期来源与晚子时进位。 */
+    ruleNote:
+      '日期取自当前浏览的日期（在月视图中选择）。时柱按 tyme4ts 默认规则换算：23:00–23:59 出生时，日柱进位到次日（晚子时）。',
+    /** 四柱表的列头。 */
+    columns: {
+      year: '年柱',
+      month: '月柱',
+      day: '日柱',
+      hour: '时柱'
+    },
+    /** 四柱表的行头。这些同时是术语名，属于历法数据而非界面文案。 */
+    rows: {
+      cycle: '干支',
+      tenStar: '十神',
+      hiddenStems: '藏干',
+      elements: '五行',
+      nayin: '纳音'
+    },
+    /** 四柱表的无障碍名称。 */
+    chartLabel: '四柱',
+    /** 日主一行，如「日主 乙木」。 */
+    dayMaster: ({ stem }: { stem: string }): string => `日主 ${stem}`,
+    /** 五行统计的无障碍名称，也是小节标题。 */
+    elementTally: '五行统计',
+    /** 起运小节。 */
+    childLimit: {
+      title: '起运',
+      /** 阳年生男/阴年生女顺行，其余逆行。 */
+      directionLabel: '阳顺阴逆',
+      forward: '顺行',
+      backward: '逆行',
+      /** 起运所需时长的行标签。 */
+      durationLabel: '起运',
+      /** 具体起运时刻的行标签。 */
+      startLabel: '起运时刻',
+      /** 起运年龄，如「5 年 6 个月 21 天」。 */
+      years: ({ years, months, days }: { years: number; months: number; days: number }): string =>
+        `${years} 年 ${months} 个月 ${days} 天`,
+      /** 引擎推不出起运时的说明。 */
+      unavailable: '该日期无法推算起运。'
+    },
+    /** 大运小节。 */
+    decades: {
+      title: '大运',
+      /** 年龄区间，如「6–15 岁」。 */
+      ageRange: ({ from, to }: { from: number; to: number }): string => `${from}–${to} 岁`,
+      /** 起始年份，如「1995 起」。 */
+      startYear: ({ year }: { year: number }): string => `${year} 起`
+    },
+    /** 流年小节。 */
+    fortunes: {
+      title: '流年（起运后）',
+      age: ({ age }: { age: number }): string => `${age} 岁`
+    }
+  },
+
+  search: {
+    /** 区域名称与标题共用。 */
+    title: '择日检索',
+    clear: '清空条件',
+    rangeLabel: '起始',
+    rangeEndLabel: '结束',
+    presets: {
+      days30: '未来 30 天',
+      days90: '未来 90 天',
+      year: '未来一年'
+    },
+    /** 从多个选项里挑的标签：「宜（需同时包含）」等。 */
+    pickers: {
+      recommends: '宜（需同时包含）',
+      avoids: '忌（需同时包含）',
+      terms: '节气（任一）'
+    },
+    switches: {
+      weekendsOnly: '仅周末',
+      restDaysOnly: '仅法定休息日',
+      excludeMakeupDays: '排除调休上班'
+    },
+    run: '开始检索',
+    running: '检索中…',
+    /** 扫描范围摘要；被上限截断时补一句。 */
+    span: ({ days, clipped, max }: { days: number; clipped: boolean; max: number }): string =>
+      `共 ${days} 天${clipped ? `（已截断至上限 ${max} 天）` : ''}`,
+    errors: {
+      invalidRange: '日期范围无效，请检查起止日期。',
+      reversedRange: '起始日期不能晚于结束日期。'
+    },
+    progress: '正在检索，请稍候…',
+    empty: '没有符合条件的日期。',
+    /** 结果摘要。 */
+    summary: ({
+      hits,
+      scanned,
+      limitReached
+    }: {
+      hits: number
+      scanned: number
+      limitReached: boolean
+    }): string =>
+      `命中 ${hits} 天${limitReached ? '（已达结果上限，请缩小范围）' : ''}，共扫描 ${scanned} 天。`,
+    hint: '设置条件后点击「开始检索」。',
+    /** 命中条目：在月视图中打开某天。 */
+    openInMonth: '在月视图中打开',
+    openInMonthLabel: ({ iso }: { iso: string }): string => `在月视图中打开 ${iso}`
   },
 
   dayPanel: {
@@ -181,10 +300,7 @@ export const zhHans = {
     noHolidayData: 'tyme4ts 内置的法定假日数据不覆盖该年份。',
     /** 假期统计角标：休 / 班。 */
     holidayBadge: ({ rest, work }: { rest: number; work: number }): string =>
-      `休 ${rest} 天 · 班 ${work} 天`,
-    /** 假期列表条目角标。 */
-    workBadge: '班',
-    restBadge: '休'
+      `休 ${rest} 天 · 班 ${work} 天`
   },
 
   month: {
@@ -239,6 +355,16 @@ export const zhHans = {
       description: '主题决定配色与字体，外观决定使用浅色还是深色变体。',
       themeLabel: '主题',
       modeLabel: '外观',
+      /** 主题族的显示名，按 `ThemeDefinition.id` 取。 */
+      themeNames: {
+        minimal: '现代简约',
+        classic: '中国传统'
+      },
+      /** 主题族的说明。 */
+      themeDescriptions: {
+        minimal: '浅色卡片、克制的朱红点缀，信息密度高，长时间阅读不累眼。',
+        classic: '宣纸底色、朱红与墨色，衬线字体与更宽的留白，更接近老黄历的观感。'
+      },
       /** 「当前生效：现代简约 · minimal」。 */
       current: ({ theme, resolved }: { theme: string; resolved: string }): string =>
         `当前生效：${theme} · ${resolved}`,
@@ -310,6 +436,8 @@ export const zhHans = {
     /** 数据尚未从主进程返回时的占位。 */
     pending: '…',
     /** 无法计算时显示的占位符。 */
-    unavailable: '—'
+    unavailable: '—',
+    /** 多选组件里清空已选项。 */
+    clear: '清除'
   }
 }

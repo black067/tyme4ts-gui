@@ -29,8 +29,8 @@ function DayCellImpl({
   const text = dayCellText(summary)
   const holidayBadge = summary.holiday
     ? summary.holiday.isWork
-      ? t.dayCell.workBadge
-      : t.dayCell.restBadge
+      ? t.badges.work
+      : t.badges.rest
     : null
 
   return (

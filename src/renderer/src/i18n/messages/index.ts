@@ -16,6 +16,9 @@ import { zhHans } from './zh-Hans'
 /** 界面上所有文案的集合。类型由参考目录推导，别手写。 */
 export type Messages = typeof zhHans
 
+/** 有显示名的主题族 id；新增主题时这里会先报错，提醒补文案。 */
+export type ThemeNameKey = keyof Messages['settings']['appearance']['themeNames']
+
 const CATALOGS: Readonly<Record<Locale, Messages>> = {
   'zh-Hans': zhHans
 }

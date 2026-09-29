@@ -1,6 +1,7 @@
 import { useState, type ReactElement } from 'react'
 import { COMMON_AVOID_ITEMS, COMMON_TABOO_ITEMS, SOLAR_TERM_NAMES } from '@core'
 import { cx } from '@renderer/components/cx'
+import { useMessages } from '@renderer/i18n'
 
 interface PickerGroupProps {
   label: string
@@ -27,6 +28,7 @@ function itemsFor(tone: PickerGroupProps['tone']): readonly string[] {
  * demand instead of pushing the results off screen.
  */
 export function PickerGroup({ label, tone, selected, onChange }: PickerGroupProps): ReactElement {
+  const t = useMessages()
   const [open, setOpen] = useState(false)
   const items = itemsFor(tone)
 
@@ -51,7 +53,7 @@ export function PickerGroup({ label, tone, selected, onChange }: PickerGroupProp
         </button>
         {selected.length > 0 ? (
           <button type="button" className="picker__clear" onClick={() => onChange([])}>
-            清除
+            {t.common.clear}
           </button>
         ) : null}
       </div>

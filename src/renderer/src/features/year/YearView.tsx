@@ -176,7 +176,7 @@ function HolidayList({ year }: { year: YearInfo }): ReactElement {
         {year.holidays.map((entry) => (
           <li key={`${entry.month}-${entry.day}`} className="holiday-list__item">
             <span className={cx('holiday-list__tag', entry.isWork ? 'is-work' : 'is-rest')}>
-              {entry.isWork ? t.year.workBadge : t.year.restBadge}
+              {entry.isWork ? t.badges.work : t.badges.rest}
             </span>
             <span className="holiday-list__date">
               {t.year.monthDay({ month: entry.month, day: entry.day })}

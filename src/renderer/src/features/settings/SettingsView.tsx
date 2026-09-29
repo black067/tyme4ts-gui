@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactElement } from 'react'
 import { LOCALES, type AppearanceMode, type AppInfo, type Locale, type ViewId } from '@shared/ipc'
 import { SegmentedControl, type SegmentedOption } from '@renderer/components/SegmentedControl'
 import { Toggle } from '@renderer/components/Toggle'
-import { useMessages } from '@renderer/i18n'
+import { useMessages, type ThemeNameKey } from '@renderer/i18n'
 import { useSettings } from '@renderer/state/settings-context'
 import { useTheme } from '@renderer/theme/theme-context'
 import { THEMES } from '@renderer/theme/themes'
@@ -68,9 +68,14 @@ export function SettingsView({ onClose }: { onClose: () => void }): ReactElement
     }
   }, [])
 
+  // 主题名与说明取自文案目录。主题是纯定义（id + 变体 + 预览色），把界面文案
+  // 留在 ThemeDefinition 里会让"换个语言"变成要改领域类型。
+  const themeName = (id: string): string =>
+    t.settings.appearance.themeNames[id as ThemeNameKey] ?? id
+
   const themeOptions: readonly SegmentedOption<string>[] = THEMES.map((candidate) => ({
     value: candidate.id,
-    label: candidate.name
+    label: themeName(candidate.id)
   }))
 
   // 选项文案取自参考目录的 `localeNames`，而不是在这里再写一遍中文——
@@ -113,7 +118,10 @@ export function SettingsView({ onClose }: { onClose: () => void }): ReactElement
             />
           </div>
           <p className="settings-note">
-            {t.settings.appearance.current({ theme: theme.name, resolved: resolvedThemeId })}
+            {t.settings.appearance.current({
+              theme: themeName(theme.id),
+              resolved: resolvedThemeId
+            })}
           </p>
         </Section>
 

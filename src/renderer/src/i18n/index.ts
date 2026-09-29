@@ -6,5 +6,5 @@
  */
 export { LocaleProvider } from './LocaleProvider'
 export { useLocale, useMessages, type LocaleContextValue } from './locale-context'
-export type { Messages } from './messages'
+export type { Messages, ThemeNameKey } from './messages'
 export type { Translate } from './types'
