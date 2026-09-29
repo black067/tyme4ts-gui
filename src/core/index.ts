@@ -61,6 +61,18 @@ export {
 } from './vocabulary'
 
 export {
+  buildEightChar,
+  type ChildLimitInfo,
+  type DecadeEntry,
+  type EightCharInput,
+  type EightCharResult,
+  type FortuneEntry,
+  type HiddenStem,
+  type PersonGender,
+  type PillarInfo
+} from './pillars'
+
+export {
   buildDayRange,
   buildYearInfo,
   clearYearCache,
