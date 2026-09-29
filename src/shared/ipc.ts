@@ -32,6 +32,8 @@ export interface AppSettings {
   showAlmanac: boolean
   /** Treat Monday as the first column of the week grid. */
   weekStartsOnMonday: boolean
+  /** Show the term glossary (hover a term for its meaning, click for the source). */
+  showGlossary: boolean
 }
 
 /** Runtime facts about the host, surfaced in the settings screen's About panel. */
@@ -76,7 +78,8 @@ export function createDefaultSettings(todayIso: string): AppSettings {
     defaultView: 'month',
     lastViewedDate: todayIso,
     showAlmanac: true,
-    weekStartsOnMonday: false
+    weekStartsOnMonday: false,
+    showGlossary: true
   }
 }
 

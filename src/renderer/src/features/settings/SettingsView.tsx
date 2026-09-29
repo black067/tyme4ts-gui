@@ -121,6 +121,13 @@ export function SettingsView({ onClose }: { onClose: () => void }): ReactElement
             />
           </div>
           <div className="settings-field">
+            <Toggle
+              label="术语说明（悬停看释义，点击看出处）"
+              checked={settings.showGlossary}
+              onChange={(showGlossary) => update({ showGlossary })}
+            />
+          </div>
+          <div className="settings-field">
             <span className="settings-field__label">启动时打开</span>
             <SegmentedControl
               label=""

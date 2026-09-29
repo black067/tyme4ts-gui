@@ -12,6 +12,7 @@ import {
   type DateKey
 } from '@core'
 import { ViewTabs, type ViewTab } from './components/ViewTabs'
+import { TermTipProvider } from './components/TermTip'
 import { SettingsProvider } from './state/SettingsProvider'
 import { useSettings } from './state/settings-context'
 import { ThemeProvider } from './theme/ThemeProvider'
@@ -40,7 +41,9 @@ export function App(): ReactElement {
   return (
     <SettingsProvider>
       <ThemeProvider>
-        <AppContent />
+        <TermTipProvider>
+          <AppContent />
+        </TermTipProvider>
       </ThemeProvider>
     </SettingsProvider>
   )

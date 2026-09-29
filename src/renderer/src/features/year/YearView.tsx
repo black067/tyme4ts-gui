@@ -11,6 +11,7 @@ import {
   type YearInfo
 } from '@core'
 import { cx } from '@renderer/components/cx'
+import { TermTip } from '@renderer/components/TermTip'
 import './year-view.css'
 
 interface YearViewProps {
@@ -134,7 +135,9 @@ function TermList({ year }: { year: YearInfo }): ReactElement {
       <ul className="term-list">
         {year.terms.map((term) => (
           <li key={`${term.month}-${term.day}-${term.name}`} className="term-list__item">
-            <span className="term-list__name">{term.name}</span>
+            <span className="term-list__name">
+              <TermTip family="term" name={term.name} />
+            </span>
             <span className="term-list__date">
               {term.month}月{term.day}日
             </span>

@@ -1,0 +1,106 @@
+/*
+ * 术语浮层。
+ *
+ * 颜色全部走主题 token —— tests/theme-tokens.test.ts 会拦下任何颜色字面量。
+ */
+
+/* 触发元素：按钮复位成内联文本，视觉上尽量不打扰正文排版。 */
+.term {
+  display: inline;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+  cursor: help;
+  border-radius: var(--radius-sm);
+}
+
+.term:hover {
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+}
+
+.term:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* 浮层本体：固定在视口坐标系里，位置由 JS 算。 */
+.term-tip {
+  position: fixed;
+  z-index: 60;
+  max-width: 320px;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow-lg);
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+  text-align: left;
+}
+
+.term-tip--pinned {
+  max-width: 380px;
+  border-color: var(--color-border-strong);
+}
+
+.term-tip__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-2);
+}
+
+.term-tip__name {
+  font-size: var(--font-size-md);
+  font-weight: 600;
+}
+
+.term-tip__family {
+  color: var(--color-text-subtle);
+  font-size: var(--font-size-xs);
+}
+
+.term-tip__summary {
+  margin: 0;
+  color: var(--color-text);
+}
+
+.term-tip__quote {
+  margin: var(--space-2) 0 0;
+  padding-left: var(--space-3);
+  border-left: 2px solid var(--color-border);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.term-tip__source {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin: var(--space-3) 0 0;
+  color: var(--color-text-subtle);
+  font-size: var(--font-size-xs);
+}
+
+.term-tip__close {
+  flex: none;
+  padding: 2px var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-alt);
+  color: var(--color-text-muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.term-tip__close:hover {
+  background: var(--color-surface-sunken);
+  color: var(--color-text);
+}

@@ -36,7 +36,9 @@ function normalize(raw: unknown): AppSettings {
     weekStartsOnMonday:
       typeof input.weekStartsOnMonday === 'boolean'
         ? input.weekStartsOnMonday
-        : defaults.weekStartsOnMonday
+        : defaults.weekStartsOnMonday,
+    showGlossary:
+      typeof input.showGlossary === 'boolean' ? input.showGlossary : defaults.showGlossary
   }
 }
 
