@@ -5,7 +5,7 @@
  * component must consume the semantic names below, which is what makes a new
  * theme a matter of adding one `[data-theme='…']` block and nothing else.
  *
- * A test (`src/renderer/src/theme/__tests__/tokens.test.ts`) enforces that.
+ * A test (`tests/theme-tokens.test.ts`) enforces that.
  */
 
 :root {
