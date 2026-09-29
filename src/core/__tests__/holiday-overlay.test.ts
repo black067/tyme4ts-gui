@@ -340,6 +340,27 @@ describe('resolveHoliday', () => {
 })
 
 describe('the engine resolves through the overlay', () => {
+  it('uses the same 节日名 as the built-in table where both cover a day', () => {
+    // 覆盖层是覆盖关系：同一天只要覆盖层有值就用覆盖层的名字。所以两边的词汇
+    // 必须一致，否则引擎本来就认识的日子会被换成另一个说法。
+    // 数据源用的是简称（中秋/端午/清明），`NAME_ALIASES` 负责补全——这条测试
+    // 的作用是：一旦来源出现新的简称而别名表没跟上，这里就会失败。
+    const before = [
+      buildDaySummary(key(2026, 6, 19)).holiday,
+      buildDaySummary(key(2026, 9, 25)).holiday,
+      buildDaySummary(key(2026, 4, 5)).holiday
+    ]
+    expect(before.every((holiday) => holiday !== null)).toBe(true)
+
+    installHolidayPayloads([readFixture(2025), readFixture(2026)])
+
+    expect([
+      buildDaySummary(key(2026, 6, 19)).holiday,
+      buildDaySummary(key(2026, 9, 25)).holiday,
+      buildDaySummary(key(2026, 4, 5)).holiday
+    ]).toEqual(before)
+  })
+
   it('overrides the built-in table inside its own range', () => {
     // warming the memo first is the point: the override must survive it.
     expect(buildDaySummary(key(2026, 10, 1)).holiday).toEqual({ name: '国庆节', isWork: false })
