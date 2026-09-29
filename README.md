@@ -198,7 +198,7 @@ bundle），因此打包时不需要任何运行时 `node_modules`。
 
 ## 许可
 
-本仓库自身代码见 `LICENSE`（待补）。
+本仓库自身代码采用 **MIT 许可**，全文见 [`LICENSE`](LICENSE)。
 
 ### 第三方项目
 
