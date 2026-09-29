@@ -220,12 +220,9 @@ export function SettingsView({ onClose }: { onClose: () => void }): ReactElement
               <li key={credit.path} className="credit">
                 <div className="credit__head">
                   <span className="credit__name">{t.settings.assets.names[credit.nameKey]}</span>
-                  <span className="credit__licence">{t.settings.assets.licence.seeSourcePage}</span>
                 </div>
                 <p className="credit__usage">
                   {t.settings.assets.authorLabel}：{credit.author}
-                  <br />
-                  {t.settings.assets.licence.label}：{t.settings.assets.licence.seeSourcePage}
                   <br />
                   {t.settings.assets.fileLabel}：<code>{credit.path}</code>
                 </p>

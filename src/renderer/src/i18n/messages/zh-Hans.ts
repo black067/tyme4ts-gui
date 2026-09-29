@@ -476,11 +476,6 @@ export const zhHans = {
       title: '资产署名',
       authorLabel: '作者',
       fileLabel: '文件',
-      /** 资产条目里代替具体许可的说明，因为授权条款在来源页。 */
-      licence: {
-        label: '许可',
-        seeSourcePage: '见来源页面'
-      },
       names: {
         calendarIcon: '应用图标（日历）'
       }
