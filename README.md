@@ -18,7 +18,7 @@
 | 工具     | 日期换算（公历↔农历↔回历↔藏历↔儒略日）、择日区间检索、八字排盘         |
 | 外观     | 两套主题（现代简约 / 中国传统）× 浅色深色 × 跟随系统                   |
 
-打包产出 **Windows x64 免安装便携版**。功能与交互细节见 [docs/usage.md](docs/usage.md)。
+功能与交互细节见 [docs/usage.md](docs/usage.md)。
 
 ## 快速开始
 
@@ -32,16 +32,16 @@ npm run dev
 需要 Node.js `^20.19.0 || >=22.12.0`。已经 clone 过但 `vendor/tyme4ts` 是空的，执行
 `git submodule update --init --depth 1` 补齐即可。
 
-## 打包
+## 下载与打包
+
+Windows x64 免安装便携版可以直接从 [Releases](https://github.com/black067/tyme4ts-gui/releases)
+下载。自己构建：
 
 ```bash
 npm run package   # → release/万年历-<version>-portable.exe
 ```
 
-也可以直接下载 [Releases](https://github.com/black067/tyme4ts-gui/releases) 里的产物，或在
-[Actions](https://github.com/black067/tyme4ts-gui/actions/workflows/release.yml) 里手动触发一次
-构建，从运行页面的 Artifacts 里取 exe（不需要本地 Windows 环境）。发版用
-`npm run release:patch|minor|major`。
+细节见 [docs/packaging.md](docs/packaging.md)。
 
 ## 文档
 
