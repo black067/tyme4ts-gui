@@ -158,6 +158,18 @@
       "problemMatcher": []
     },
     {
+      "label": "format:check",
+      "type": "npm",
+      "script": "format:check",
+      "detail": "Prettier 只检查不修改（与 CI 的格式检查一致，提交前跑一次）",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      },
+      "problemMatcher": []
+    },
+    {
       "label": "dev:inspect",
       "type": "shell",
       "command": "npm run dev -- --inspect=5858",
