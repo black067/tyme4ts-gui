@@ -5,11 +5,14 @@
 只产出 **Windows x64 免安装便携版单文件 exe**，不生成安装程序：
 
 ```
-release/万年历-0.1.0-portable.exe
+release/万年历-<version>-portable.exe
 ```
 
 文件名模板来自 `electron-builder.yml` 的 `portable.artifactName`（`${productName}-${version}-portable.${ext}`）。
 双击即用，不写注册表、不建开始菜单项；设置写在 `%APPDATA%\万年历\settings.json`。
+
+便携版是个自解压包：启动时先把约 246 MB 的内容解到 `%TEMP%` 下的临时目录再运行，所以首帧会比
+安装版慢一点，exe 本身也因此只有 95 MB 左右。设置不放在临时目录，仍然在 `%APPDATA%` 下。
 
 ## 本地打包
 
@@ -70,9 +73,10 @@ npm run clean         # 清理 out/ release/ .tsbuild/
 | `check`   | `npm ci` → `format:check` → `lint` → `typecheck` → `test` |
 | `package` | `npm ci` → `package:dir`，确认打包配置没被改坏            |
 
-`package` job 与 `release` job 都缓存了 `%LOCALAPPDATA%` 下的两个目录：`electron\Cache`（Electron
-发行包 zip，约 120 MB）和 `electron-builder\Cache`（nsis / winCodeSign / 7zip 等工具）。缓存命中后
-打包基本只剩解包时间。同一分支上的新推送会取消上一次仍在跑的检查（`concurrency.cancel-in-progress`）。
+`ci.yml` 的 `package` job 与 `release.yml` 都缓存了 `%LOCALAPPDATA%` 下的两个目录：`electron\Cache`
+（Electron 发行包 zip，约 120 MB）和 `electron-builder\Cache`（nsis / winCodeSign / 7zip 等工具）。
+缓存命中后打包基本只剩解包时间。同一分支上的新推送会取消上一次仍在跑的检查
+（`concurrency.cancel-in-progress`）。
 
 ### `release.yml` — 出包与发版
 

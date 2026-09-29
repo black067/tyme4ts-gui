@@ -36,7 +36,7 @@ npm run dev
 ## 打包
 
 ```bash
-npm run package   # → release/万年历-0.1.0-portable.exe
+npm run package   # → release/万年历-<version>-portable.exe
 ```
 
 也可以直接下载 [Releases](https://github.com/black067/tyme4ts-gui/releases) 里的产物，或在

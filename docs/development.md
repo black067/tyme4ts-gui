@@ -13,7 +13,7 @@ npm install
 ```
 
 > **首次运行的额外下载**：Electron 44 不再提供 `postinstall` 脚本，改为惰性安装 —— 第一次执行
-> `npm run dev`（或任何 `require('electron')`）时才会下载约 100 MB 的运行时到
+> `npm run dev`（或任何 `require('electron')`）时才会下载约 120 MB 的运行时到
 > `node_modules/electron/dist`。若下载失败（网络受限），可手动执行
 > `node node_modules/electron/install.js`；或先设置镜像
 > `$env:ELECTRON_MIRROR='https://npmmirror.com/mirrors/electron/'` 再重试。
@@ -23,20 +23,21 @@ npm install
 
 ## 常用脚本
 
-| 命令                   | 说明                                                          |
-| ---------------------- | ------------------------------------------------------------- |
-| `npm run dev`          | 启动 Electron 开发模式（主进程 / preload / 渲染进程均带 HMR） |
-| `npm run build`        | 类型检查 + 构建生产产物到 `out/`（快速验证用）                |
-| `npm run preview`      | 用构建产物启动应用                                            |
-| `npm run package`      | 构建 + 打包为免安装便携版 exe，产物在 `release/`              |
-| `npm run package:dir`  | 只解包到 `release/win-unpacked`（更快，用于先验证再出单文件） |
-| `npm run clean`        | 删除 `out/` `release/` `.tsbuild/`                            |
-| `npm run typecheck`    | 主进程侧 + 渲染进程侧类型检查                                 |
-| `npm run lint`         | ESLint                                                        |
-| `npm run format`       | Prettier 格式化（会改写文件）                                 |
-| `npm run format:check` | Prettier 只检查不修改（CI 跑的就是这个）                      |
-| `npm test`             | Vitest 单测                                                   |
-| `npm run test:watch`   | Vitest 监听模式                                               |
+| 命令                    | 说明                                                                           |
+| ----------------------- | ------------------------------------------------------------------------------ |
+| `npm run dev`           | 启动 Electron 开发模式（主进程 / preload / 渲染进程均带 HMR）                  |
+| `npm run build`         | 类型检查 + 构建生产产物到 `out/`（快速验证用）                                 |
+| `npm run preview`       | 用构建产物启动应用                                                             |
+| `npm run package`       | 构建 + 打包为免安装便携版 exe，产物在 `release/`                               |
+| `npm run package:dir`   | 只解包到 `release/win-unpacked`（更快，用于先验证再出单文件）                  |
+| `npm run clean`         | 删除 `out/` `release/` `.tsbuild/`                                             |
+| `npm run typecheck`     | 主进程侧 + 渲染进程侧类型检查                                                  |
+| `npm run lint`          | ESLint                                                                         |
+| `npm run format`        | Prettier 格式化（会改写文件）                                                  |
+| `npm run format:check`  | Prettier 只检查不修改（CI 跑的就是这个）                                       |
+| `npm test`              | Vitest 单测                                                                    |
+| `npm run test:watch`    | Vitest 监听模式                                                                |
+| `npm run release:patch` | 出正式版本：升版本号 + 提交 + 打标签 + 推送（见 [packaging.md](packaging.md)） |
 
 ## 在 VS Code 里开发
 

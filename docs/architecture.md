@@ -9,7 +9,7 @@ src/
 ├─ shared/      主进程与渲染进程共用的 IPC 契约与类型
 ├─ core/        纯 TypeScript 历法内核（零 Electron / React / DOM 依赖）
 └─ renderer/    React 界面：视图、组件、主题、hooks
-tests/          读取源码树的架构契约测试（配色、主题 token 完整性）
+tests/          读取源码树的架构契约测试（配色 / token 完整性、打包前提）
 scripts/        开发辅助脚本（clean.mjs 清理产物、capture-window.ps1 截图验证）
 docs/           本目录
 .vscode/        tasks.json / launch.json / settings.json（构建产物监听排除）
@@ -60,7 +60,8 @@ tyme4ts ──▶ src/core（DTO + LRU 缓存）──▶ React 组件
                                                           └─ app.getPath('userData')
 ```
 
-IPC 契约集中在 `src/shared/ipc.ts`，三个进程共用；该文件不得导入 Electron / React / DOM。
+IPC 契约集中在 `src/shared/ipc.ts`，主进程 / preload / 渲染进程三侧共用；该文件不得导入
+Electron / React / DOM。
 
 | 通道               | 方向      | 作用                                          |
 | ------------------ | --------- | --------------------------------------------- |
