@@ -38,7 +38,7 @@ Windows x64 免安装便携版可以直接从 [Releases](https://github.com/blac
 下载。自己构建：
 
 ```bash
-npm run package   # → release/万年历-<version>-portable.exe
+npm run package   # → release/chinese-calendar-<version>-portable.exe
 ```
 
 细节见 [docs/packaging.md](docs/packaging.md)。

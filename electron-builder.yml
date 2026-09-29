@@ -53,4 +53,7 @@ win:
         - x64
 
 portable:
-  artifactName: ${productName}-${version}-portable.${ext}
+  # 产物文件名保持 ASCII：中文名上传到 GitHub Release 后汉字会丢，变成
+  # 「-0.1.1-portable.exe」这种残名。应用名（productName）仍是「万年历」，
+  # 这里只影响 exe 的文件名。
+  artifactName: chinese-calendar-${version}-portable.${ext}

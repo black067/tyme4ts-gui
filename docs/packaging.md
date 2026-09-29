@@ -5,10 +5,12 @@
 产出 **Windows x64 免安装便携版单文件 exe**：
 
 ```
-release/万年历-<version>-portable.exe
+release/chinese-calendar-<version>-portable.exe
 ```
 
-文件名模板来自 `electron-builder.yml` 的 `portable.artifactName`（`${productName}-${version}-portable.${ext}`）。
+文件名模板来自 `electron-builder.yml` 的 `portable.artifactName`，刻意用 ASCII：
+中文文件名上传到 GitHub Release 后汉字会丢，变成 `-0.1.1-portable.exe`。应用名
+（`productName`）仍然是「万年历」，只影响 exe 的文件名。
 双击即用；设置写在 `%APPDATA%\万年历\settings.json`。
 
 便携版是个自解压包：启动时先把约 246 MB 的内容解到 `%TEMP%` 下的临时目录再运行，所以首帧会比
