@@ -204,4 +204,22 @@ describe('退化情形', () => {
       if (found?.kind === 'entry') expect(tooltip()).toHaveTextContent(found.entry.summary)
     }
   })
+
+  it('宜 / 忌 的条目也有浮层', async () => {
+    const info = dayInfo()
+    const item = info.recommends?.find((name) => lookupTerm('taboo', name)?.kind === 'entry')
+    if (!item) throw new Error('2024-06-26 的「宜」里没有带释义的条目')
+
+    const found = lookupTerm('taboo', item)
+    expect(found?.kind).toBe('entry')
+
+    await renderApp()
+    // 宜和忌可能同时出现同一个词，也可能与神煞重名（例如「解除」），所以取第一个。
+    const trigger = screen.getAllByRole('button', { name: item })[0] as HTMLElement
+    fireEvent.mouseOver(trigger)
+
+    const tip = tooltip()
+    expect(tip).not.toBeNull()
+    if (found?.kind === 'entry') expect(tip).toHaveTextContent(found.entry.summary)
+  })
 })

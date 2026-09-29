@@ -186,12 +186,12 @@ export function DayPanel({ selected }: DayPanelProps): ReactElement {
             {info.recommends === null ? (
               <p className="almanac-note">该日期超出历法可推算范围。</p>
             ) : (
-              <ChipList items={info.recommends} tone="luck" />
+              <ChipList items={info.recommends} tone="luck" family="taboo" />
             )}
           </Section>
 
           <Section title="忌">
-            <ChipList items={info.avoids} tone="avoid" />
+            <ChipList items={info.avoids} tone="avoid" family="taboo" />
           </Section>
 
           <Section title="黄历">
