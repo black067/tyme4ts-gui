@@ -9,17 +9,20 @@ import type { GlossaryGapNote } from '../types'
  * `reason` 只有下面四种措辞，不逐条编故事。
  */
 
-/** 义例里提到过，但没有为它单立释义——能指位置，不能当释义引用。 */
-const MENTIONED_ONLY = '《协纪辨方书》义例中提到此名，未为它单立释义，拿不到可逐字引用的定义句'
+/** 义例里提到过，但没有为它单独释义——能指位置，不能当解释用。 */
+const MENTIONED_ONLY = '《协纪辨方书》提到过这个名字，但没有单独解释它的含义。'
 
 /** 连义例都没收。 */
-const NOT_IN_SOURCE = '《协纪辨方书》义例未收此名，其他公版典籍里也没找到可逐字引用的释义'
+const NOT_IN_SOURCE = '《协纪辨方书》没有收录它，我们也没有找到其他可靠的古籍解释。'
 
 /** 卷一引《史记·律书》逐宿释义，缺的五个宿不在那一段里。 */
-const NOT_IN_LVSHU = '卷一引《史记·律书》逐宿释义，此宿不在那一段里'
+const NOT_IN_LVSHU = '《协纪辨方书》引《史记·律书》解释二十八宿，但没有讲到这个宿。'
 
-/** 民间说法，没有公版典籍可引。 */
-const FOLK_ONLY = '民间通行说法，没有可逐字引用的公版依据'
+/** 民间说法，古籍里没有解释。 */
+const FOLK_ONLY = '这是民间流传的说法，古籍里没有解释。'
+
+/** 宜忌里生僻到我们自己也不敢下定义的名目。 */
+const UNCLEAR_ITEM = '这个名目比较生僻，我们暂时不确定它的准确含义。'
 
 /** 每日吉神凶煞的缺口。 */
 export const GOD_GAPS: Readonly<Record<string, GlossaryGapNote>> = {
@@ -136,4 +139,14 @@ export const MINOR_REN_GAPS: Readonly<Record<string, GlossaryGapNote>> = {
   赤口: { reason: FOLK_ONLY },
   小吉: { reason: FOLK_ONLY },
   空亡: { reason: FOLK_ONLY }
+}
+
+/**
+ * 宜忌里我们自己也不敢下定义的名目。
+ *
+ * 这一族的释义是本应用写的，所以这里的缺口不是"古籍没有"，而是"我们不确定"——
+ * 与其猜一个可能错的解释，不如说清楚。
+ */
+export const TABOO_GAPS: Readonly<Record<string, GlossaryGapNote>> = {
+  归岫: { reason: UNCLEAR_ITEM }
 }

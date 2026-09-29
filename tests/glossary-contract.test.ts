@@ -25,6 +25,7 @@ import {
   Phase,
   SixStar,
   SolarTerm,
+  Taboo,
   TwelveStar,
   TwentyEightStar
 } from 'tyme4ts'
@@ -51,7 +52,8 @@ const ENGINE_NAMES: Readonly<Record<GlossaryFamily, readonly string[]>> = {
   term: SolarTerm.NAMES,
   nineStar: NINE_STAR_NAMES,
   sixStar: SixStar.NAMES,
-  minorRen: MinorRen.NAMES
+  minorRen: MinorRen.NAMES,
+  taboo: Taboo.NAMES
 }
 
 /** 去掉空白与标点，只留文字。与 scripts/glossary/extract-quotes.mjs 的 fold 保持一致。 */

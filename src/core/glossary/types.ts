@@ -8,16 +8,26 @@
 
 /** 术语家族。每个家族对应界面上的一组同类标签。 */
 export type GlossaryFamily =
-  'god' | 'duty' | 'twelveStar' | 'star28' | 'phase' | 'term' | 'nineStar' | 'sixStar' | 'minorRen'
+  | 'god'
+  | 'duty'
+  | 'twelveStar'
+  | 'star28'
+  | 'phase'
+  | 'term'
+  | 'nineStar'
+  | 'sixStar'
+  | 'minorRen'
+  | 'taboo'
 
 /**
- * 依据分档。决定 `quote` 是否必需。
+ * 依据分档。决定 `quote` 是否必需，以及详情里怎么标出处。
  *
- * - `xieji`   《钦定协纪辨方书》义例，有原文定义句
- * - `common`  天文/历法常识，不存在争议，无需典籍依据
- * - `none`    整族拿不到公版依据，全部是缺口
+ * - `xieji`    《钦定协纪辨方书》义例，有原文定义句，可逐字校验
+ * - `common`   天文/历法常识，不存在异说，无需典籍依据
+ * - `authored` 本应用撰写的通俗释义——古籍里确实没有可引用的词义解释
+ * - `none`     整族拿不到依据，全部是缺口
  */
-export type GlossaryBasis = 'xieji' | 'common' | 'none'
+export type GlossaryBasis = 'xieji' | 'common' | 'authored' | 'none'
 
 export interface GlossaryEntry {
   /**

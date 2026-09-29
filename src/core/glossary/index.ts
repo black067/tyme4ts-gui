@@ -18,9 +18,17 @@ import { DUTY_ENTRIES } from './texts/duty'
 import { GOD_ENTRIES } from './texts/gods'
 import { PHASE_ENTRIES } from './texts/phase'
 import { STAR28_ENTRIES } from './texts/star28'
+import { TABOO_ENTRIES } from './texts/taboo'
 import { TERM_ENTRIES } from './texts/terms'
 import { TWELVE_STAR_ENTRIES } from './texts/twelve-star'
-import { GOD_GAPS, MINOR_REN_GAPS, NINE_STAR_GAPS, SIX_STAR_GAPS, STAR28_GAPS } from './texts/gaps'
+import {
+  GOD_GAPS,
+  MINOR_REN_GAPS,
+  NINE_STAR_GAPS,
+  SIX_STAR_GAPS,
+  STAR28_GAPS,
+  TABOO_GAPS
+} from './texts/gaps'
 
 export type {
   GlossaryBasis,
@@ -66,37 +74,44 @@ export const GLOSSARY: Readonly<Record<GlossaryFamily, GlossaryFamilyData>> = {
   phase: {
     label: '月相',
     basis: 'common',
-    rationale: '月相是纯天文现象，八相的名称与含义不存在异说，不需要典籍依据。',
+    rationale: '月相是天文现象，八相的名称与含义没有异说。',
     entries: PHASE_ENTRIES,
     gaps: {}
   },
   term: {
     label: '二十四节气',
     basis: 'common',
-    rationale: '节气按太阳黄经划分，名称即其含义，不存在异说，不需要典籍依据。',
+    rationale: '节气按太阳黄经划分，名称即其含义。',
     entries: TERM_ENTRIES,
     gaps: {}
   },
   nineStar: {
     label: '九星',
     basis: 'none',
-    rationale: '玄空飞星的通行说法，《协纪辨方书》义例未收，也找不到可逐字引用的公版依据。',
+    rationale: '玄空飞星的通行说法，《协纪辨方书》没有收录它。',
     entries: {},
     gaps: NINE_STAR_GAPS
   },
   sixStar: {
     label: '六曜',
     basis: 'none',
-    rationale: '六曜自日本暦注传来，中国公版典籍里没有它的释义。',
+    rationale: '六曜自日本暦注传来，中国古籍里没有对它的解释。',
     entries: {},
     gaps: SIX_STAR_GAPS
   },
   minorRen: {
     label: '小六壬',
     basis: 'none',
-    rationale: '民间占法，没有可逐字引用的公版典籍依据。',
+    rationale: '民间占法，古籍里没有对它的解释。',
     entries: {},
     gaps: MINOR_REN_GAPS
+  },
+  taboo: {
+    label: '宜忌用事',
+    basis: 'authored',
+    rationale: '古籍只规定这些事项的宜忌，不解释词义，所以释义由本应用撰写。',
+    entries: TABOO_ENTRIES,
+    gaps: TABOO_GAPS
   }
 }
 
@@ -109,7 +124,8 @@ export const GLOSSARY_FAMILIES: readonly GlossaryFamily[] = [
   'term',
   'nineStar',
   'sixStar',
-  'minorRen'
+  'minorRen',
+  'taboo'
 ]
 
 /**
