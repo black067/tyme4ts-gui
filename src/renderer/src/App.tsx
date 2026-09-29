@@ -10,6 +10,8 @@ import {
 } from '@core'
 import { SettingsProvider } from './state/SettingsProvider'
 import { useSettings } from './state/settings-context'
+import { ThemeProvider } from './theme/ThemeProvider'
+import { SettingsBar } from './features/settings/SettingsBar'
 import { MonthView } from './features/month/MonthView'
 import { DayPanel } from './features/day/DayPanel'
 import './styles/global.css'
@@ -17,7 +19,9 @@ import './styles/global.css'
 export function App(): ReactElement {
   return (
     <SettingsProvider>
-      <AppShell />
+      <ThemeProvider>
+        <AppShell />
+      </ThemeProvider>
     </SettingsProvider>
   )
 }
@@ -66,6 +70,8 @@ function AppShell(): ReactElement {
         </p>
         {error ? <p className="app-error">{error}</p> : null}
       </header>
+
+      <SettingsBar />
 
       <div className="app-body">
         <main className="app-main">

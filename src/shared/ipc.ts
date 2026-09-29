@@ -20,7 +20,7 @@ export type AppearanceMode = 'system' | 'light' | 'dark'
 
 /** Persisted user preferences. Kept intentionally small and JSON-serializable. */
 export interface AppSettings {
-  /** Theme definition id, e.g. `minimal-light`. */
+  /** Theme family id, e.g. `minimal`. The light/dark variant follows `appearance`. */
   themeId: string
   /** Whether the app follows the OS appearance. */
   appearance: AppearanceMode
@@ -62,7 +62,7 @@ export const VIEW_IDS: readonly ViewId[] = ['month', 'day', 'year', 'timeline', 
 
 export const APPEARANCE_MODES: readonly AppearanceMode[] = ['system', 'light', 'dark']
 
-export const DEFAULT_THEME_ID = 'minimal-light'
+export const DEFAULT_THEME_ID = 'minimal'
 
 /** Builds the settings used on a first run (or when the stored file is unusable). */
 export function createDefaultSettings(todayIso: string): AppSettings {

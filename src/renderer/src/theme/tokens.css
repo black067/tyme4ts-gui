@@ -126,3 +126,93 @@
   --shadow-md: 0 2px 10px rgb(0 0 0 / 38%);
   --shadow-lg: 0 8px 28px rgb(0 0 0 / 48%);
 }
+
+/* 中国传统 ---------------------------------------------------------------- */
+
+:root[data-theme='classic-light'] {
+  color-scheme: light;
+
+  --font-display: 'KaiTi', 'STKaiti', 'Kaiti SC', 'Songti SC', 'SimSun', serif;
+  --font-body: 'Songti SC', 'SimSun', 'Noto Serif SC', Georgia, serif;
+
+  --color-bg: #f3ecdd;
+  --color-surface: #fbf6ea;
+  --color-surface-alt: #f2e9d7;
+  --color-surface-sunken: #ebe1cd;
+  --color-border: #dccfb4;
+  --color-border-strong: #c3b08c;
+
+  --color-text: #2b2620;
+  --color-text-muted: #6d6152;
+  --color-text-subtle: #93866f;
+  --color-text-inverse: #fbf6ea;
+
+  --color-accent: #a8322a;
+  --color-accent-hover: #8c2822;
+  --color-accent-soft: #f4e0d8;
+
+  --color-lunar: #8a6b3f;
+  --color-term: #3f6b4a;
+  --color-festival: #a8322a;
+  --color-weekend: #9c5b1f;
+  --color-holiday-rest: #a8322a;
+  --color-holiday-work: #6d6152;
+  --color-today-ring: #a8322a;
+  --color-selected-bg: #a8322a;
+  --color-selected-text: #fbf6ea;
+  --color-outside-month: #b3a68c;
+
+  --color-luck: #3f6b4a;
+  --color-luck-soft: #e4eee2;
+  --color-avoid: #9c5b1f;
+  --color-avoid-soft: #f6e9d6;
+  --color-danger: #a8322a;
+
+  --shadow-sm: 0 1px 2px rgb(70 52 30 / 10%);
+  --shadow-md: 0 2px 10px rgb(70 52 30 / 14%);
+  --shadow-lg: 0 8px 28px rgb(70 52 30 / 20%);
+}
+
+:root[data-theme='classic-dark'] {
+  color-scheme: dark;
+
+  --font-display: 'KaiTi', 'STKaiti', 'Kaiti SC', 'Songti SC', 'SimSun', serif;
+  --font-body: 'Songti SC', 'SimSun', 'Noto Serif SC', Georgia, serif;
+
+  --color-bg: #191512;
+  --color-surface: #231d18;
+  --color-surface-alt: #2c241d;
+  --color-surface-sunken: #141110;
+  --color-border: #3d342a;
+  --color-border-strong: #55483a;
+
+  --color-text: #ece3d4;
+  --color-text-muted: #a99f90;
+  --color-text-subtle: #857767;
+  --color-text-inverse: #191512;
+
+  --color-accent: #c9553f;
+  --color-accent-hover: #dd6a53;
+  --color-accent-soft: #3a231d;
+
+  --color-lunar: #b9a077;
+  --color-term: #7bb37f;
+  --color-festival: #c9553f;
+  --color-weekend: #d08b4c;
+  --color-holiday-rest: #c9553f;
+  --color-holiday-work: #a99f90;
+  --color-today-ring: #c9553f;
+  --color-selected-bg: #c9553f;
+  --color-selected-text: #191512;
+  --color-outside-month: #5c5044;
+
+  --color-luck: #7bb37f;
+  --color-luck-soft: #1f2c1f;
+  --color-avoid: #d08b4c;
+  --color-avoid-soft: #32251a;
+  --color-danger: #dd6a53;
+
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 34%);
+  --shadow-md: 0 2px 10px rgb(0 0 0 / 42%);
+  --shadow-lg: 0 8px 28px rgb(0 0 0 / 52%);
+}
