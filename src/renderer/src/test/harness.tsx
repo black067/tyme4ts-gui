@@ -32,5 +32,9 @@ export async function renderApp(overrides: Partial<AppSettings> = {}): Promise<F
   })
   render(<App />)
   await screen.findByRole('heading', { name: '万年历' })
+  // 标题出现只说明这次提交画出来了，不代表被动 effect 已经执行。键盘测试紧接着就
+  // dispatch keydown，而 useKeyboardNav 的监听是在 effect 里挂的——不冲一次微任务，
+  // 事件会偶发地落在监听器挂上之前，测试随机失败。
+  await act(async () => {})
   return bridge
 }

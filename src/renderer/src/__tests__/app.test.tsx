@@ -219,35 +219,35 @@ describe('keyboard navigation', () => {
     expect(await screen.findByText('2024年6月26日')).toBeInTheDocument()
 
     await press('PageDown')
-    expect(screen.getByRole('heading', { name: '2024年7月' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: '2024年7月' })).toBeInTheDocument()
 
     await press('PageUp')
-    expect(screen.getByRole('heading', { name: '2024年6月' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: '2024年6月' })).toBeInTheDocument()
 
     await press('PageDown', { shiftKey: true })
-    expect(screen.getByRole('heading', { name: '2025年6月' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: '2025年6月' })).toBeInTheDocument()
   })
 
   it('returns to today with T', async () => {
     await setup()
     await press('PageDown')
-    expect(screen.getByRole('heading', { name: '2024年7月' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: '2024年7月' })).toBeInTheDocument()
 
     await press('t')
-    expect(screen.getByRole('heading', { name: /^2026年/ })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: /^2026年/ })).toBeInTheDocument()
   })
 
   it('switches views with Alt+number', async () => {
     await setup()
 
     await press('3', { altKey: true })
-    expect(screen.getByRole('heading', { name: '时间轴' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: '时间轴' })).toBeInTheDocument()
 
     await press('2', { altKey: true })
-    expect(screen.getByRole('heading', { name: /年$/ })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: /年$/ })).toBeInTheDocument()
 
     await press('1', { altKey: true })
-    expect(screen.getByRole('heading', { name: '2024年6月' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: '2024年6月' })).toBeInTheDocument()
   })
 
   it('toggles the shortcut help with ? and closes it with Escape', async () => {

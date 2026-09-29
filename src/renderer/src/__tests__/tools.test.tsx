@@ -102,6 +102,16 @@ describe('search tool', () => {
     await click(screen.getByRole('button', { name: '择日检索' }))
   }
 
+  /**
+   * 检索面板里的元件。
+   *
+   * 必须限定作用域：宜忌条目现在在日详情里也是按钮（带释义浮层），
+   * 像「嫁娶」这种词会同时命中两处，不限定就会 getByRole 报多个元素。
+   */
+  function searchPane(): ReturnType<typeof within> {
+    return within(screen.getByRole('region', { name: '择日检索' }))
+  }
+
   it('finds every day when no criteria are set', async () => {
     await openSearch()
     await click(screen.getByRole('button', { name: '开始检索' }))
@@ -112,10 +122,11 @@ describe('search tool', () => {
 
   it('filters by 宜 and reports the criteria', async () => {
     await openSearch()
+    const pane = searchPane()
 
-    await click(screen.getByRole('button', { name: /宜（需同时包含）/ }))
-    await click(screen.getByRole('button', { name: '嫁娶' }))
-    await click(screen.getByRole('button', { name: '开始检索' }))
+    await click(pane.getByRole('button', { name: /宜（需同时包含）/ }))
+    await click(pane.getByRole('button', { name: '嫁娶' }))
+    await click(pane.getByRole('button', { name: '开始检索' }))
 
     expect(await screen.findByText(/命中/)).toBeInTheDocument()
     // Every listed hit is a real day with 宜 chips rendered.
@@ -125,10 +136,11 @@ describe('search tool', () => {
 
   it('filters by solar term', async () => {
     await openSearch()
+    const pane = searchPane()
 
-    await click(screen.getByRole('button', { name: /节气（任一）/ }))
-    await click(screen.getByRole('button', { name: '秋分' }))
-    await click(screen.getByRole('button', { name: '开始检索' }))
+    await click(pane.getByRole('button', { name: /节气（任一）/ }))
+    await click(pane.getByRole('button', { name: '秋分' }))
+    await click(pane.getByRole('button', { name: '开始检索' }))
 
     expect(await screen.findByText(/命中 1 天/)).toBeInTheDocument()
     expect(screen.getByText('2024年9月22日')).toBeInTheDocument()
@@ -138,26 +150,26 @@ describe('search tool', () => {
     await openSearch()
     await setField(screen.getByDisplayValue('2024-06-26'), '2024-12-31')
     await setField(screen.getByDisplayValue('2024-09-23'), '2024-01-01')
-    await click(screen.getByRole('button', { name: '开始检索' }))
+    await click(searchPane().getByRole('button', { name: '开始检索' }))
 
     expect(await screen.findByText('起始日期不能晚于结束日期。')).toBeInTheDocument()
   })
 
   it('clears every criterion', async () => {
     await openSearch()
-    await click(screen.getByRole('button', { name: /宜（需同时包含）/ }))
-    await click(screen.getByRole('button', { name: '嫁娶' }))
-    expect(screen.getByRole('button', { name: '嫁娶' })).toHaveClass('is-active')
+    await click(searchPane().getByRole('button', { name: /宜（需同时包含）/ }))
+    await click(searchPane().getByRole('button', { name: '嫁娶' }))
+    expect(searchPane().getByRole('button', { name: '嫁娶' })).toHaveClass('is-active')
 
-    await click(screen.getByRole('button', { name: '清空条件' }))
-    expect(screen.getByRole('button', { name: '嫁娶' })).not.toHaveClass('is-active')
+    await click(searchPane().getByRole('button', { name: '清空条件' }))
+    expect(searchPane().getByRole('button', { name: '嫁娶' })).not.toHaveClass('is-active')
   })
 
   it('opens a hit in the month view', async () => {
     await openSearch()
-    await click(screen.getByRole('button', { name: /节气（任一）/ }))
-    await click(screen.getByRole('button', { name: '秋分' }))
-    await click(screen.getByRole('button', { name: '开始检索' }))
+    await click(searchPane().getByRole('button', { name: /节气（任一）/ }))
+    await click(searchPane().getByRole('button', { name: '秋分' }))
+    await click(searchPane().getByRole('button', { name: '开始检索' }))
     await screen.findByText(/命中 1 天/)
 
     await click(screen.getAllByRole('button', { name: /^在月视图中打开/ })[0]!)
