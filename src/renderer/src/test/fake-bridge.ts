@@ -4,6 +4,8 @@ import {
   type AppInfo,
   type AppSettings,
   type AppearanceMode,
+  type HolidayStatus,
+  type HolidaysApi,
   type TymeApi,
   type UpdateState,
   type UpdatesApi
@@ -16,10 +18,26 @@ export interface FakeBridge {
   patches: Array<Partial<AppSettings>>
   /** Drives the updater from a test: change the snapshot and notify subscribers. */
   setUpdates(next: Partial<UpdateState>): void
+  /** Drives the holiday status from a test. */
+  setHolidayStatus(next: Partial<HolidayStatus>): void
   /** Every update action the renderer asked for, in order. */
   updateActions: string[]
+  /** Every holiday action the renderer asked for, in order. */
+  holidayActions: string[]
   /** Restores the previous `window.tyme`, if any. */
   restore(): void
+}
+
+/** A fresh, never-refreshed holiday status. */
+function emptyHolidayStatus(): HolidayStatus {
+  return {
+    years: [],
+    lastUpdatedAt: '',
+    papers: [],
+    spill: 0,
+    refreshing: false,
+    errorCode: null
+  }
 }
 
 /**
@@ -62,10 +80,29 @@ export function installFakeBridge(overrides: Partial<AppSettings> = {}): FakeBri
   const updateActions: string[] = []
   const updateListeners = new Set<(state: UpdateState) => void>()
   let updateState = idleUpdateState(APP_INFO.version)
+  const holidayActions: string[] = []
+  const holidayListeners = new Set<(status: HolidayStatus) => void>()
+  let holidayStatus = emptyHolidayStatus()
   const previous = window.tyme
 
   const emitUpdate = (): void => {
     for (const listener of updateListeners) listener(updateState)
+  }
+
+  const emitHoliday = (): void => {
+    for (const listener of holidayListeners) listener(holidayStatus)
+  }
+
+  const holidays: HolidaysApi = {
+    getStatus: async () => holidayStatus,
+    refresh: async () => {
+      holidayActions.push('refresh')
+      return holidayStatus
+    },
+    subscribe: (listener) => {
+      holidayListeners.add(listener)
+      return () => holidayListeners.delete(listener)
+    }
   }
 
   const updates: UpdatesApi = {
@@ -107,7 +144,8 @@ export function installFakeBridge(overrides: Partial<AppSettings> = {}): FakeBri
     app: {
       getInfo: async () => APP_INFO
     },
-    updates
+    updates,
+    holidays
   }
 
   Object.defineProperty(window, 'tyme', {
@@ -120,9 +158,14 @@ export function installFakeBridge(overrides: Partial<AppSettings> = {}): FakeBri
     settings,
     patches,
     updateActions,
+    holidayActions,
     setUpdates: (next) => {
       updateState = { ...updateState, ...next }
       emitUpdate()
+    },
+    setHolidayStatus: (next) => {
+      holidayStatus = { ...holidayStatus, ...next }
+      emitHoliday()
     },
     restore: () => {
       Object.defineProperty(window, 'tyme', {

@@ -427,6 +427,29 @@ export const zhHans = {
       file: '设置文件'
     },
 
+    holidays: {
+      title: '节假日数据',
+      autoUpdate: '启动时更新节假日数据',
+      /** 覆盖层的来源说明。引擎内置表有截止日期，所以要讲清楚为什么需要在线更新。 */
+      note: 'tyme4ts 内置的法定假日数据是固定的，超出其覆盖范围后由这里从公开数据源补全。',
+      refresh: '立即更新',
+      refreshing: '正在更新…',
+      /** 最近一次成功更新的时间；从未成功时用 never。 */
+      lastUpdated: ({ time }: { time: string }): string => `上次更新：${time}`,
+      never: '尚未更新过，正在使用内置数据。',
+      /** 覆盖了哪些年份。 */
+      years: ({ years }: { years: string }): string => `已覆盖年份：${years}`,
+      /** 官方公告链接的标题。 */
+      papers: '数据来自国务院公告',
+      /** 各错误码的说法。 */
+      error: {
+        network: '无法获取节假日数据，将继续使用已有数据。',
+        invalidData: '节假日数据格式无法识别，已保留原有数据。',
+        disk: '写入节假日缓存失败。',
+        unknown: '更新节假日数据时出现未知错误。'
+      }
+    },
+
     author: {
       title: '作者信息',
       app: '应用',
@@ -443,7 +466,8 @@ export const zhHans = {
         electron: '桌面应用运行时（Chromium + Node.js）',
         react: '界面渲染',
         tanstackVirtual: '时间轴视图的虚拟滚动',
-        electronToolkit: '主进程开发期辅助（开发者快捷键等）'
+        electronToolkit: '主进程开发期辅助（开发者快捷键等）',
+        holidayCn: '在线更新的法定节假日数据（抓取自国务院公告）'
       }
     },
 

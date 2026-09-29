@@ -14,7 +14,7 @@ export interface ThirdPartyEntry {
   licence: string
   homepage: string
   /** Catalogue key for what it is used for in this app. */
-  usageKey: 'tyme4ts' | 'electron' | 'react' | 'tanstackVirtual' | 'electronToolkit'
+  usageKey: 'tyme4ts' | 'electron' | 'react' | 'tanstackVirtual' | 'electronToolkit' | 'holidayCn'
 }
 
 export const THIRD_PARTY: readonly ThirdPartyEntry[] = [
@@ -47,6 +47,12 @@ export const THIRD_PARTY: readonly ThirdPartyEntry[] = [
     licence: 'MIT',
     homepage: 'https://github.com/alex8088/electron-toolkit',
     usageKey: 'electronToolkit'
+  },
+  {
+    name: 'holiday-cn',
+    licence: 'MIT',
+    homepage: 'https://github.com/NateScarlet/holiday-cn',
+    usageKey: 'holidayCn'
   }
 ]
 

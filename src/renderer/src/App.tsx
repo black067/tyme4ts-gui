@@ -15,6 +15,7 @@ import { ViewTabs, type ViewTab } from './components/ViewTabs'
 import { TermTipProvider } from './components/TermTip'
 import { LocaleProvider, useMessages } from './i18n'
 import { UpdateProvider } from './features/updates/UpdateProvider'
+import { HolidayProvider } from './features/holidays/HolidayProvider'
 import { SettingsProvider } from './state/SettingsProvider'
 import { useSettings } from './state/settings-context'
 import { ThemeProvider } from './theme/ThemeProvider'
@@ -47,9 +48,11 @@ export function App(): ReactElement {
       <LocaleProvider>
         <ThemeProvider>
           <UpdateProvider>
-            <TermTipProvider>
-              <AppContent />
-            </TermTipProvider>
+            <HolidayProvider>
+              <TermTipProvider>
+                <AppContent />
+              </TermTipProvider>
+            </HolidayProvider>
           </UpdateProvider>
         </ThemeProvider>
       </LocaleProvider>

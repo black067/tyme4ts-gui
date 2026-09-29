@@ -5,6 +5,12 @@ import { electronApp, is, optimizer } from '@electron-toolkit/utils'
 import { IPC, type AppInfo, type AppSettings, type AppearanceMode } from '@shared/ipc'
 import { readSettings, updateSettings } from './settings'
 import {
+  getHolidayStatus,
+  loadCachedHolidays,
+  refreshHolidays,
+  subscribeHolidays
+} from './holidays'
+import {
   cancelUpdate,
   checkForUpdates,
   downloadUpdate,
@@ -83,6 +89,16 @@ function registerIpcHandlers(): void {
   ipcMain.handle(IPC.updatesDownload, () => downloadUpdate())
   ipcMain.handle(IPC.updatesCancel, () => cancelUpdate())
   ipcMain.handle(IPC.updatesInstall, () => installUpdate())
+
+  ipcMain.handle(IPC.holidaysGetStatus, () => getHolidayStatus())
+  ipcMain.handle(IPC.holidaysRefresh, () => refreshHolidays())
+}
+
+/** Sends a main → renderer push to every live window. */
+function broadcast(channel: string, payload: unknown): void {
+  for (const window of BrowserWindow.getAllWindows()) {
+    if (!window.isDestroyed()) window.webContents.send(channel, payload)
+  }
 }
 
 function createWindow(): void {
@@ -137,12 +153,23 @@ app.whenReady().then(() => {
   // Push updater snapshots to every open window: download progress has to be
   // live, and polling it from the renderer would need a timer.
   subscribeUpdates((state) => {
-    for (const window of BrowserWindow.getAllWindows()) {
-      if (!window.isDestroyed()) window.webContents.send(IPC.updatesStateChanged, state)
-    }
+    broadcast(IPC.updatesStateChanged, state)
+  })
+
+  subscribeHolidays((status) => {
+    broadcast(IPC.holidaysStatusChanged, status)
   })
 
   createWindow()
+
+  // Install the cached holiday table before the first window paints, so an
+  // offline launch still shows 休/班 rather than waiting for a fetch.
+  loadCachedHolidays()
+  if (readSettings().autoUpdateHolidays) {
+    setTimeout(() => {
+      void refreshHolidays()
+    }, 1500)
+  }
 
   // Check shortly after launch rather than during it, so a slow or unreachable
   // GitHub never delays the window appearing.

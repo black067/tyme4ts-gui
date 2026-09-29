@@ -4,6 +4,7 @@
  * imports so that all three sides can depend on it.
  */
 import type { UpdatesApi } from './update'
+import type { HolidaysApi } from './holidays'
 
 export type {
   UpdateErrorCode,
@@ -12,6 +13,8 @@ export type {
   UpdateState,
   UpdatesApi
 } from './update'
+
+export type { HolidayErrorCode, HolidayStatus, HolidaysApi } from './holidays'
 
 /** Channel names for the renderer <-> main bridge. */
 export const IPC = {
@@ -25,7 +28,11 @@ export const IPC = {
   updatesCancel: 'updates:cancel',
   updatesInstall: 'updates:install',
   /** Main -> renderer push of an `UpdateState` snapshot. */
-  updatesStateChanged: 'updates:state-changed'
+  updatesStateChanged: 'updates:state-changed',
+  holidaysGetStatus: 'holidays:get-status',
+  holidaysRefresh: 'holidays:refresh',
+  /** Main -> renderer push of a `HolidayStatus`. */
+  holidaysStatusChanged: 'holidays:status-changed'
 } as const
 
 /** Top-level views of the application shell. */
@@ -72,6 +79,13 @@ export interface AppSettings {
    * failed check is not retried on every navigation.
    */
   lastUpdateCheckAt: string
+  /**
+   * Refresh the statutory-holiday table from the public source at launch.
+   *
+   * The engine's built-in table stops at 2026-10-10, so this is what keeps the
+   * 休/班 badges working past it.
+   */
+  autoUpdateHolidays: boolean
 }
 
 /** Runtime facts about the host, surfaced in the settings screen's About panel. */
@@ -109,6 +123,7 @@ export interface TymeApi {
     getInfo(): Promise<AppInfo>
   }
   updates: UpdatesApi
+  holidays: HolidaysApi
 }
 
 export const VIEW_IDS: readonly ViewId[] = ['month', 'day', 'year', 'timeline', 'tools']
@@ -133,7 +148,8 @@ export function createDefaultSettings(todayIso: string): AppSettings {
     weekStartsOnMonday: false,
     showGlossary: true,
     checkForUpdatesOnStart: true,
-    lastUpdateCheckAt: ''
+    lastUpdateCheckAt: '',
+    autoUpdateHolidays: true
   }
 }
 

@@ -4,6 +4,7 @@ import { SegmentedControl, type SegmentedOption } from '@renderer/components/Seg
 import { Toggle } from '@renderer/components/Toggle'
 import { useMessages, type ThemeNameKey } from '@renderer/i18n'
 import { UpdateSection } from '@renderer/features/updates/UpdateSection'
+import { HolidaySection } from '@renderer/features/holidays/HolidaySection'
 import { useSettings } from '@renderer/state/settings-context'
 import { useTheme } from '@renderer/theme/theme-context'
 import { THEMES } from '@renderer/theme/themes'
@@ -182,6 +183,10 @@ export function SettingsView({ onClose }: { onClose: () => void }): ReactElement
               value={info ? `${info.userDataPath}\\settings.json` : t.common.pending}
             />
           </dl>
+        </Section>
+
+        <Section title={t.settings.holidays.title}>
+          <HolidaySection />
         </Section>
 
         <Section title={t.settings.author.title}>

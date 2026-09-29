@@ -4,9 +4,24 @@ import {
   type AppInfo,
   type AppSettings,
   type AppearanceMode,
+  type HolidayStatus,
   type TymeApi,
   type UpdateState
 } from '@shared/ipc'
+
+/**
+ * Subscribes to a main → renderer push channel.
+ *
+ * The payload is passed through as-is and the raw Electron event never reaches
+ * the renderer, so the renderer only ever sees plain serializable snapshots.
+ */
+function subscribeTo<T>(channel: string, listener: (payload: T) => void): () => void {
+  const handler = (_event: unknown, payload: T): void => listener(payload)
+  ipcRenderer.on(channel, handler)
+  return () => {
+    ipcRenderer.removeListener(channel, handler)
+  }
+}
 
 /**
  * The only bridge between the sandboxed renderer and the main process. Every
@@ -31,15 +46,12 @@ const api: TymeApi = {
     download: () => ipcRenderer.invoke(IPC.updatesDownload) as Promise<UpdateState>,
     cancel: () => ipcRenderer.invoke(IPC.updatesCancel) as Promise<UpdateState>,
     install: () => ipcRenderer.invoke(IPC.updatesInstall) as Promise<UpdateState>,
-    subscribe: (listener) => {
-      // The listener is wrapped so the raw Electron event never reaches the
-      // renderer — only the plain snapshot does.
-      const handler = (_event: unknown, state: UpdateState): void => listener(state)
-      ipcRenderer.on(IPC.updatesStateChanged, handler)
-      return () => {
-        ipcRenderer.removeListener(IPC.updatesStateChanged, handler)
-      }
-    }
+    subscribe: (listener) => subscribeTo(IPC.updatesStateChanged, listener)
+  },
+  holidays: {
+    getStatus: () => ipcRenderer.invoke(IPC.holidaysGetStatus) as Promise<HolidayStatus>,
+    refresh: () => ipcRenderer.invoke(IPC.holidaysRefresh) as Promise<HolidayStatus>,
+    subscribe: (listener) => subscribeTo(IPC.holidaysStatusChanged, listener)
   }
 }
 

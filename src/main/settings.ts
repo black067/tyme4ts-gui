@@ -54,7 +54,11 @@ function normalize(raw: unknown): AppSettings {
     lastUpdateCheckAt:
       typeof input.lastUpdateCheckAt === 'string'
         ? input.lastUpdateCheckAt
-        : defaults.lastUpdateCheckAt
+        : defaults.lastUpdateCheckAt,
+    autoUpdateHolidays:
+      typeof input.autoUpdateHolidays === 'boolean'
+        ? input.autoUpdateHolidays
+        : defaults.autoUpdateHolidays
   }
 }
 
