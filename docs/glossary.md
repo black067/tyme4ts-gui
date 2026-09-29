@@ -73,10 +73,15 @@
 | `phase`       | 日详情「月相」         | common   |
 | `term`        | 节气标签、年视图节气表 | common   |
 | `fiveElement` | 日详情「五行」         | xieji    |
+| `heavenStem`  | 日详情「干支」的干字   | xieji    |
+| `earthBranch` | 日详情「干支」的支字   | xieji    |
 | `taboo`       | 日详情「宜」「忌」     | authored |
 | `nineStar`    | 日详情「九星」         | none     |
 | `sixStar`     | 日详情「六曜」         | none     |
 | `minorRen`    | 日详情「小六壬」       | none     |
+
+干支是**逐字**挂浮层的：干支串没有整体释义，含义来自干与支各自的训诂，
+所以 `GanzhiText` 把「甲辰」拆成两个字，分别查 `heavenStem` 与 `earthBranch`。
 
 **释义 + 缺口 = 引擎全部名单**，一个不多一个不少。这条由契约测试断言：任何名字被悄悄漏掉（悬停无反应），或写错字写成引擎不认识的名字，都会失败。
 
