@@ -239,6 +239,20 @@ export const zhHans = {
     gods: '吉神凶煞',
     /** 引擎推不出的日期（超出历法范围）时的说明。 */
     outOfRange: '该日期超出历法可推算范围。',
+    /** 当前节气已过几天，如「立春 第3天」。 */
+    termDay: ({ name, day }: { name: string; day: number }): string => `${name} 第${day}天`,
+    /** 二十八宿的值，如「角宿（东方蛟）· 吉」。 */
+    starDetail: ({
+      name,
+      zone,
+      beast,
+      luck
+    }: {
+      name: string
+      zone: string
+      beast: string
+      luck: string
+    }): string => `${name}宿（${zone}方${beast}）· ${luck}`,
     /**
      * 黄历各行的标签。
      *
@@ -431,8 +445,6 @@ export const zhHans = {
       never: '尚未更新过。',
       /** 覆盖了哪些年份。 */
       years: ({ years }: { years: string }): string => `已覆盖年份：${years}`,
-      /** 官方公告链接的标题。 */
-      papers: '数据来自国务院公告',
       /** 各错误码的说法。 */
       error: {
         network: '无法获取节假日数据，将继续使用已有数据。',
@@ -458,17 +470,19 @@ export const zhHans = {
         react: '界面渲染',
         tanstackVirtual: '时间轴视图的虚拟滚动',
         electronToolkit: '主进程开发期辅助（开发者快捷键等）',
-        holidayCn: '在线更新的法定节假日数据（抓取自国务院公告）'
+        chineseDays: '在线更新的法定节假日数据（抓取自国务院公告）'
       }
     },
 
     assets: {
       title: '资产署名',
-      /** 资产条目里代替具体许可的说明，因为授权条款在来源页。 */
-      licenceSeeSource: '来源授权见下',
       authorLabel: '作者',
-      licenceLabel: '许可',
       fileLabel: '文件',
+      /** 资产条目里代替具体许可的说明，因为授权条款在来源页。 */
+      licence: {
+        label: '许可',
+        seeSourcePage: '见来源页面'
+      },
       names: {
         calendarIcon: '应用图标（日历）'
       }

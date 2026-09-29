@@ -1,15 +1,15 @@
 /**
  * Holiday overlay tests.
  *
- * The two fixtures are verbatim upstream snapshots (`holiday-cn`, see
- * `tests/fixtures/holiday-cn/README.md`), so nothing here touches the network.
- * Everything goes through the `@core` facade on purpose: these tests also prove
- * the overlay is exported and that `day.ts` / `year.ts` are genuinely wired to
- * it, not merely that the pure helpers agree with themselves.
+ * The two fixtures are verbatim upstream snapshots of `vsme/chinese-days`
+ * (see `scripts/glossary/fetch-holidays.mjs`), so nothing here touches the
+ * network. Everything goes through the `@core` facade on purpose: these tests
+ * also prove the overlay is exported and that `day.ts` / `year.ts` are genuinely
+ * wired to it, not merely that the pure helpers agree with themselves.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import fixture2025 from '../../../tests/fixtures/holiday-cn/2025.json'
-import fixture2026 from '../../../tests/fixtures/holiday-cn/2026.json'
+import fixture2025 from '../../../tests/fixtures/chinese-days/2025.json'
+import fixture2026 from '../../../tests/fixtures/chinese-days/2026.json'
 import {
   buildDayInfo,
   buildDaySummary,
@@ -81,9 +81,46 @@ describe('normalizeHolidayPayload', () => {
     expect(outcome2025.dropped).toBe(0)
     expect(outcome2025.entries.at(-1)).toEqual({
       iso: '2025-10-11',
-      name: '国庆节、中秋节',
+      name: '国庆节',
       isOffDay: false
     })
+  })
+
+  it('reads the name out of "<英文名>,<中文名>,<薪资倍数>" and ignores the rest', () => {
+    const outcome = expectUsable(
+      normalizeHolidayPayload({
+        holidays: { '2026-05-01': 'Labour Day,劳动节,2' },
+        workdays: { '2026-05-09': 'Labour Day,劳动节,2' }
+      })
+    )
+
+    // 只取中文名，且与引擎的词汇对齐：两边说法一致，才不会在同一天出现两种名字。
+    expect(outcome.entries).toEqual([
+      { iso: '2026-05-01', name: '劳动节', isOffDay: true },
+      { iso: '2026-05-09', name: '劳动节', isOffDay: false }
+    ])
+  })
+
+  it('expands the source abbreviations to the engine names', () => {
+    // 数据源写「中秋」「端午」「清明」，引擎写「中秋节」「端午节」「清明节」；
+    // 覆盖层是覆盖关系，不归一就会在引擎本来就认识的日子上换成短名。
+    const outcome = expectUsable(
+      normalizeHolidayPayload({
+        holidays: {
+          '2026-04-04': 'Tomb-sweeping Day,清明,1',
+          '2026-06-19': 'Dragon Boat Festival,端午,1',
+          '2026-09-25': 'Mid-autumn Festival,中秋,1',
+          '2026-11-11': 'Some New Day,新节日,1' // 表里没有的原样保留
+        }
+      })
+    )
+
+    expect(outcome.entries.map((entry) => entry.name)).toEqual([
+      '清明节',
+      '端午节',
+      '中秋节',
+      '新节日'
+    ])
   })
 
   it('rejects a wholly unusable payload as a value instead of throwing', () => {
@@ -93,15 +130,10 @@ describe('normalizeHolidayPayload', () => {
       42,
       [],
       '2026-01-01',
-      { days: [] }, // no year
-      { year: 2026 }, // truncated download: no days array
-      { year: 2026, days: {} },
-      { year: 2026, days: null },
-      { year: '2026', days: [] },
-      { year: 2026.5, days: [] },
-      { year: Number.NaN, days: [] },
-      { year: 0, days: [] },
-      { year: 10000, days: [] }
+      {}, // 两张表都没有
+      { holidays: null },
+      { holidays: [] }, // 表必须是对象
+      { workdays: '2026-01-01' }
     ]
 
     for (const payload of unusable) {
@@ -121,59 +153,57 @@ describe('normalizeHolidayPayload', () => {
     expect(normalizeHolidayPayload(body)).toMatchObject({ ok: false })
   })
 
-  it('drops every malformed days entry and counts them', () => {
+  it('drops every malformed date and counts them', () => {
     const outcome = expectUsable(
-      normalizeHolidayPayload({
-        year: 2026,
-        days: [
-          null,
-          42,
-          '2026-01-01',
-          [],
-          { name: '春节', date: '2026-02-15' }, // isOffDay missing
-          { name: '春节', date: '2026-02-15', isOffDay: 'true' }, // stringly-typed
-          { name: '', date: '2026-02-15', isOffDay: true },
-          { name: '   ', date: '2026-02-15', isOffDay: true },
-          { name: 1, date: '2026-02-15', isOffDay: true },
-          { name: '春节', date: '2026-2-15', isOffDay: true }, // not zero-padded
-          { name: '春节', date: '2026-02-30', isOffDay: true }, // no such day
-          { name: '春节', date: '2026-13-01', isOffDay: true }, // no such month
-          { name: '春节', date: '1582-10-06', isOffDay: true }, // Gregorian reform gap
-          { name: '春节', date: 20260215, isOffDay: true },
-          { name: '春节', date: '2026-02-15', isOffDay: true, extra: 'ignored' }
-        ]
-      })
+      normalizeHolidayPayload(
+        {
+          holidays: {
+            '2026-02-15': 'Spring Festival,春节,4', // 唯一一条合法
+            '2026-2-15': 'Spring Festival,春节,4', // 未补零
+            '2026-02-30': 'Spring Festival,春节,4', // 没有这一天
+            '2026-13-01': 'Spring Festival,春节,4', // 没有这个月
+            '1582-10-06': 'Spring Festival,春节,4', // 改历空缺的那十天
+            '2026-03-01': 'Spring Festival', // 缺中文名
+            '2026-03-02': 'Spring Festival,,4', // 中文名为空
+            '2026-03-03': 42, // 值不是字符串
+            '2026-03-04': null
+          }
+        },
+        2026
+      )
     )
 
-    expect(outcome.dropped).toBe(14)
+    expect(outcome.dropped).toBe(8)
     expect(outcome.entries).toEqual([{ iso: '2026-02-15', name: '春节', isOffDay: true }])
   })
 
-  it('lets a later entry win a repeated date and counts the superseded one', () => {
+  it('lets workdays win a date that appears in both maps', () => {
+    // 同一天既在 holidays 又在 workdays 是数据自相矛盾；后读的 workdays 为准，
+    // 先读的那条计为 dropped，和「后写的条目胜出」是同一条规则。
     const outcome = expectUsable(
-      normalizeHolidayPayload({
-        year: 2026,
-        days: [
-          { name: '旧', date: '2026-05-01', isOffDay: true },
-          { name: '新', date: '2026-05-01', isOffDay: false }
-        ]
-      })
+      normalizeHolidayPayload(
+        {
+          holidays: { '2026-05-01': 'Labour Day,劳动节,2' },
+          workdays: { '2026-05-01': 'Labour Day,劳动节,2' }
+        },
+        2026
+      )
     )
 
-    expect(outcome.entries).toEqual([{ iso: '2026-05-01', name: '新', isOffDay: false }])
+    expect(outcome.entries).toEqual([{ iso: '2026-05-01', name: '劳动节', isOffDay: false }])
     expect(outcome.dropped).toBe(1)
   })
 
-  it('accepts an empty days array as a usable, empty payload', () => {
-    // Upstream 2027.json is exactly this shape until the arrangement is announced.
-    const outcome = expectUsable(normalizeHolidayPayload({ year: 2027, papers: [], days: [] }))
+  it('accepts a year whose two maps are both empty', () => {
+    // 未公布的年份可能没有文件（404），也可能给出两张空表；两者都该是可用的空载荷。
+    const outcome = expectUsable(normalizeHolidayPayload({ holidays: {}, workdays: {} }, 2027))
     expect(outcome.entries).toEqual([])
     expect(outcome.dropped).toBe(0)
   })
 
   it('cannot be polluted through __proto__ or constructor keys', () => {
     const hostile = JSON.parse(
-      '{"year":2026,"days":[],"__proto__":{"polluted":true},"constructor":{"prototype":{"polluted":true}}}'
+      '{"holidays":{},"__proto__":{"polluted":true},"constructor":{"prototype":{"polluted":true}}}'
     ) as unknown
 
     expect(expectUsable(normalizeHolidayPayload(hostile)).entries).toEqual([])
@@ -181,16 +211,16 @@ describe('normalizeHolidayPayload', () => {
   })
 
   describe('the one-year spill window', () => {
-    it('accepts a December date that belongs to the next year/s document', () => {
-      // Lifted verbatim from real upstream data: 2019.json carries 2018-12-29/30/31.
+    it('accepts a December date that belongs to the next year document', () => {
+      // 真实情况：某年的安排会把上一年 12 月末的调休日一并写进来。
       const outcome = expectUsable(
-        normalizeHolidayPayload({
-          year: 2019,
-          days: [
-            { name: '元旦', date: '2018-12-29', isOffDay: false },
-            { name: '元旦', date: '2018-12-30', isOffDay: true }
-          ]
-        })
+        normalizeHolidayPayload(
+          {
+            holidays: { '2018-12-30': "New Year's Day,元旦,1" },
+            workdays: { '2018-12-29': "New Year's Day,元旦,1" }
+          },
+          2019
+        )
       )
 
       expect(outcome.spill).toBe(2)
@@ -200,10 +230,7 @@ describe('normalizeHolidayPayload', () => {
 
     it('accepts a date in the declared year + 1', () => {
       const outcome = expectUsable(
-        normalizeHolidayPayload({
-          year: 2025,
-          days: [{ name: '元旦', date: '2026-01-01', isOffDay: true }]
-        })
+        normalizeHolidayPayload({ holidays: { '2026-01-01': "New Year's Day,元旦,1" } }, 2025)
       )
 
       expect(outcome.spill).toBe(1)
@@ -212,13 +239,15 @@ describe('normalizeHolidayPayload', () => {
 
     it('rejects a date two years from the declared year', () => {
       const outcome = expectUsable(
-        normalizeHolidayPayload({
-          year: 2026,
-          days: [
-            { name: '元旦', date: '2024-01-01', isOffDay: true },
-            { name: '元旦', date: '2028-01-01', isOffDay: true }
-          ]
-        })
+        normalizeHolidayPayload(
+          {
+            holidays: {
+              '2024-01-01': "New Year's Day,元旦,1",
+              '2028-01-01': "New Year's Day,元旦,1"
+            }
+          },
+          2026
+        )
       )
 
       expect(outcome.entries).toEqual([])
@@ -246,7 +275,7 @@ describe('buildHolidayOverlay', () => {
   })
 
   it('keeps the good payloads when one payload is unusable', () => {
-    const { overlay, errors } = buildHolidayOverlay([{ year: 2026 }, readFixture(2026)])
+    const { overlay, errors } = buildHolidayOverlay([{ holidays: null }, readFixture(2026)])
 
     expect(errors).toHaveLength(1)
     expect(overlay.byIso.size).toBe(39)
@@ -255,8 +284,8 @@ describe('buildHolidayOverlay', () => {
 
   it('lets the later payload win a shared date', () => {
     const { overlay, errors } = buildHolidayOverlay([
-      { year: 2026, days: [{ name: '旧', date: '2026-05-01', isOffDay: true }] },
-      { year: 2026, days: [{ name: '新', date: '2026-05-01', isOffDay: false }] }
+      { holidays: { '2026-05-01': 'Labour Day,旧,2' } },
+      { workdays: { '2026-05-01': 'Labour Day,新,2' } }
     ])
 
     expect(errors).toEqual([])
@@ -270,11 +299,10 @@ describe('buildHolidayOverlay', () => {
 
   it('reports the calendar year a spill-only payload covers', () => {
     const { overlay } = buildHolidayOverlay([
-      { year: 2026, days: [{ name: '元旦', date: '2027-01-01', isOffDay: true }] }
+      { holidays: { '2027-01-01': "New Year's Day,元旦,1" } }
     ])
 
     expect(overlay.years).toEqual([2027])
-    expect(overlay.spill).toBe(1)
   })
 })
 
@@ -317,7 +345,7 @@ describe('the engine resolves through the overlay', () => {
     expect(buildDaySummary(key(2026, 10, 1)).holiday).toEqual({ name: '国庆节', isWork: false })
 
     const errors = installHolidayPayloads([
-      { year: 2026, days: [{ name: '覆盖测试', date: '2026-10-01', isOffDay: false }] }
+      { workdays: { '2026-10-01': 'National Day,覆盖测试,3' } }
     ])
 
     expect(errors).toEqual([])
@@ -327,9 +355,7 @@ describe('the engine resolves through the overlay', () => {
   it('supplies a day the frozen table cannot know', () => {
     expect(buildDaySummary(key(2027, 1, 1)).holiday).toBeNull()
 
-    installHolidayPayloads([
-      { year: 2026, days: [{ name: '元旦', date: '2027-01-01', isOffDay: true }] }
-    ])
+    installHolidayPayloads([{ holidays: { '2027-01-01': "New Year's Day,元旦,1" } }])
 
     expect(buildDaySummary(key(2027, 1, 1)).holiday).toEqual({ name: '元旦', isWork: false })
   })
@@ -346,9 +372,7 @@ describe('the engine resolves through the overlay', () => {
   it('drops the heavier info cache as well', () => {
     buildDayInfo(key(2026, 6, 26))
 
-    installHolidayPayloads([
-      { year: 2026, days: [{ name: '覆盖测试', date: '2026-06-26', isOffDay: false }] }
-    ])
+    installHolidayPayloads([{ workdays: { '2026-06-26': 'Labour Day,覆盖测试,2' } }])
 
     expect(buildDayInfo(key(2026, 6, 26)).holiday).toEqual({ name: '覆盖测试', isWork: true })
   })
@@ -356,9 +380,7 @@ describe('the engine resolves through the overlay', () => {
   it('rebuilds the year overview when the overlay changes', () => {
     expect(buildYearInfo(2027).holidays).toEqual([])
 
-    installHolidayPayloads([
-      { year: 2026, days: [{ name: '元旦', date: '2027-01-01', isOffDay: true }] }
-    ])
+    installHolidayPayloads([{ holidays: { '2027-01-01': "New Year's Day,元旦,1" } }])
 
     expect(buildYearInfo(2027).holidays).toEqual([
       { month: 1, day: 1, name: '元旦', isWork: false }
@@ -366,9 +388,7 @@ describe('the engine resolves through the overlay', () => {
   })
 
   it('forgets the overlay and its memoized results on reset', () => {
-    installHolidayPayloads([
-      { year: 2026, days: [{ name: '元旦', date: '2027-01-01', isOffDay: true }] }
-    ])
+    installHolidayPayloads([{ holidays: { '2027-01-01': "New Year's Day,元旦,1" } }])
     expect(buildDaySummary(key(2027, 1, 1)).holiday).not.toBeNull()
 
     resetHolidayOverlay()

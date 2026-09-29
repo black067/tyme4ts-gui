@@ -4,8 +4,8 @@
  * tyme4ts ships a **frozen** copy of the State Council holiday table: it covers
  * 2001-12-29 through 2026-10-10 and then simply stops, so 2030 春节 would render
  * without a 休/班 badge. This module holds the same information as an *overlay*
- * on top of that table, sourced from `NateScarlet/holiday-cn` (MIT, CI-generated
- * from the gov.cn announcements) and refreshed at runtime.
+ * on top of that table, sourced from `vsme/chinese-days` (MIT, CI-generated from
+ * the State Council announcements) and refreshed at runtime.
  *
  * The overlay wins per date; every date it does not mention still falls through
  * to `SolarDay.getLegalHoliday()` unchanged. Consequences worth stating plainly:
@@ -19,10 +19,10 @@
  * bottom, which exists only so the memoized day/year builds can be dropped when
  * a new table is installed (see {@link onHolidayOverlayChange}).
  */
-import { SOLAR_YEAR_MAX, SOLAR_YEAR_MIN, fromIsoDate } from './date-key'
+import { SOLAR_YEAR_MIN, fromIsoDate } from './date-key'
 import type { HolidayRef } from './types'
 
-/** One validated rest/work day, as published by holiday-cn. */
+/** One validated rest/work day, as published by chinese-days. */
 export interface HolidayEntry {
   /** Canonical `YYYY-MM-DD`. */
   iso: string
@@ -48,17 +48,16 @@ export type HolidayPayloadOutcome =
   | { ok: false; error: string }
 
 /**
- * How far a date may sit from the payload's declared year.
+ * How far a date may sit from the year whose file it came from.
  *
- * holiday-cn keys a file by the *document title year*, not by the dates' year,
- * and its README tells consumers to consult two files because
- * 「12 月份的日期可能会被下一年的文件影响」. Observed for real: `2019.json` carries
- * 2018-12-29/30/31 (the 2019 元旦 arrangement) and `2023.json` carries
- * 2022-12-31. So the tolerated window is the declared year plus its two direct
- * neighbours — wide enough that no genuine December/January date is ever
- * discarded, narrow enough that a date two years out is still treated as
- * corruption. Entries accepted outside the declared year are reported via
- * `spill` so the tolerance stays auditable rather than silent.
+ * A year's arrangement is published as one document that may reach into the
+ * neighbouring December/January — the 元旦 holiday week regularly straddles the
+ * year boundary, and the 调休 workdays around it can land on either side. So the
+ * tolerated window is the declared year plus its two direct neighbours: wide
+ * enough that no genuine straddling date is discarded, narrow enough that a date
+ * two years out is still treated as corruption. Entries accepted outside the
+ * declared year are reported via `spill` so the tolerance stays auditable rather
+ * than silent.
  */
 const MAX_YEAR_SPILL = 1
 
@@ -66,93 +65,131 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-/** A plausible `year` field: an integer the calendar can actually represent. */
-function isSaneYear(value: unknown): value is number {
-  return (
-    typeof value === 'number' &&
-    Number.isInteger(value) &&
-    value >= SOLAR_YEAR_MIN &&
-    value <= SOLAR_YEAR_MAX
-  )
+/**
+ * 节日名的别名归一。
+ *
+ * 数据源用的名字比引擎短：`中秋` / `端午` / `清明`，而引擎（以及界面此前一直显示的）
+ * 是 `中秋节` / `端午节` / `清明节`。覆盖层是**覆盖**关系——同一天只要覆盖层有值就
+ * 用覆盖层的名字，所以不归一就会在引擎本来就认识的日子上显示成「中秋」，
+ * 等于凭空换了一套说法。
+ *
+ * 只映射确知是同一天的简称。表里没有的名字原样保留：与其猜，不如让新出现的名字
+ * 照原样显示出来，这样也更容易被发现。
+ */
+const NAME_ALIASES: Readonly<Record<string, string>> = {
+  清明: '清明节',
+  端午: '端午节',
+  中秋: '中秋节'
 }
 
-interface ParsedDay {
-  entry: HolidayEntry
-  /** Calendar year of `entry.iso`, which may differ from the payload's `year`. */
-  dateYear: number
+function normalizeName(name: string): string {
+  return NAME_ALIASES[name] ?? name
 }
 
 /**
- * Reads one `days` element, returning `null` for anything malformed.
+ * Reads one `holidays` / `workdays` map value, returning `null` for anything malformed.
  *
- * Deliberately total: an untrusted payload must never be able to throw, and an
- * unknown extra field (the source emits `$schema`, `$id`, `papers`) is ignored
- * rather than treated as a reason to reject the entry.
+ * The source value is `"<英文名>,<中文名>,<薪资倍数>"`, e.g.
+ * `"Spring Festival,春节,4"`. Only the Chinese name is used — the engine's table
+ * renders Chinese too, so the overlay must speak the same vocabulary — and it is
+ * passed through {@link normalizeName} so abbreviations match the engine's names.
  */
-function parseDay(value: unknown, year: number): ParsedDay | null {
-  if (!isRecord(value)) return null
+function parseDayName(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  const parts = value.split(',')
+  // 中文名在第二段。段数不对就整条丢掉——宁可少一天，也不猜哪个是节日名。
+  if (parts.length < 2) return null
+  const name = (parts[1] ?? '').trim()
+  return name === '' ? null : normalizeName(name)
+}
 
-  const name = value.name
-  if (typeof name !== 'string' || name.trim() === '') return null
-
-  // Strict: `'true'` / `1` are not booleans, and guessing here would silently
-  // invert a 休 day into a 班 day.
-  if (typeof value.isOffDay !== 'boolean') return null
-
-  const iso = value.date
-  if (typeof iso !== 'string') return null
-  // `fromIsoDate` owns the format: `YYYY-MM-DD`, a real calendar day and inside
-  // the engine's 1–9999 range (1582-10-05 … 10-14 included, which never existed).
-  const key = fromIsoDate(iso)
-  if (key === null) return null
-  if (Math.abs(key.year - year) > MAX_YEAR_SPILL) return null
-
-  return { entry: { iso, name: name.trim(), isOffDay: value.isOffDay }, dateYear: key.year }
+/** 一份要读的日期表，`isOffDay` 表示这些日子是休还是班。 */
+interface DayMap {
+  value: unknown
+  isOffDay: boolean
 }
 
 /**
- * Validates one holiday-cn payload into typed entries.
+ * Validates one chinese-days year payload into typed entries.
  *
- * Untrusted input, so nothing throws: a wholly unusable payload (not an object,
- * a bad `year`, a missing `days` array — i.e. a truncated download) yields
- * `{ ok: false, error }` in the style of `convert()`, while individual bad
- * `days` elements are dropped and counted. A payload with an empty `days` array
- * is *usable* and yields zero entries: as of 2026-09-29 the real `2027.json` is
- * exactly that, because the 2027 arrangement has not been announced yet.
+ * 载荷形状（`chinese-days` 的 `years/<年>.json`）：
  *
- * This function validates *parsed* JSON. Parsing belongs to the caller (so a
- * truncated body is a `JSON.parse` throw there); a raw string handed in here is
- * simply an unusable payload.
+ * ```json
+ * {
+ *   "holidays":  { "2026-01-01": "New Year's Day,元旦,1" },
+ *   "workdays":  { "2026-01-04": "New Year's Day,元旦,1" },
+ *   "inLieuDays":{ "2026-01-02": "New Year's Day,元旦,1" }
+ * }
+ * ```
+ *
+ * `holidays` 是放假的日子，`workdays` 是调休上班的日子（班）。`inLieuDays` 是
+ * `holidays` 里属于「调休」的那部分——对当前界面没有增量信息（休/班角标只看
+ * 是不是工作日），所以不读它，但上面的形状说明保留它，免得以后有人以为漏了。
+ *
+ * Untrusted input, so nothing throws: a payload that is not an object, or that has
+ * neither a `holidays` nor a `workdays` map, yields `{ ok: false, error }` in the
+ * style of `convert()`, while individual bad dates are dropped and counted.
+ * A year whose two maps are both empty is *usable* and yields zero entries: the
+ * arrangement may simply not be published yet (this is the real state of a year
+ * before the State Council announces it).
+ *
+ * This function validates *parsed* JSON. Parsing belongs to the caller, so a
+ * truncated body is a `JSON.parse` throw there.
  */
-export function normalizeHolidayPayload(raw: unknown): HolidayPayloadOutcome {
+export function normalizeHolidayPayload(
+  raw: unknown,
+  expectedYear?: number
+): HolidayPayloadOutcome {
   if (!isRecord(raw)) return { ok: false, error: '节假日数据必须是 JSON 对象。' }
 
-  const year = raw.year
-  if (!isSaneYear(year)) {
-    return { ok: false, error: `节假日数据的 year 字段不是合法年份：${String(year)}` }
+  const maps: DayMap[] = [
+    { value: raw.holidays, isOffDay: true },
+    { value: raw.workdays, isOffDay: false }
+  ]
+  const present = maps.filter((map) => map.value !== undefined)
+  if (present.length === 0) {
+    return { ok: false, error: '节假日数据既没有 holidays 也没有 workdays。' }
   }
-
-  const days = raw.days
-  if (!Array.isArray(days)) return { ok: false, error: '节假日数据的 days 字段必须是数组。' }
+  for (const map of present) {
+    if (!isRecord(map.value)) {
+      return { ok: false, error: '节假日数据的 holidays / workdays 必须是对象。' }
+    }
+  }
 
   const byIso = new Map<string, HolidayEntry>()
   let dropped = 0
   let spill = 0
+  /** 由日期反推的实际年份；调用方给了期望年份时以它为准（见下）。 */
+  let inferredYear: number | null = null
 
-  for (const day of days) {
-    const parsed = parseDay(day, year)
-    if (parsed === null) {
-      dropped += 1
-      continue
+  for (const map of present) {
+    for (const [iso, rawName] of Object.entries(map.value as Record<string, unknown>)) {
+      const name = parseDayName(rawName)
+      const key = fromIsoDate(iso)
+      if (name === null || key === null) {
+        dropped += 1
+        continue
+      }
+      // 年份由**日期**决定，不读载荷的自身声明：`chinese-days` 的按年文件里
+      // 日期都落在该年，若出现别的年份那是数据有问题，按跨度规则丢掉。
+      const year = expectedYear ?? key.year
+      if (Math.abs(key.year - year) > MAX_YEAR_SPILL) {
+        dropped += 1
+        continue
+      }
+      if (key.year !== year) spill += 1
+      inferredYear = inferredYear === null ? key.year : Math.max(inferredYear, key.year)
+
+      const entry: HolidayEntry = { iso, name, isOffDay: map.isOffDay }
+      // A repeated date means the payload contradicts itself; the later entry is
+      // the newer statement, so it wins and the earlier one counts as dropped.
+      if (byIso.has(iso)) dropped += 1
+      byIso.set(iso, entry)
     }
-    if (parsed.dateYear !== year) spill += 1
-    // A repeated date means the payload contradicts itself; the later entry is
-    // the newer statement, so it wins and the earlier one counts as dropped.
-    if (byIso.has(parsed.entry.iso)) dropped += 1
-    byIso.set(parsed.entry.iso, parsed.entry)
   }
 
   const entries = [...byIso.values()].sort((a, b) => (a.iso < b.iso ? -1 : a.iso > b.iso ? 1 : 0))
+  const year = expectedYear ?? inferredYear ?? SOLAR_YEAR_MIN
   return { ok: true, year, entries, dropped, spill }
 }
 

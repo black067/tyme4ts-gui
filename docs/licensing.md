@@ -7,23 +7,23 @@
 许可证标识取自各自安装包内的 `package.json`，并非照抄文档；应用内「设置 → 第三方许可」展示同一
 份清单（源码在 `src/renderer/src/features/settings/third-party.ts`）。
 
-| 项目                    | 许可 | 用途                                                             |
-| ----------------------- | ---- | ---------------------------------------------------------------- |
-| [tyme4ts][tyme4ts]      | MIT  | 全部历法、节假日与黄历数据（公历/农历/藏历/回历/节气/宜忌/八字） |
-| [holiday-cn][holidaycn] | MIT  | 在线更新的法定节假日数据（其 CI 抓取国务院公告，按年发布 JSON）  |
-| [Electron][electron]    | MIT  | 桌面应用运行时（Chromium + Node.js）                             |
-| [React][react]          | MIT  | 界面渲染                                                         |
-| [TanStack Virtual][tv]  | MIT  | 时间轴视图的虚拟滚动                                             |
-| [electron-toolkit][etk] | MIT  | 主进程开发期辅助工具                                             |
+| 项目                        | 许可 | 用途                                                             |
+| --------------------------- | ---- | ---------------------------------------------------------------- |
+| [tyme4ts][tyme4ts]          | MIT  | 全部历法、节假日与黄历数据（公历/农历/藏历/回历/节气/宜忌/八字） |
+| [chinese-days][chinesedays] | MIT  | 在线更新的法定节假日数据（其 CI 抓取国务院公告，按年发布 JSON）  |
+| [Electron][electron]        | MIT  | 桌面应用运行时（Chromium + Node.js）                             |
+| [React][react]              | MIT  | 界面渲染                                                         |
+| [TanStack Virtual][tv]      | MIT  | 时间轴视图的虚拟滚动                                             |
+| [electron-toolkit][etk]     | MIT  | 主进程开发期辅助工具                                             |
 
 [tyme4ts]: https://github.com/6tail/tyme4ts
-[holidaycn]: https://github.com/NateScarlet/holiday-cn
+[chinesedays]: https://github.com/vsme/chinese-days
 [electron]: https://github.com/electron/electron
 [react]: https://github.com/facebook/react
 [tv]: https://github.com/TanStack/virtual
 [etk]: https://github.com/alex8088/electron-toolkit
 
-`holiday-cn` 不是运行时依赖：应用只通过 HTTP 读取它发布的 JSON，所以它不出现在
+`chinese-days` 不是运行时依赖：应用只通过 HTTP 读取它发布的 JSON，所以它不出现在
 `package.json` 里，但用户看到的是它的数据，因此照旧列在这里与「设置 → 第三方许可」中。
 每份数据都记录了自己对应的 gov.cn 公告链接，并在设置页展示出来——源头始终可追溯。
 

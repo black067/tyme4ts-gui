@@ -14,7 +14,7 @@ export interface ThirdPartyEntry {
   licence: string
   homepage: string
   /** Catalogue key for what it is used for in this app. */
-  usageKey: 'tyme4ts' | 'electron' | 'react' | 'tanstackVirtual' | 'electronToolkit' | 'holidayCn'
+  usageKey: 'tyme4ts' | 'electron' | 'react' | 'tanstackVirtual' | 'electronToolkit' | 'chineseDays'
 }
 
 export const THIRD_PARTY: readonly ThirdPartyEntry[] = [
@@ -49,10 +49,10 @@ export const THIRD_PARTY: readonly ThirdPartyEntry[] = [
     usageKey: 'electronToolkit'
   },
   {
-    name: 'holiday-cn',
+    name: 'chinese-days',
     licence: 'MIT',
-    homepage: 'https://github.com/NateScarlet/holiday-cn',
-    usageKey: 'holidayCn'
+    homepage: 'https://github.com/vsme/chinese-days',
+    usageKey: 'chineseDays'
   }
 ]
 
@@ -61,8 +61,13 @@ export interface AssetCredit {
   nameKey: 'calendarIcon'
   author: string
   source: string
-  /** Free-text licence note; the terms live on the source page. */
-  licence: string
+  /**
+   * 授权条款不在本仓库里，而在来源页；这里只给一个文案 key。
+   *
+   * 用 key 而不是把「见来源页面」写成字符串：那是界面文案，要随语言走。
+   * 作者名与来源地址是事实，留在数据里。
+   */
+  licenceKey: 'seeSourcePage'
   /** Path inside the repository, for traceability. */
   path: string
 }
@@ -72,7 +77,7 @@ export const ASSET_CREDITS: readonly AssetCredit[] = [
     nameKey: 'calendarIcon',
     author: 'paomedia (Arnaud)',
     source: 'https://github.com/paomedia',
-    licence: '见来源页面',
+    licenceKey: 'seeSourcePage',
     path: 'assets/calendar.svg'
   }
 ]

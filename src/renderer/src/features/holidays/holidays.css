@@ -1,19 +1,4 @@
-/* 节假日数据小节：标题、来源链接与操作按钮。 */
-
-.holidays__papers {
-  margin-top: var(--space-2);
-}
-
-.holidays__paper-list {
-  margin: var(--space-1) 0 0;
-  padding-left: var(--space-4);
-  font-size: 12px;
-}
-
-.holidays__paper-list li {
-  /* URL 很长，窄窗口下要能换行而不是把面板撑破。 */
-  overflow-wrap: anywhere;
-}
+/* 节假日数据小节：状态行与操作按钮，沿用 settings 的既有排版。 */
 
 .holidays__actions {
   display: flex;

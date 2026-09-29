@@ -129,7 +129,12 @@ function buildAlmanacRows(info: DayInfo, t: Messages): RowSpec[] {
   return [
     [
       f.term,
-      info.currentTerm ? `${info.currentTerm.name} 第${info.currentTerm.dayIndex + 1}天` : null,
+      info.currentTerm
+        ? t.dayPanel.termDay({
+            name: info.currentTerm.name,
+            day: info.currentTerm.dayIndex + 1
+          })
+        : null,
       undefined
     ],
     [f.phenology, info.phenology, undefined],
@@ -151,7 +156,14 @@ function buildAlmanacRows(info: DayInfo, t: Messages): RowSpec[] {
     [f.fetus, info.fetus, undefined],
     [
       f.star28,
-      star ? `${star.name}宿（${star.zone}方${star.beast}）· ${star.luck}` : null,
+      star
+        ? t.dayPanel.starDetail({
+            name: star.name,
+            zone: star.zone,
+            beast: star.beast,
+            luck: star.luck
+          })
+        : null,
       star ? { family: 'star28', name: star.name } : undefined
     ],
     [

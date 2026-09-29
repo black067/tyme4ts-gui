@@ -8,8 +8,10 @@ vendor/
 *.tsbuildinfo
 package-lock.json
 
-# Verbatim third-party data snapshots (see tests/fixtures/holiday-cn/README.md).
-tests/fixtures/holiday-cn/*.json
+# Verbatim third-party data snapshots (see scripts/glossary/fetch-holidays.mjs).
+# They must stay byte-identical to what the source published, or the tests no
+# longer prove we read the published document.
+tests/fixtures/chinese-days/*.json
 
 # Verbatim public-domain source texts used for quote verification.
 # They are historical transcriptions; reformatting them would alter the text

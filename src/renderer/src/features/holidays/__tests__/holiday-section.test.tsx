@@ -26,27 +26,20 @@ describe('节假日数据小节', () => {
     expect(screen.queryByText(/已覆盖年份/)).toBeNull()
   })
 
-  it('更新成功后显示年份、时间与国务院公告链接', async () => {
+  it('更新成功后显示已覆盖年份与时间', async () => {
     const bridge = await renderApp()
     await openSettings()
 
     act(() => {
       bridge.setHolidayStatus({
         years: [2026, 2027],
-        lastUpdatedAt: '2026-09-29T10:00:00.000Z',
-        papers: ['https://www.gov.cn/zhengce/zhengceku/202511/content_7047091.htm']
+        lastUpdatedAt: '2026-09-29T10:00:00.000Z'
       })
     })
 
     expect(screen.getByText(/已覆盖年份/)).toBeInTheDocument()
     expect(screen.getByText(/2026、2027/)).toBeInTheDocument()
     expect(screen.getByText(/上次更新：/)).toBeInTheDocument()
-
-    // 主源是关键：数据出自国务院公告，要能一键核对。
-    const paper = screen.getByRole('link', {
-      name: 'https://www.gov.cn/zhengce/zhengceku/202511/content_7047091.htm'
-    })
-    expect(paper).toHaveAttribute('target', '_blank')
   })
 
   it('点击立即更新会请求主进程', async () => {

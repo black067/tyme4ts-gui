@@ -76,21 +76,6 @@ export function HolidaySection(): ReactElement | null {
         <p className="tool__error">{errorText(t, status.errorCode)}</p>
       ) : null}
 
-      {status.papers.length > 0 ? (
-        <div className="holidays__papers">
-          <span className="settings-field__label">{t.settings.holidays.papers}</span>
-          <ul className="holidays__paper-list">
-            {status.papers.map((paper) => (
-              <li key={paper}>
-                <a className="credit__link" href={paper} target="_blank" rel="noreferrer noopener">
-                  {paper}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
       <div className="holidays__actions">
         <button
           type="button"

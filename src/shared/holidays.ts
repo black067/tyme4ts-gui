@@ -24,11 +24,6 @@ export interface HolidayStatus {
   years: readonly number[]
   /** ISO timestamp of the last successful refresh, or `''` when never. */
   lastUpdatedAt: string
-  /**
-   * Official announcement URLs the data was built from (the source records the
-   * gov.cn papers it scraped). Shown so the user can check the primary source.
-   */
-  papers: readonly string[]
   /** Number of entries accepted outside their payload's declared year. */
   spill: number
   /** True while a refresh is in flight. */

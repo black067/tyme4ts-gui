@@ -33,7 +33,6 @@ function emptyHolidayStatus(): HolidayStatus {
   return {
     years: [],
     lastUpdatedAt: '',
-    papers: [],
     spill: 0,
     refreshing: false,
     errorCode: null
