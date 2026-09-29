@@ -25,6 +25,8 @@ import { getMessages } from '../src/renderer/src/i18n/messages'
 const ROOT = process.cwd()
 const PRIORITY_SOURCE = join(ROOT, 'src', 'renderer', 'src')
 const BASELINE_PATH = join(ROOT, 'tests', 'fixtures', 'i18n-contract', 'cjk-baseline.json')
+/** 冻结的文案键清单：单语言下唯一能抓住「误删/误改键」的东西。 */
+const KEYS_FIXTURE = join(ROOT, 'tests', 'fixtures', 'i18n-contract', 'keys.json')
 
 /** 扫描时跳过的目录：文案本身与测试就在"允许有中文"的范围里。 */
 const SKIP_DIRS = new Set(['i18n', '__tests__', 'test'])
@@ -125,35 +127,48 @@ function scanCjk(root: string): Map<string, number> {
   walk(root)
   return counts
 }
-describe('文案目录的键完全对齐', () => {
+describe('文案目录的键集合', () => {
   const reference = flatten(getMessages(DEFAULT_LOCALE))
 
   it('参考目录本身不是空的', () => {
-    // 防止键比较在空表上空转通过。
+    // 防止下面的键比较在空表上空转通过。
     expect(reference.size).toBeGreaterThan(20)
   })
 
-  for (const locale of LOCALES) {
-    it(`${locale} 与 ${DEFAULT_LOCALE} 的键集合一致`, () => {
-      const candidate = flatten(getMessages(locale))
+  it('与冻结的键清单一致', () => {
+    // 这里原先写的是「让每个 locale 与默认语言比对键集合」。但 LOCALES 目前只有
+    // zh-Hans，等于拿目录和它自己比，missing/extra/retyped 恒定为空——一条永远
+    // 不可能失败的测试。真正该防的是另一件事：重构文案时**误删或误改某个键**，
+    // 而单语言下唯一能抓住它的办法是把这个集合冻下来。
+    //
+    // 增删键时请更新 tests/fixtures/i18n-contract/keys.json，并在提交信息里说明原因：
+    // 这份清单是「界面文案表面」的账本，不是随手可刷的快照。
+    const frozen = JSON.parse(readFileSync(KEYS_FIXTURE, 'utf8')) as Record<string, string>
 
-      const missing = [...reference.keys()].filter((key) => !candidate.has(key))
-      const extra = [...candidate.keys()].filter((key) => !reference.has(key))
-      const retyped = [...reference.entries()]
-        .filter(([key, kind]) => candidate.get(key) !== undefined && candidate.get(key) !== kind)
-        .map(([key, kind]) => `${key}: 参考为 ${kind}，本语言为 ${candidate.get(key)}`)
+    const missing = Object.keys(frozen).filter((key) => !reference.has(key))
+    const added = [...reference.keys()].filter((key) => !(key in frozen))
+    const retyped = [...reference.entries()]
+      .filter(([key, kind]) => key in frozen && frozen[key] !== kind)
+      .map(([key, kind]) => `${key}: 清单为 ${frozen[key]}，实际为 ${kind}`)
 
-      expect(missing).toEqual([])
-      expect(extra).toEqual([])
-      expect(retyped).toEqual([])
-    })
-  }
+    expect(missing).toEqual([])
+    expect(added).toEqual([])
+    expect(retyped).toEqual([])
+  })
 
-  it('LOCALES 与目录注册表一一对应', () => {
-    // 在 LOCALES 里登记却忘了加目录时会退化到默认语言，界面看起来"没坏"，
-    // 所以要显式断言两者同步。
+  it('每个已注册语言的键集合都与默认语言一致', () => {
+    // `CATALOGS: Record<Locale, Messages>` 已经让「登记了却没加目录」变成编译错误，
+    // 所以不再断言 getMessages 的返回值存在——它有回落，那种断言恒真。等加入第二种
+    // 语言时，这条才会真正开始比对两个目录。
     for (const locale of LOCALES) {
-      expect(getMessages(locale)).toBeDefined()
+      const candidate = flatten(getMessages(locale))
+      const missing = [...reference.keys()].filter((key) => !candidate.has(key))
+      const retyped = [...reference.entries()].filter(
+        ([key, kind]) => candidate.get(key) !== undefined && candidate.get(key) !== kind
+      )
+
+      expect(missing, `${locale} 缺少默认语言已有的键`).toEqual([])
+      expect(retyped, `${locale} 有键的类型与默认语言不一致`).toEqual([])
     }
   })
 })

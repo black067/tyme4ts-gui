@@ -143,6 +143,10 @@ describe('searchDays on almanac criteria', () => {
       recommends: ['嫁娶'],
       weekendsOnly: true
     })
+
+    // 必须先断言非空：只对 hits 做循环的话，组合条件一旦退化成「什么都匹配不到」，
+    // 循环会空转通过——测试是绿的，却什么都没检查。同文件相邻几条都有这个哨兵。
+    expect(result.hits.length).toBeGreaterThan(0)
     for (const hit of result.hits) {
       expect(hit.weekDay === 0 || hit.weekDay === 6).toBe(true)
       expect(hit.recommends).toContain('嫁娶')

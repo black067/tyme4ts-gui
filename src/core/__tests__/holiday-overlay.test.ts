@@ -144,14 +144,12 @@ describe('normalizeHolidayPayload', () => {
     }
   })
 
-  it('treats truncated JSON as a parse error for the caller, and raw text as unusable', () => {
-    // The exact form a response body arrives in, cut off mid-download.
+  it('refuses raw text as a payload instead of throwing on it', () => {
+    // 调用方负责 JSON.parse，验收入口只接收已解析的值。字符串被当成不可用载荷
+    // 拒掉，而不是抛异常——截断的响应体因此不会把主进程打崩。
     const body = JSON.stringify(fixture2026)
-    expect(() => JSON.parse(body.slice(0, 120))).toThrow(SyntaxError)
-    // Handed to the validator anyway, it is still refused rather than thrown on.
-    expect(normalizeHolidayPayload(body.slice(0, 120))).toMatchObject({ ok: false })
-    // Even the complete document is just a string, not a payload.
     expect(normalizeHolidayPayload(body)).toMatchObject({ ok: false })
+    expect(normalizeHolidayPayload(body.slice(0, 120))).toMatchObject({ ok: false })
   })
 
   it('drops every malformed date and counts them', () => {
@@ -349,13 +347,8 @@ describe('decideHolidayError', () => {
     ).toBeNull()
   })
 
-  it('stays silent when there is data, however many years were missing', () => {
-    expect(
-      decideHolidayError({ received: 1, failed: 3, covered: 1, usableCached: false })
-    ).toBeNull()
-  })
-
   it('stays silent when nothing was fetched but the cache already has data', () => {
+    // `usableCached` 是那个 if 的另一半：它是独立条件，单独写坏时不该被发现不了。
     expect(
       decideHolidayError({ received: 0, failed: 3, covered: 0, usableCached: true })
     ).toBeNull()

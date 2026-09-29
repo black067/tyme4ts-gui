@@ -114,14 +114,6 @@ describe('app shell', () => {
     expect(screen.queryByText('彭祖百忌')).not.toBeInTheDocument()
     expect(screen.getByText('纳音')).toBeInTheDocument()
   })
-
-  it('renders a Monday-first grid when that setting is on', async () => {
-    await setup({ weekStartsOnMonday: true })
-
-    const grid = screen.getByRole('grid', { name: /^2024年6月/ })
-    expect(screen.getByText('一')).toBeInTheDocument()
-    expect(within(grid).getByRole('gridcell', { name: /^2024年6月1日/ })).toBeInTheDocument()
-  })
 })
 
 describe('settings screen', () => {

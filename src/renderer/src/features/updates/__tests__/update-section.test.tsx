@@ -37,15 +37,18 @@ describe('更新小节', () => {
     expect(screen.getByText('最新')).toBeInTheDocument()
   })
 
-  it('版本号与检查按钮、时间戳在同一区块内', async () => {
+  it('版本号与检查按钮、时间戳在同一行里', async () => {
     await renderApp()
     await openSettings()
 
     // 时间戳与按钮同行：它是这次操作的上下文，不该另起一行占位。
+    // 两处都必须在**同一个** .updates__row 内查询——把时间戳挪出这一行应当让
+    // 测试失败，否则这条测的就不是「同行」。
     const row = document.querySelector('.updates__row')
     expect(row).not.toBeNull()
     expect(row?.querySelector('button')).not.toBeNull()
-    expect(document.querySelector('.updates__stamp')).not.toBeNull()
+    expect(row?.querySelector('.updates__stamp')).not.toBeNull()
+    expect(screen.getByText(/上次检查|尚未检查过/)).toBeInTheDocument()
   })
 
   it('点击检查会请求主进程', async () => {

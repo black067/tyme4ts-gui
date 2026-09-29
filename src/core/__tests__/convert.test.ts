@@ -77,13 +77,24 @@ describe('convert from the other calendars', () => {
     expect(outcome.result.iso).toBe('2024-03-11')
   })
 
-  it('resolves a Rab-byung date inside its range', () => {
-    const outcome = convert({ kind: 'rabByung', year: 2150, month: 1, day: 1 })
+  // 名字原先写的是「inside its range」，但喂进去的 2150 已经超过 RAB_BYUNG_MAX_YEAR，
+  // 断言的是**拒绝**——名不副实，而且掩盖了「范围内其实没有用例」这个缺口。
+  it('rejects a Rab-byung year past the supported range, naming both bounds', () => {
+    const outcome = convert({ kind: 'rabByung', year: RAB_BYUNG_MAX_YEAR + 100, month: 1, day: 1 })
     expect(outcome.ok).toBe(false)
     if (!outcome.ok) {
       expect(outcome.error).toContain(String(RAB_BYUNG_MIN_YEAR))
       expect(outcome.error).toContain(String(RAB_BYUNG_MAX_YEAR))
     }
+  })
+
+  it('resolves a Rab-byung date inside its range', () => {
+    const outcome = convert({ kind: 'rabByung', year: 2024, month: 5, day: 21 })
+    expect(outcome.ok).toBe(true)
+    if (!outcome.ok) return
+    expect(outcome.result.iso).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+    // 藏历日期本身也要能反查出来，否则这条只证明了「没报错」。
+    expect(outcome.result.rabByungText).toBeTruthy()
   })
 
   it('resolves a Julian day number', () => {

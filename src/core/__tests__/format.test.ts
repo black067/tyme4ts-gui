@@ -19,12 +19,6 @@ describe('weekdayOrder', () => {
   it('rotates to Monday-first when asked', () => {
     expect(weekdayOrder(true)).toEqual(['一', '二', '三', '四', '五', '六', '日'])
   })
-
-  it('keeps the weekend labels in the last columns when Monday-first', () => {
-    const columns = weekdayOrder(true)
-    expect(columns[5]).toBe('六')
-    expect(columns[6]).toBe('日')
-  })
 })
 
 describe('weekDayLabel', () => {
