@@ -1,0 +1,9 @@
+/* 节假日数据小节：状态行与操作按钮，沿用 settings 的既有排版。 */
+
+.holidays__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+  margin-top: var(--space-2);
+}

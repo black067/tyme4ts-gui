@@ -3,8 +3,6 @@ import type { ThemeDefinition } from '../types'
 /** Modern minimal: quiet neutrals, one restrained accent, system sans. */
 export const minimalTheme: ThemeDefinition = {
   id: 'minimal',
-  name: '现代简约',
-  description: '浅色卡片、克制的朱红点缀，信息密度高，长时间阅读不累眼。',
   variants: {
     light: 'minimal-light',
     dark: 'minimal-dark'

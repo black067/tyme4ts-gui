@@ -16,6 +16,9 @@
 | 视图     | 月视图、日详情侧栏、年视图、时间轴                                     |
 | 工具     | 日期换算（公历↔农历↔回历↔藏历↔儒略日）、择日区间检索、八字排盘         |
 | 外观     | 两套主题（现代简约 / 中国传统）× 浅色深色 × 跟随系统                   |
+| 语言     | 界面文案独立成层，可扩展新语言（目前只有简体中文）                     |
+| 更新     | 从 GitHub Releases 检查新版本，自动下载并校验 SHA-256                  |
+| 节假日   | 从国务院公告的公开数据源在线更新法定假日，补全引擎内置表的截止范围     |
 | 交互     | 全键盘导航、可切换的快捷键说明、ARIA 网格语义、选中日期朗读            |
 | 释义     | 悬停/聚焦看白话释义，点击看出处（宜忌、神煞、建除、二十八宿、节气等）  |
 
@@ -53,6 +56,7 @@ npm run package   # → release/chinese-calendar-<version>-portable.exe
 | [docs/architecture.md](docs/architecture.md)       | 目录结构、模块边界、数据流               |
 | [docs/packaging.md](docs/packaging.md)             | 打包细节与 GitHub Actions 发版流程       |
 | [docs/theming.md](docs/theming.md)                 | 新增一个主题                             |
+| [docs/i18n.md](docs/i18n.md)                       | 文案层与新增一种语言                     |
 | [docs/data-boundaries.md](docs/data-boundaries.md) | tyme4ts 的能力边界与降级行为             |
 | [docs/licensing.md](docs/licensing.md)             | 第三方许可清单与资产署名                 |
 

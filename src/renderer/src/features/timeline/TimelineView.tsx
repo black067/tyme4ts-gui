@@ -15,6 +15,7 @@ import {
   type DayInfo
 } from '@core'
 import { cx } from '@renderer/components/cx'
+import { useMessages } from '@renderer/i18n'
 import './timeline-view.css'
 
 /** Half-window in days; roughly ±20 years around the anchor. */
@@ -54,6 +55,7 @@ function TimelineRow({
   isSelected: boolean
   onSelect: (key: DateKey) => void
 }): ReactElement {
+  const t = useMessages()
   const holiday = info.holiday
   return (
     <article className={cx('timeline-row', isToday && 'is-today', isSelected && 'is-selected')}>
@@ -65,7 +67,10 @@ function TimelineRow({
       >
         <span className="timeline-row__day">{info.key.day}</span>
         <span className="timeline-row__month">
-          {info.key.month}月 · 星期{weekDayLabel(info.weekDay) || info.weekName}
+          {t.timeline.monthWithWeekday({
+            month: info.key.month,
+            weekday: weekDayLabel(info.weekDay) || info.weekName
+          })}
         </span>
         <span className="timeline-row__lunar">{info.lunar.full}</span>
       </button>
@@ -81,7 +86,7 @@ function TimelineRow({
           {holiday ? (
             <span className={cx('timeline-row__holiday', holiday.isWork ? 'is-work' : 'is-rest')}>
               {holiday.name}
-              {holiday.isWork ? '(班)' : '(休)'}
+              {holiday.isWork ? t.timeline.holidayWork : t.timeline.holidayRest}
             </span>
           ) : null}
           {info.ganzhi ? (
@@ -92,11 +97,15 @@ function TimelineRow({
         </div>
 
         <div className="timeline-row__tabs">
-          <span className="timeline-row__label timeline-row__label--luck">宜</span>
+          <span className="timeline-row__label timeline-row__label--luck">
+            {t.timeline.recommends}
+          </span>
           <Chips items={info.recommends} limit={6} />
         </div>
         <div className="timeline-row__tabs">
-          <span className="timeline-row__label timeline-row__label--avoid">忌</span>
+          <span className="timeline-row__label timeline-row__label--avoid">
+            {t.timeline.avoids}
+          </span>
           <Chips items={info.avoids} limit={6} />
         </div>
       </div>
@@ -111,6 +120,7 @@ function TimelineRow({
  * centred and reachable; "回到今天" re-anchors to today.
  */
 export function TimelineView({ selected, today, onSelect }: TimelineViewProps): ReactElement {
+  const t = useMessages()
   const [anchor, setAnchor] = useState<DateKey>(selected)
   const scrollerRef = useRef<HTMLDivElement>(null)
 
@@ -134,12 +144,14 @@ export function TimelineView({ selected, today, onSelect }: TimelineViewProps): 
   )
 
   return (
-    <section className="timeline-view" aria-label="时间轴">
+    <section className="timeline-view" aria-label={t.timeline.title}>
       <header className="timeline-view__toolbar">
-        <h2 className="timeline-view__title">时间轴</h2>
+        <h2 className="timeline-view__title">{t.timeline.title}</h2>
         <span className="timeline-view__meta">
-          {formatFullDate(keys[0]?.year ?? 0, keys[0]?.month ?? 1, keys[0]?.day ?? 1)} 起 · 共{' '}
-          {keys.length} 天
+          {t.timeline.span({
+            from: formatFullDate(keys[0]?.year ?? 0, keys[0]?.month ?? 1, keys[0]?.day ?? 1),
+            days: keys.length
+          })}
         </span>
         {todayIndex >= 0 ? (
           <button
@@ -150,7 +162,7 @@ export function TimelineView({ selected, today, onSelect }: TimelineViewProps): 
               onSelect(today)
             }}
           >
-            回到今天
+            {t.timeline.goToday}
           </button>
         ) : (
           <button
@@ -161,7 +173,7 @@ export function TimelineView({ selected, today, onSelect }: TimelineViewProps): 
               onSelect(today)
             }}
           >
-            回到今天
+            {t.timeline.goToday}
           </button>
         )}
       </header>

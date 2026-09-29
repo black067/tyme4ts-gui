@@ -1,0 +1,63 @@
+/* 更新小节：一行状态 + 一行操作，尽量紧凑。 */
+
+.updates__version {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  margin: var(--space-2) 0 0;
+}
+
+.updates__number {
+  /* 版本号等宽，切换版本时不会左右跳。 */
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.updates__badge {
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+/* 有新版本时用强调色，好和「已是最新」区分开。 */
+.updates__badge--new {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.updates__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+  align-items: center;
+  margin-top: var(--space-2);
+}
+
+.updates__stamp {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.updates__progress {
+  display: block;
+  width: 100%;
+  height: 6px;
+  margin: var(--space-2) 0 0;
+  appearance: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-sunken);
+}
+
+.updates__progress::-webkit-progress-bar {
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-sunken);
+}
+
+.updates__progress::-webkit-progress-value {
+  border-radius: var(--radius-sm);
+  background: var(--color-accent);
+}

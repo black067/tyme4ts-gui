@@ -3,12 +3,20 @@ import type { GlossaryEntry } from '../types'
 /**
  * 二十八宿。
  *
- * 《协纪辨方书》卷一·本原一引《史记·律书》逐宿释义，各条引文都取自那一段。
- * 律书里斗宿作「建星」、女宿作「须女」、柳宿作「注」、星宿作「七星」，
- * 引文保留原写法，白话里点明对应关系。
+ * 二十三宿的引文取自《协纪辨方书》卷一·本原一，那里引《史记·律书》逐宿释义
+ * （律书里斗宿作「建星」、女宿作「须女」、柳宿作「注」、星宿作「七星」，
+ * 引文保留原写法，白话里点明对应关系）。
+ *
+ * 剩下五宿（昴毕觜井鬼）**律书那段恰好没讲到**，所以另引《晋书·天文志》；
+ * 它们各自带 `fixture` 指回自己那本书，引文不会拿另一本书"验"过。
+ * 觜宿在《晋书》里写作「觜觿」，词条 key 仍是引擎名「觜」。
  *
  * 四维属性（方位 / 七曜 / 神兽）取自引擎的 `TwentyEightStar`。
  */
+
+/** 《晋书·天文志》的 fixture，只服务上面那五宿。 */
+const JINSHU_FIXTURE = 'tests/fixtures/jinshu-tianwenzhi'
+
 export const STAR28_ENTRIES: Readonly<Record<string, GlossaryEntry>> = {
   角: {
     summary: '东方青龙七宿之首，属木配蛟。律书释为万物皆有枝格如角。',
@@ -95,6 +103,24 @@ export const STAR28_ENTRIES: Readonly<Record<string, GlossaryEntry>> = {
     quote: '胃者言阳气就藏皆胃胃也',
     source: '《协纪辨方书》卷一·本原一引《史记·律书》'
   },
+  昴: {
+    summary: '西方白虎七宿之四，属日配鸡。《晋书·天文志》称为天之耳目。',
+    quote: '昴七星，天之耳目也，主西方，主狱事',
+    source: '《晋书·天文志上》',
+    fixture: JINSHU_FIXTURE
+  },
+  毕: {
+    summary: '西方白虎七宿之五，属月配乌。《晋书·天文志》主边兵与弋猎。',
+    quote: '毕八星，主边兵，主弋猎',
+    source: '《晋书·天文志上》',
+    fixture: JINSHU_FIXTURE
+  },
+  觜: {
+    summary: '西方白虎七宿之六，属火配猴。《晋书》作「觜觿」，为三军之候。',
+    quote: '觜觿三星，为三军之候，行军之藏府，主葆旅，收敛万物',
+    source: '《晋书·天文志上》',
+    fixture: JINSHU_FIXTURE
+  },
   参: {
     summary: '西方白虎七宿之七，属水配猿。律书释为万物可参。',
     quote: '参言万物可参也故曰参',
@@ -104,6 +130,18 @@ export const STAR28_ENTRIES: Readonly<Record<string, GlossaryEntry>> = {
     summary: '南方朱雀七宿之三，属土配獐。律书作「注」，释为阳气下注。',
     quote: '注者言万物之始衰阳气下注故曰注',
     source: '《协纪辨方书》卷一·本原一引《史记·律书》'
+  },
+  井: {
+    summary: '南方朱雀七宿之首，属木配犴。《晋书·天文志》称为天之南门。',
+    quote: '井八星，天之南门，黄道所经，天之亭候，主水衡事，法令所取平也',
+    source: '《晋书·天文志上》',
+    fixture: JINSHU_FIXTURE
+  },
+  鬼: {
+    summary: '南方朱雀七宿之二，属金配羊。《晋书·天文志》称为天目，主察奸谋。',
+    quote: '鬼五星，天目也，主视，明察奸谋',
+    source: '《晋书·天文志上》',
+    fixture: JINSHU_FIXTURE
   },
   星: {
     summary: '南方朱雀七宿之四，属日配马。律书作「七星」，取阳数成于七。',

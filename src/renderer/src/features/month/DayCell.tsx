@@ -1,6 +1,7 @@
 import { memo, type ReactElement } from 'react'
 import { dayCellText, describeDay, type DaySummary } from '@core'
 import { cx } from '@renderer/components/cx'
+import { useMessages } from '@renderer/i18n'
 
 interface DayCellProps {
   summary: DaySummary
@@ -24,8 +25,13 @@ function DayCellImpl({
   isSelected,
   onSelect
 }: DayCellProps): ReactElement {
+  const t = useMessages()
   const text = dayCellText(summary)
-  const holidayBadge = summary.holiday ? (summary.holiday.isWork ? '班' : '休') : null
+  const holidayBadge = summary.holiday
+    ? summary.holiday.isWork
+      ? t.badges.work
+      : t.badges.rest
+    : null
 
   return (
     <button

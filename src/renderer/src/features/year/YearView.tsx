@@ -12,6 +12,7 @@ import {
 } from '@core'
 import { cx } from '@renderer/components/cx'
 import { TermTip } from '@renderer/components/TermTip'
+import { useMessages } from '@renderer/i18n'
 import './year-view.css'
 
 interface YearViewProps {
@@ -79,20 +80,21 @@ function MiniMonth({
   onSelect: (key: DateKey) => void
   onOpenMonth: (year: number, month: number) => void
 }): ReactElement {
+  const t = useMessages()
   const columns = weekdayOrder(weekStartsOnMonday)
   const prefix = `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}`
 
   return (
-    <section className="mini-month" aria-label={`${year}年${month}月`}>
+    <section className="mini-month" aria-label={t.year.monthLabel({ year, month })}>
       <header className="mini-month__header">
-        <span className="mini-month__title">{month}月</span>
+        <span className="mini-month__title">{t.year.monthHeading({ month })}</span>
         <button
           type="button"
           className="mini-month__open"
           onClick={() => onOpenMonth(year, month)}
-          aria-label={`在月视图中打开${year}年${month}月`}
+          aria-label={t.year.openMonthLabel({ year, month })}
         >
-          展开
+          {t.year.openMonth}
         </button>
       </header>
 
@@ -129,9 +131,10 @@ function MiniMonth({
 }
 
 function TermList({ year }: { year: YearInfo }): ReactElement {
+  const t = useMessages()
   return (
     <section className="year-panel">
-      <h3 className="year-panel__title">二十四节气</h3>
+      <h3 className="year-panel__title">{t.year.terms}</h3>
       <ul className="term-list">
         {year.terms.map((term) => (
           <li key={`${term.month}-${term.day}-${term.name}`} className="term-list__item">
@@ -139,7 +142,7 @@ function TermList({ year }: { year: YearInfo }): ReactElement {
               <TermTip family="term" name={term.name} />
             </span>
             <span className="term-list__date">
-              {term.month}月{term.day}日
+              {t.year.monthDay({ month: term.month, day: term.day })}
             </span>
           </li>
         ))}
@@ -149,13 +152,13 @@ function TermList({ year }: { year: YearInfo }): ReactElement {
 }
 
 function HolidayList({ year }: { year: YearInfo }): ReactElement {
+  const t = useMessages()
+
   if (year.holidays.length === 0) {
     return (
       <section className="year-panel">
-        <h3 className="year-panel__title">法定假日</h3>
-        <p className="year-panel__note">
-          tyme4ts 内置的法定假日数据覆盖 2001-12-29 至 2026-10-10，该年份不在范围内。
-        </p>
+        <h3 className="year-panel__title">{t.year.holidays}</h3>
+        <p className="year-panel__note">{t.year.noHolidayData}</p>
       </section>
     )
   }
@@ -166,19 +169,17 @@ function HolidayList({ year }: { year: YearInfo }): ReactElement {
   return (
     <section className="year-panel">
       <h3 className="year-panel__title">
-        法定假日
-        <span className="year-panel__badge">
-          休 {rest} 天 · 班 {work} 天
-        </span>
+        {t.year.holidays}
+        <span className="year-panel__badge">{t.year.holidayBadge({ rest, work })}</span>
       </h3>
       <ul className="holiday-list">
         {year.holidays.map((entry) => (
           <li key={`${entry.month}-${entry.day}`} className="holiday-list__item">
             <span className={cx('holiday-list__tag', entry.isWork ? 'is-work' : 'is-rest')}>
-              {entry.isWork ? '班' : '休'}
+              {entry.isWork ? t.badges.work : t.badges.rest}
             </span>
             <span className="holiday-list__date">
-              {entry.month}月{entry.day}日
+              {t.year.monthDay({ month: entry.month, day: entry.day })}
             </span>
             <span className="holiday-list__name">{entry.name}</span>
           </li>
@@ -195,6 +196,7 @@ export function YearView({
   onSelect,
   onOpenMonth
 }: YearViewProps): ReactElement {
+  const t = useMessages()
   const year = useMemo(
     () => buildYearInfo(selected.year, { weekStartsOnMonday }),
     [selected.year, weekStartsOnMonday]
@@ -207,14 +209,14 @@ export function YearView({
   }
 
   return (
-    <section className="year-view" aria-label="年视图">
+    <section className="year-view" aria-label={t.year.title}>
       <header className="year-view__toolbar">
         <div className="month-view__nav">
           <button
             type="button"
             className="icon-button"
             onClick={() => shiftYear(-1)}
-            aria-label="上一年"
+            aria-label={t.year.prevYear}
           >
             ‹
           </button>
@@ -222,20 +224,20 @@ export function YearView({
             type="button"
             className="icon-button"
             onClick={() => shiftYear(1)}
-            aria-label="下一年"
+            aria-label={t.year.nextYear}
           >
             ›
           </button>
         </div>
-        <h2 className="year-view__title">{year.year}年</h2>
-        <span className="year-view__meta">共 {year.dayCount} 天</span>
+        <h2 className="year-view__title">{t.year.heading({ year: year.year })}</h2>
+        <span className="year-view__meta">{t.year.dayCount({ days: year.dayCount })}</span>
         <button
           type="button"
           className="text-button"
           onClick={() => onSelect(today)}
           disabled={selected.year === today.year}
         >
-          回到今年
+          {t.year.goThisYear}
         </button>
       </header>
 

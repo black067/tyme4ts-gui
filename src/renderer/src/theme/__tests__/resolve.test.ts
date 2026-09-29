@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest'
+import { DEFAULT_LOCALE } from '@shared/ipc'
+import { getMessages } from '@renderer/i18n/messages'
 import { DEFAULT_THEME, THEMES, getTheme } from '../themes'
 import { resolveThemeId } from '../resolve'
 import { resolveVariant } from '../types'
@@ -23,10 +25,17 @@ describe('theme registry', () => {
     expect(getTheme('classic').id).toBe('classic')
   })
 
-  it('describes every theme and previews both variants', () => {
+  it('每个主题都有显示名与说明（在文案目录里）', () => {
+    // 主题定义本身不再带文案：界面文案按 id 从目录取，所以"加了主题忘了写文案"
+    // 要靠这条断言挡住。
+    const names = getMessages(DEFAULT_LOCALE).settings.appearance.themeNames
+    const descriptions = getMessages(DEFAULT_LOCALE).settings.appearance.themeDescriptions
+
     for (const theme of THEMES) {
-      expect(theme.name.length).toBeGreaterThan(0)
-      expect(theme.description.length).toBeGreaterThan(0)
+      const key = theme.id as keyof typeof names
+      expect(names[key]?.length ?? 0).toBeGreaterThan(0)
+      expect(descriptions[key as keyof typeof descriptions]?.length ?? 0).toBeGreaterThan(0)
+      // 预览色要够画出小样。
       expect(theme.preview.light.length).toBeGreaterThanOrEqual(2)
       expect(theme.preview.dark.length).toBeGreaterThanOrEqual(2)
     }

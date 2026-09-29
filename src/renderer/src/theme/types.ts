@@ -9,10 +9,8 @@ import type { AppearanceMode } from '@shared/ipc'
  * block per variant in `tokens.css` — no component ever changes.
  */
 export interface ThemeDefinition {
-  /** Stable id stored in settings. */
+  /** Stable id stored in settings. Also the key into the copy catalogue. */
   id: string
-  name: string
-  description: string
   /** Concrete `data-theme` values written to `<html>`. */
   variants: Record<'light' | 'dark', string>
   /** Representative colours for the picker UI; never used for rendering. */

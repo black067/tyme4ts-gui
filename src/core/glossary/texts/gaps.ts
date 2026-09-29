@@ -15,9 +15,6 @@ const MENTIONED_ONLY = '《协纪辨方书》提到过这个名字，但没有�
 /** 连义例都没收。 */
 const NOT_IN_SOURCE = '《协纪辨方书》没有收录它，我们也没有找到其他可靠的古籍解释。'
 
-/** 卷一引《史记·律书》逐宿释义，缺的五个宿不在那一段里。 */
-const NOT_IN_LVSHU = '《协纪辨方书》引《史记·律书》解释二十八宿，但没有讲到这个宿。'
-
 /** 民间说法，古籍里没有解释。 */
 const FOLK_ONLY = '这是民间流传的说法，古籍里没有解释。'
 
@@ -44,10 +41,6 @@ export const GOD_GAPS: Readonly<Record<string, GlossaryGapNote>> = {
   阴神: { reason: MENTIONED_ONLY, source: '《协纪辨方书》卷四·义例二' },
   解除: { reason: MENTIONED_ONLY, source: '《协纪辨方书》卷五·义例三' },
   致死: { reason: MENTIONED_ONLY, source: '《协纪辨方书》卷六·义例四' },
-  大败: {
-    reason: MENTIONED_ONLY,
-    source: '《协纪辨方书》卷五·义例三、卷六·义例四、卷七·义例五'
-  },
   咸池: { reason: MENTIONED_ONLY, source: '《协纪辨方书》卷五·义例三、卷六·义例四' },
   厌对: {
     reason: MENTIONED_ONLY,
@@ -95,14 +88,13 @@ export const GOD_GAPS: Readonly<Record<string, GlossaryGapNote>> = {
   大退: { reason: NOT_IN_SOURCE }
 }
 
-/** 二十八宿的缺口。 */
-export const STAR28_GAPS: Readonly<Record<string, GlossaryGapNote>> = {
-  昴: { reason: NOT_IN_LVSHU, source: '《协纪辨方书》卷一·本原一' },
-  毕: { reason: NOT_IN_LVSHU, source: '《协纪辨方书》卷一·本原一' },
-  觜: { reason: NOT_IN_LVSHU, source: '《协纪辨方书》卷一·本原一' },
-  井: { reason: NOT_IN_LVSHU, source: '《协纪辨方书》卷一·本原一' },
-  鬼: { reason: NOT_IN_LVSHU, source: '《协纪辨方书》卷一·本原一' }
-}
+/**
+ * 二十八宿的缺口。
+ *
+ * 空的：二十八宿全部有释义。原先缺的昴毕觜井鬼是因为《协纪辨方书》所引
+ * 《史记·律书》那一段没讲到它们，现已另引《晋书·天文志》补上。
+ */
+export const STAR28_GAPS: Readonly<Record<string, GlossaryGapNote>> = {}
 
 /**
  * 九星（一白水…九紫火）。

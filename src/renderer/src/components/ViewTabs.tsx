@@ -1,5 +1,6 @@
 import type { ReactElement } from 'react'
 import type { ViewId } from '@shared/ipc'
+import { useMessages } from '@renderer/i18n'
 import { cx } from './cx'
 import './view-tabs.css'
 
@@ -15,8 +16,9 @@ interface ViewTabsProps {
 }
 
 export function ViewTabs({ tabs, active, onChange }: ViewTabsProps): ReactElement {
+  const t = useMessages()
   return (
-    <nav className="view-tabs" aria-label="主视图切换">
+    <nav className="view-tabs" aria-label={t.nav.label}>
       {tabs.map((tab) => (
         <button
           key={tab.id}

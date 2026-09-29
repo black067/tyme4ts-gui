@@ -178,8 +178,10 @@ describe('almanac fields for a reference day (2024-06-26)', () => {
   })
 
   it('maps 吉神凶煞 with their luck', () => {
-    expect(info.gods).toContainEqual({ name: '月德合', luck: '吉' })
-    expect(info.gods).toContainEqual({ name: '天贼', luck: '凶' })
+    // `luck` 是结构化的 good/bad，不是引擎的「吉/凶」字面量——界面按它分组，
+    // 按渲染文本分组会在文案本地化后失效。7-26 月德合为吉、天贼为凶。
+    expect(info.gods).toContainEqual({ name: '月德合', luck: 'good' })
+    expect(info.gods).toContainEqual({ name: '天贼', luck: 'bad' })
   })
 
   it('maps 数九 when in season', () => {

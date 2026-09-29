@@ -1,0 +1,36 @@
+[
+  {
+    "tag_name": "v0.1.3",
+    "name": "v0.1.3",
+    "html_url": "https://github.com/black067/tyme4ts-gui/releases/tag/v0.1.3",
+    "body": "**Full Changelog**: https://github.com/black067/tyme4ts-gui/compare/v0.1.2...v0.1.3",
+    "published_at": "2026-09-29T09:08:19Z",
+    "draft": false,
+    "prerelease": false,
+    "assets": [
+      {
+        "name": "chinese-calendar-0.1.3-portable.exe",
+        "browser_download_url": "https://github.com/black067/tyme4ts-gui/releases/download/v0.1.3/chinese-calendar-0.1.3-portable.exe",
+        "size": 100147522,
+        "digest": "sha256:69431ed9dd671e0693405030e4914be9cea5238653b1ad10cbcef7913b2a39a1"
+      }
+    ]
+  },
+  {
+    "tag_name": "v0.1.2",
+    "name": "v0.1.2",
+    "html_url": "https://github.com/black067/tyme4ts-gui/releases/tag/v0.1.2",
+    "body": "**Full Changelog**: https://github.com/black067/tyme4ts-gui/compare/v0.1.1...v0.1.2",
+    "published_at": "2026-09-29T07:40:26Z",
+    "draft": false,
+    "prerelease": false,
+    "assets": [
+      {
+        "name": "chinese-calendar-0.1.2-portable.exe",
+        "browser_download_url": "https://github.com/black067/tyme4ts-gui/releases/download/v0.1.2/chinese-calendar-0.1.2-portable.exe",
+        "size": 100136211,
+        "digest": "sha256:2c6b84477044c266233208ac14049c7c5fdbb2275e3da2d9939bacb7ca8c7a22"
+      }
+    ]
+  }
+]

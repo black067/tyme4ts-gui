@@ -32,6 +32,24 @@ export { createLruCache, type LruCache } from './cache'
 
 export { buildDayInfo, buildDaySummary, clearDayCaches } from './day'
 
+export {
+  buildHolidayOverlay,
+  decideHolidayError,
+  emptyHolidayOverlay,
+  getHolidayOverlay,
+  getHolidayOverlayVersion,
+  installHolidayPayloads,
+  normalizeHolidayPayload,
+  onHolidayOverlayChange,
+  resetHolidayOverlay,
+  resolveHoliday,
+  setHolidayOverlay,
+  type HolidayEntry,
+  type HolidayOverlay,
+  type HolidayOverlayBuild,
+  type HolidayPayloadOutcome
+} from './holiday-overlay'
+
 export { buildMonthGrid, monthBounds, monthGridShape, type MonthGridShape } from './month'
 
 export {
@@ -43,6 +61,21 @@ export {
   type ConversionOutcome,
   type ConversionResult
 } from './convert'
+
+export {
+  PORTABLE_ASSET_PATTERN,
+  compareVersions,
+  isNewerVersion,
+  parseReleases,
+  selectLatestPortableRelease,
+  selectPortableAsset,
+  type GitHubAsset,
+  type GitHubRelease,
+  type PortableAssetOptions,
+  type PortableAssetSelection,
+  type ReleasesOutcome,
+  type SelectionOutcome
+} from './update'
 
 export {
   SEARCH_DEFAULT_LIMIT,
@@ -58,6 +91,8 @@ export {
   ALL_TABOO_ITEMS,
   COMMON_AVOID_ITEMS,
   COMMON_TABOO_ITEMS,
+  EARTH_BRANCHES,
+  HEAVEN_STEMS,
   SOLAR_TERM_NAMES
 } from './vocabulary'
 
