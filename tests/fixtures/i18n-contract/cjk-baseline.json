@@ -1,0 +1,19 @@
+{
+  "src/renderer/src/components/term-tip-context.ts": 9,
+  "src/renderer/src/components/TermTip.tsx": 18,
+  "src/renderer/src/features/day/DayPanel.tsx": 35,
+  "src/renderer/src/features/month/DayCell.tsx": 1,
+  "src/renderer/src/features/month/MonthView.tsx": 6,
+  "src/renderer/src/features/pillars/PillarsTool.tsx": 37,
+  "src/renderer/src/features/settings/SettingsView.tsx": 9,
+  "src/renderer/src/features/settings/third-party.ts": 7,
+  "src/renderer/src/features/timeline/TimelineView.tsx": 11,
+  "src/renderer/src/features/tools/ConverterTool.tsx": 34,
+  "src/renderer/src/features/tools/PickerGroup.tsx": 1,
+  "src/renderer/src/features/tools/SearchTool.tsx": 29,
+  "src/renderer/src/features/tools/ToolsView.tsx": 4,
+  "src/renderer/src/features/year/YearView.tsx": 18,
+  "src/renderer/src/hooks/useKeyboardNav.ts": 8,
+  "src/renderer/src/theme/themes/classic.ts": 3,
+  "src/renderer/src/theme/themes/minimal.ts": 2
+}

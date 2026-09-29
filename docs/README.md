@@ -6,6 +6,7 @@
 | ---------------------------------------- | ------------------------------------------------ |
 | [usage.md](usage.md)                     | 视图、设置项与键盘快捷键                         |
 | [glossary.md](glossary.md)               | 术语释义：数据来源、依据分档、已知缺口、新增词条 |
+| [i18n.md](i18n.md)                       | 文案层：目录结构、三条规矩、基线、新增一种语言   |
 | [architecture.md](architecture.md)       | 目录结构、模块边界、core 分层与数据流            |
 | [development.md](development.md)         | 环境要求、常用脚本、VS Code 任务与调试、测试层次 |
 | [packaging.md](packaging.md)             | 本地打包、GitHub Actions 发版流程                |

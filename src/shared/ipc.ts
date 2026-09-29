@@ -18,12 +18,25 @@ export type ViewId = 'month' | 'day' | 'year' | 'timeline' | 'tools'
 /** `system` follows the OS appearance; `light` / `dark` pin the app to one variant. */
 export type AppearanceMode = 'system' | 'light' | 'dark'
 
+/**
+ * UI language.
+ *
+ * Only the chrome is translated through this: the calendar engine (`tyme4ts`)
+ * has no locale API and always yields Simplified Chinese names, so almanac
+ * vocabulary is handled by an explicit mapping layer rather than by this union.
+ * Adding a language means adding a catalog under `renderer/src/i18n/messages/`
+ * and a member here — nothing else.
+ */
+export type Locale = 'zh-Hans'
+
 /** Persisted user preferences. Kept intentionally small and JSON-serializable. */
 export interface AppSettings {
   /** Theme family id, e.g. `minimal`. The light/dark variant follows `appearance`. */
   themeId: string
   /** Whether the app follows the OS appearance. */
   appearance: AppearanceMode
+  /** UI language of the app chrome. */
+  locale: Locale
   /** View restored on launch. */
   defaultView: ViewId
   /** `YYYY-MM-DD` of the last browsed day. */
@@ -47,6 +60,14 @@ export interface AppInfo {
   chrome: string
   node: string
   userDataPath: string
+  /**
+   * Language of the app chrome, from the persisted settings.
+   *
+   * The renderer needs it to set `document.title`: Electron derives the window
+   * title from the page title, so this is how the localized name reaches the
+   * native title bar.
+   */
+  locale: Locale
 }
 
 /** The API surface exposed on `window.tyme` by the preload script. */
@@ -68,6 +89,10 @@ export const VIEW_IDS: readonly ViewId[] = ['month', 'day', 'year', 'timeline', 
 
 export const APPEARANCE_MODES: readonly AppearanceMode[] = ['system', 'light', 'dark']
 
+export const LOCALES: readonly Locale[] = ['zh-Hans']
+
+export const DEFAULT_LOCALE: Locale = 'zh-Hans'
+
 export const DEFAULT_THEME_ID = 'minimal'
 
 /** Builds the settings used on a first run (or when the stored file is unusable). */
@@ -75,6 +100,7 @@ export function createDefaultSettings(todayIso: string): AppSettings {
   return {
     themeId: DEFAULT_THEME_ID,
     appearance: 'system',
+    locale: DEFAULT_LOCALE,
     defaultView: 'month',
     lastViewedDate: todayIso,
     showAlmanac: true,
@@ -89,4 +115,8 @@ export function isViewId(value: unknown): value is ViewId {
 
 export function isAppearanceMode(value: unknown): value is AppearanceMode {
   return typeof value === 'string' && (APPEARANCE_MODES as readonly string[]).includes(value)
+}
+
+export function isLocale(value: unknown): value is Locale {
+  return typeof value === 'string' && (LOCALES as readonly string[]).includes(value)
 }

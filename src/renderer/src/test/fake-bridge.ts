@@ -23,7 +23,8 @@ const APP_INFO: AppInfo = {
   electron: 'test',
   chrome: 'test',
   node: 'test',
-  userDataPath: '/tmp/tyme-app-test'
+  userDataPath: '/tmp/tyme-app-test',
+  locale: 'zh-Hans'
 }
 
 /**

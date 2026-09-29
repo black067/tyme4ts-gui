@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from 'react'
-import type { ViewId } from '@shared/ipc'
+import type { AppInfo, ViewId } from '@shared/ipc'
 import {
   addDays,
   addMonths,
@@ -13,6 +13,7 @@ import {
 } from '@core'
 import { ViewTabs, type ViewTab } from './components/ViewTabs'
 import { TermTipProvider } from './components/TermTip'
+import { LocaleProvider, useMessages } from './i18n'
 import { SettingsProvider } from './state/SettingsProvider'
 import { useSettings } from './state/settings-context'
 import { ThemeProvider } from './theme/ThemeProvider'
@@ -26,25 +27,29 @@ import { SHORTCUTS, useKeyboardNav, type KeyboardNavHandlers } from './hooks/use
 import './styles/global.css'
 
 /** `day` is not a tab: the day detail is always visible as the side panel. */
-const TABS: readonly ViewTab[] = [
-  { id: 'month', label: '月视图' },
-  { id: 'year', label: '年视图' },
-  { id: 'timeline', label: '时间轴' },
-  { id: 'tools', label: '工具' }
-]
+type TabId = Exclude<ViewId, 'day'>
 
-function isTabView(stored: ViewId): boolean {
-  return TABS.some((tab) => tab.id === stored)
+/**
+ * Tab order. Labels are looked up per locale in `AppShell`, because a
+ * module-level `const` would freeze the strings at import time and never react
+ * to a language change.
+ */
+const TAB_IDS: readonly TabId[] = ['month', 'year', 'timeline', 'tools']
+
+function isTabView(stored: ViewId): stored is TabId {
+  return (TAB_IDS as readonly string[]).includes(stored)
 }
 
 export function App(): ReactElement {
   return (
     <SettingsProvider>
-      <ThemeProvider>
-        <TermTipProvider>
-          <AppContent />
-        </TermTipProvider>
-      </ThemeProvider>
+      <LocaleProvider>
+        <ThemeProvider>
+          <TermTipProvider>
+            <AppContent />
+          </TermTipProvider>
+        </ThemeProvider>
+      </LocaleProvider>
     </SettingsProvider>
   )
 }
@@ -57,7 +62,8 @@ export function App(): ReactElement {
  */
 function AppContent(): ReactElement {
   const { ready } = useSettings()
-  if (!ready) return <div className="app-loading">正在载入…</div>
+  const t = useMessages()
+  if (!ready) return <div className="app-loading">{t.app.loading}</div>
   return <AppShell />
 }
 
@@ -71,6 +77,7 @@ function AppContent(): ReactElement {
  */
 function AppShell(): ReactElement {
   const { settings, update, error } = useSettings()
+  const t = useMessages()
   const today = useMemo(() => todayKey(), [])
   const [selected, setSelected] = useState<DateKey>(
     () => fromIsoDate(settings.lastViewedDate) ?? today
@@ -80,7 +87,22 @@ function AppShell(): ReactElement {
   )
   const [showShortcuts, setShowShortcuts] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
+  const [info, setInfo] = useState<AppInfo | null>(null)
   const skipFirstPersist = useRef(true)
+
+  // Only the version is needed here, for the window title.
+  useEffect(() => {
+    let cancelled = false
+    window.tyme.app
+      .getInfo()
+      .then((loaded) => {
+        if (!cancelled) setInfo(loaded)
+      })
+      .catch(() => undefined)
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   // Persist the selection, debounced so rapid navigation stays cheap. The
   // first run is skipped because it would only rewrite the restored value.
@@ -133,14 +155,29 @@ function AppShell(): ReactElement {
 
   const todaySummary = useMemo(() => buildDaySummary(today), [today])
 
+  // Electron derives the native window title from the page title, so setting it
+  // here is what keeps the title bar (and the taskbar entry) in the same
+  // language as the rest of the chrome.
+  useEffect(() => {
+    document.title = info === null ? t.app.title : t.app.titleWithVersion({ version: info.version })
+  }, [info, t])
+
+  const tabs = useMemo<readonly ViewTab[]>(
+    () => TAB_IDS.map((id) => ({ id, label: t.nav[id] })),
+    [t]
+  )
+
   return (
     <div className="app-shell">
       <header className="app-header">
-        <h1 className="app-title">万年历</h1>
+        <h1 className="app-title">{t.app.title}</h1>
         <p className="app-subtitle">
           <span>{formatFullDate(today.year, today.month, today.day)}</span>
           <span className="app-subtitle__sep">·</span>
-          <span>星期{weekDayLabel(todaySummary.weekDay)}</span>
+          <span>
+            {t.app.weekdayPrefix}
+            {weekDayLabel(todaySummary.weekDay)}
+          </span>
           <span className="app-subtitle__sep">·</span>
           <span className="app-subtitle__lunar">{todaySummary.lunar.full}</span>
         </p>
@@ -148,14 +185,14 @@ function AppShell(): ReactElement {
       </header>
 
       <div className="app-toolbar">
-        <ViewTabs tabs={TABS} active={view} onChange={changeView} />
+        <ViewTabs tabs={tabs} active={view} onChange={changeView} />
         <button
           type="button"
           className="text-button"
           aria-expanded={showShortcuts}
           onClick={() => setShowShortcuts((current) => !current)}
         >
-          快捷键
+          {t.toolbar.shortcuts}
         </button>
         <button
           type="button"
@@ -163,12 +200,12 @@ function AppShell(): ReactElement {
           aria-pressed={showSettings}
           onClick={() => setShowSettings((current) => !current)}
         >
-          设置
+          {t.toolbar.settings}
         </button>
       </div>
 
       {showShortcuts ? (
-        <section className="shortcuts" aria-label="键盘快捷键">
+        <section className="shortcuts" aria-label={t.shortcuts.label}>
           <dl className="shortcuts__list">
             {SHORTCUTS.map((shortcut) => (
               <div key={shortcut.keys} className="shortcuts__item">
@@ -217,7 +254,8 @@ function AppShell(): ReactElement {
 
           {/* Announced by screen readers whenever the focused day changes. */}
           <output className="visually-hidden" aria-live="polite">
-            当前选中 {formatFullDate(selected.year, selected.month, selected.day)}
+            {t.app.currentSelectionPrefix}{' '}
+            {formatFullDate(selected.year, selected.month, selected.day)}
           </output>
 
           <DayPanel selected={selected} />

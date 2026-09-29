@@ -1,7 +1,13 @@
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { app } from 'electron'
-import { createDefaultSettings, isAppearanceMode, isViewId, type AppSettings } from '@shared/ipc'
+import {
+  createDefaultSettings,
+  isAppearanceMode,
+  isLocale,
+  isViewId,
+  type AppSettings
+} from '@shared/ipc'
 
 /** `YYYY-MM-DD` for the local calendar day, matching `DateKey`'s ISO form. */
 function localTodayIso(): string {
@@ -27,6 +33,8 @@ function normalize(raw: unknown): AppSettings {
         ? input.themeId
         : defaults.themeId,
     appearance: isAppearanceMode(input.appearance) ? input.appearance : defaults.appearance,
+    // Absent in files written before the setting existed, hence the default.
+    locale: isLocale(input.locale) ? input.locale : defaults.locale,
     defaultView: isViewId(input.defaultView) ? input.defaultView : defaults.defaultView,
     lastViewedDate:
       typeof input.lastViewedDate === 'string' && ISO_DATE.test(input.lastViewedDate)

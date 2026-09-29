@@ -1,7 +1,8 @@
 import { useEffect, useState, type ReactElement } from 'react'
-import type { AppearanceMode, AppInfo, ViewId } from '@shared/ipc'
+import { LOCALES, type AppearanceMode, type AppInfo, type Locale, type ViewId } from '@shared/ipc'
 import { SegmentedControl, type SegmentedOption } from '@renderer/components/SegmentedControl'
 import { Toggle } from '@renderer/components/Toggle'
+import { useMessages } from '@renderer/i18n'
 import { useSettings } from '@renderer/state/settings-context'
 import { useTheme } from '@renderer/theme/theme-context'
 import { THEMES } from '@renderer/theme/themes'
@@ -51,6 +52,7 @@ function Row({ label, value }: { label: string; value: string }): ReactElement {
 export function SettingsView({ onClose }: { onClose: () => void }): ReactElement {
   const { settings, update } = useSettings()
   const { theme, resolvedThemeId } = useTheme()
+  const t = useMessages()
   const [info, setInfo] = useState<AppInfo | null>(null)
 
   useEffect(() => {
@@ -71,19 +73,29 @@ export function SettingsView({ onClose }: { onClose: () => void }): ReactElement
     label: candidate.name
   }))
 
+  // 选项文案取自参考目录的 `localeNames`，而不是在这里再写一遍中文——
+  // 语言名在切换语言后仍有意义（否则英文界面里找不到"繁體中文"这一项）。
+  const localeOptions: readonly SegmentedOption<Locale>[] = LOCALES.map((value) => ({
+    value,
+    label: t.localeNames[value]
+  }))
+
   return (
-    <section className="settings-view" aria-label="设置">
+    <section className="settings-view" aria-label={t.settings.label}>
       <header className="settings-view__header">
-        <h2 className="settings-view__title">设置</h2>
+        <h2 className="settings-view__title">{t.settings.title}</h2>
         <button type="button" className="text-button" onClick={onClose}>
-          返回
+          {t.settings.close}
         </button>
       </header>
 
       <div className="settings-view__body">
-        <Section title="外观" description="主题决定配色与字体，外观决定使用浅色还是深色变体。">
+        <Section
+          title={t.settings.appearance.title}
+          description={t.settings.appearance.description}
+        >
           <div className="settings-field">
-            <span className="settings-field__label">主题</span>
+            <span className="settings-field__label">{t.settings.appearance.themeLabel}</span>
             <SegmentedControl
               label=""
               value={theme.id}
@@ -92,7 +104,7 @@ export function SettingsView({ onClose }: { onClose: () => void }): ReactElement
             />
           </div>
           <div className="settings-field">
-            <span className="settings-field__label">外观</span>
+            <span className="settings-field__label">{t.settings.appearance.modeLabel}</span>
             <SegmentedControl
               label=""
               value={settings.appearance}
@@ -101,34 +113,45 @@ export function SettingsView({ onClose }: { onClose: () => void }): ReactElement
             />
           </div>
           <p className="settings-note">
-            当前生效：{theme.name} · <code>{resolvedThemeId}</code>
+            {t.settings.appearance.current({ theme: theme.name, resolved: resolvedThemeId })}
           </p>
         </Section>
 
-        <Section title="显示" description="影响日历网格与黄历内容的呈现。">
+        <Section title={t.settings.language.title} description={t.settings.language.description}>
+          <div className="settings-field">
+            <SegmentedControl
+              label={t.settings.language.title}
+              value={settings.locale}
+              options={localeOptions}
+              onChange={(locale) => update({ locale })}
+            />
+          </div>
+        </Section>
+
+        <Section title={t.settings.display.title} description={t.settings.display.description}>
           <div className="settings-field">
             <Toggle
-              label="周一为一周首日"
+              label={t.settings.display.weekStart}
               checked={settings.weekStartsOnMonday}
               onChange={(weekStartsOnMonday) => update({ weekStartsOnMonday })}
             />
           </div>
           <div className="settings-field">
             <Toggle
-              label="显示黄历（宜忌 / 神煞 / 胎神等）"
+              label={t.settings.display.almanac}
               checked={settings.showAlmanac}
               onChange={(showAlmanac) => update({ showAlmanac })}
             />
           </div>
           <div className="settings-field">
             <Toggle
-              label="术语说明（悬停看释义，点击看出处）"
+              label={t.settings.display.glossary}
               checked={settings.showGlossary}
               onChange={(showGlossary) => update({ showGlossary })}
             />
           </div>
           <div className="settings-field">
-            <span className="settings-field__label">启动时打开</span>
+            <span className="settings-field__label">{t.settings.display.startViewLabel}</span>
             <SegmentedControl
               label=""
               value={settings.defaultView}
@@ -138,21 +161,30 @@ export function SettingsView({ onClose }: { onClose: () => void }): ReactElement
           </div>
         </Section>
 
-        <Section title="数据" description="所有设置只保存在本机，不会上传。">
+        <Section title={t.settings.data.title} description={t.settings.data.description}>
           <dl className="settings-rows">
-            <Row label="数据目录" value={info?.userDataPath ?? '…'} />
-            <Row label="设置文件" value={info ? `${info.userDataPath}\\settings.json` : '…'} />
+            <Row label={t.settings.data.dir} value={info?.userDataPath ?? t.common.pending} />
+            <Row
+              label={t.settings.data.file}
+              value={info ? `${info.userDataPath}\\settings.json` : t.common.pending}
+            />
           </dl>
         </Section>
 
-        <Section title="作者信息">
+        <Section title={t.settings.author.title}>
           <dl className="settings-rows">
-            <Row label="应用" value={info ? `${info.name} v${info.version}` : '…'} />
-            <Row label="作者" value={info?.author || '（package.json 未填写）'} />
+            <Row
+              label={t.settings.author.app}
+              value={info ? `${info.name} v${info.version}` : t.common.pending}
+            />
+            <Row label={t.settings.author.name} value={info?.author || t.settings.author.missing} />
           </dl>
         </Section>
 
-        <Section title="第三方许可" description="本应用基于以下开源项目与资产构建。">
+        <Section
+          title={t.settings.thirdParty.title}
+          description={t.settings.thirdParty.description}
+        >
           <ul className="credits">
             {THIRD_PARTY.map((entry) => (
               <li key={entry.name} className="credit">
@@ -174,20 +206,20 @@ export function SettingsView({ onClose }: { onClose: () => void }): ReactElement
           </ul>
         </Section>
 
-        <Section title="资产署名" description="应用图标等美术资源的来源与作者。">
+        <Section title={t.settings.assets.title} description={t.settings.assets.description}>
           <ul className="credits">
             {ASSET_CREDITS.map((credit) => (
               <li key={credit.path} className="credit">
                 <div className="credit__head">
                   <span className="credit__name">{credit.name}</span>
-                  <span className="credit__licence">来源授权见下</span>
+                  <span className="credit__licence">{t.settings.assets.licenceSeeSource}</span>
                 </div>
                 <p className="credit__usage">
-                  作者：{credit.author}
+                  {t.settings.assets.authorLabel}：{credit.author}
                   <br />
-                  许可：{credit.licence}
+                  {t.settings.assets.licenceLabel}：{credit.licence}
                   <br />
-                  文件：<code>{credit.path}</code>
+                  {t.settings.assets.fileLabel}：<code>{credit.path}</code>
                 </p>
                 <a
                   className="credit__link"
@@ -202,11 +234,11 @@ export function SettingsView({ onClose }: { onClose: () => void }): ReactElement
           </ul>
         </Section>
 
-        <Section title="运行环境">
+        <Section title={t.settings.runtime.title}>
           <dl className="settings-rows">
-            <Row label="Electron" value={info?.electron ?? '…'} />
-            <Row label="Chromium" value={info?.chrome ?? '…'} />
-            <Row label="Node.js" value={info?.node ?? '…'} />
+            <Row label="Electron" value={info?.electron ?? t.common.pending} />
+            <Row label="Chromium" value={info?.chrome ?? t.common.pending} />
+            <Row label="Node.js" value={info?.node ?? t.common.pending} />
           </dl>
         </Section>
       </div>

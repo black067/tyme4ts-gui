@@ -53,7 +53,8 @@ function registerIpcHandlers(): void {
       electron: process.versions.electron ?? '',
       chrome: process.versions.chrome ?? '',
       node: process.versions.node,
-      userDataPath: app.getPath('userData')
+      userDataPath: app.getPath('userData'),
+      locale: readSettings().locale
     }
   })
 }
