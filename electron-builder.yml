@@ -10,8 +10,6 @@ appId: com.tyme.app
 productName: 万年历
 
 directories:
-  # 图标等构建资源目录。放置 build/icon.ico（256x256）即会自动使用；
-  # 缺失时 electron-builder 退回 Electron 默认图标并给出警告。
   buildResources: build
   output: release
 
