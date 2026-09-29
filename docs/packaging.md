@@ -79,16 +79,14 @@ npm run clean         # 清理 out/ release/ .tsbuild/
 
 ### `release.yml` — 出包与发版
 
-| 触发方式                 | 行为                                                |
-| ------------------------ | --------------------------------------------------- |
-| push tag `v*`            | 打包 → 上传 workflow artifact → 创建 GitHub Release |
-| 手动 `workflow_dispatch` | 打包 → 只上传 workflow artifact（不发版）           |
+唯一触发方式是 push 一个 `v*` tag：打包 → 上传 workflow artifact → 创建 GitHub Release 并附上
+exe。没有第二条能创建 Release 的路径，所以不会出现同一个版本被发两次。
 
-手动触发那条路径的意义是：**不需要本地 Windows 环境也能拿到便携版 exe**。到
-`Actions → Release → Run workflow` 跑一次，结束后在运行页面的 Artifacts 里下载。
-
-发版时还会校验 tag 与 `package.json` 的 `version` 是否一致，不一致直接失败——避免出现
+发版前会校验 tag 与 `package.json` 的 `version` 是否一致，不一致直接失败——避免出现
 「exe 文件名里的版本号和 Release 标题对不上」这种事后才发现的问题。
+
+Release 建成 **draft**：流程跑完后到 Releases 页面确认 exe 能跑，再点 **Publish** 转正。
+同一个 tag 被重复推送时会走 `gh release upload --clobber` 覆盖资产，不会报「已存在」。
 
 创建 Release 用的是 runner 自带的 `gh` CLI（`GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}`），没有引入
 任何第三方 Action：`actions/checkout`、`actions/setup-node`、`actions/cache`、

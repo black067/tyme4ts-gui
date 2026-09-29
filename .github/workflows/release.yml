@@ -1,10 +1,10 @@
 name: Release
 
+# 唯一的发版入口：推一个 v* tag。用 `npm run release:patch|minor|major` 一步完成
+# 升版本号、提交、打附注标签和推送。
 on:
   push:
     tags: ['v*']
-  # 手动触发只出 artifact、不发版：这样不依赖本地 Windows 环境也能拿到便携版 exe。
-  workflow_dispatch:
 
 permissions:
   contents: write
@@ -27,7 +27,7 @@ jobs:
       - name: 安装依赖
         run: npm ci
 
-      # 发版前再跑一次单测：标签可能打在没走过 CI 的提交上。
+      # 发版前再跑一次单测：tag 可能打在没走过 CI 的提交上。
       - name: 单元测试
         run: npm test
 
@@ -47,7 +47,6 @@ jobs:
       # 版本号只写在 package.json 里，tag 必须与它一致，否则产物文件名会和
       # Release 标题对不上。
       - name: 校验 tag 与 package.json 版本一致
-        if: startsWith(github.ref, 'refs/tags/v')
         shell: pwsh
         run: |
           $tag = '${{ github.ref_name }}'.TrimStart('v')
@@ -67,8 +66,9 @@ jobs:
           path: release/*.exe
           if-no-files-found: error
 
+      # 建成 draft，人工确认 exe 能跑之后再在 Releases 页面点 Publish。
+      # 重复推送同一个 tag 时会走 upload --clobber，不会报「已存在」。
       - name: 创建或更新 GitHub Release
-        if: startsWith(github.ref, 'refs/tags/v')
         shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -85,6 +85,6 @@ jobs:
             Write-Host "Release $tag 已存在，覆盖上传资产"
             gh release upload $tag $exe.FullName --clobber
           } else {
-            gh release create $tag $exe.FullName --title $tag --generate-notes
+            gh release create $tag $exe.FullName --title $tag --generate-notes --draft
           }
           if ($LASTEXITCODE -ne 0) { throw "gh 发布失败（退出码 $LASTEXITCODE）" }
