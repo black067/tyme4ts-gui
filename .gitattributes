@@ -1,5 +1,10 @@
-# Normalize line endings in the repository to LF; check out native on Windows.
-* text=auto
+# Store LF in the repository AND check out LF, on every platform.
+#
+# `eol=lf` matters: Prettier is configured with `endOfLine: "lf"`, so without it
+# a Windows checkout produces CRLF that Prettier then rewrites to LF, leaving 90
+# files permanently "modified" (identical after normalisation, so `git diff` is
+# empty but `git status` never goes clean).
+* text=auto eol=lf
 
 *.ts    text
 *.tsx   text
