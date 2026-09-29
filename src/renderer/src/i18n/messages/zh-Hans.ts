@@ -291,12 +291,11 @@ export const zhHans = {
     terms: '二十四节气',
     holidays: '法定假日',
     /**
-     * 该年份没有内置节假日数据时的说明。
+     * 该年份没有放假安排数据时的说明。
      *
-     * 刻意不写出具体覆盖区间：区间随后续的在线数据更新而变，写进文案就一定会过期，
-     * 而且这条提示只在引擎表没有该年数据时出现。覆盖范围见 data-boundaries.md。
+     * 不提引擎名字，也不写死覆盖区间——那是实现细节，且区间会随在线数据更新而变化。
      */
-    noHolidayData: 'tyme4ts 内置的法定假日数据不覆盖该年份。',
+    noHolidayData: '该年份暂无放假安排数据。',
     /** 假期统计角标：休 / 班。 */
     holidayBadge: ({ rest, work }: { rest: number; work: number }): string =>
       `休 ${rest} 天 · 班 ${work} 天`
