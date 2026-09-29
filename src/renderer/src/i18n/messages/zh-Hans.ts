@@ -387,6 +387,39 @@ export const zhHans = {
       startViewLabel: '启动时打开'
     },
 
+    updates: {
+      title: '更新',
+      description: '从 GitHub Releases 检查新版本，下载后校验 SHA-256。',
+      /** 当前版本行。 */
+      current: ({ version }: { version: string }): string => `当前版本 ${version}`,
+      /** 发现新版本时的一句话。 */
+      available: ({ version }: { version: string }): string => `发现新版本 ${version}`,
+      check: '检查更新',
+      checking: '正在检查…',
+      download: '下载更新',
+      downloading: ({ percent }: { percent: number }): string => `正在下载 ${percent}%`,
+      cancel: '取消下载',
+      install: '重启并安装',
+      /** 下载完成后的提示。 */
+      ready: '下载完成，可以重启安装了。',
+      upToDate: '已是最新版本。',
+      autoCheck: '启动时自动检查更新',
+      /** 最近一次检查的时间；从未检查过时用 neverChecked。 */
+      lastChecked: ({ time }: { time: string }): string => `上次检查：${time}`,
+      neverChecked: '尚未检查过',
+      releaseNotes: '查看发布说明',
+      /** 各错误码的说法，一个错误码一句，不拼接。 */
+      error: {
+        network: '无法连接到 GitHub，请检查网络后重试。',
+        rateLimited: 'GitHub 接口访问次数已达上限，请稍后再试。',
+        noCompatibleAsset: '该版本没有适用于本机的安装文件。',
+        checksumMismatch: '下载文件的校验值不符，已丢弃，请重试。',
+        disk: '下载失败或写入磁盘出错，请重试。',
+        installFailed: '无法启动新版本，已为你打开文件所在位置。',
+        unknown: '更新过程中出现未知错误。'
+      }
+    },
+
     data: {
       title: '数据',
       description: '所有设置只保存在本机，不会上传。',

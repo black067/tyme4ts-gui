@@ -14,6 +14,7 @@ import {
 import { ViewTabs, type ViewTab } from './components/ViewTabs'
 import { TermTipProvider } from './components/TermTip'
 import { LocaleProvider, useMessages } from './i18n'
+import { UpdateProvider } from './features/updates/UpdateProvider'
 import { SettingsProvider } from './state/SettingsProvider'
 import { useSettings } from './state/settings-context'
 import { ThemeProvider } from './theme/ThemeProvider'
@@ -45,9 +46,11 @@ export function App(): ReactElement {
     <SettingsProvider>
       <LocaleProvider>
         <ThemeProvider>
-          <TermTipProvider>
-            <AppContent />
-          </TermTipProvider>
+          <UpdateProvider>
+            <TermTipProvider>
+              <AppContent />
+            </TermTipProvider>
+          </UpdateProvider>
         </ThemeProvider>
       </LocaleProvider>
     </SettingsProvider>

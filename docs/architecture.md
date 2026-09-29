@@ -66,15 +66,21 @@ tyme4ts ──▶ src/core（DTO + LRU 缓存）──▶ React 组件
                                                           └─ app.getPath('userData')
 ```
 
-IPC 契约集中在 `src/shared/ipc.ts`，主进程 / preload / 渲染进程三侧共用；该文件不得导入
-Electron / React / DOM。
+IPC 契约集中在 `src/shared/ipc.ts`（更新部分拆到 `src/shared/update.ts` 再 re-export），
+主进程 / preload / 渲染进程三侧共用；这些文件不得导入 Electron / React / DOM。
 
-| 通道               | 方向      | 作用                                                    |
-| ------------------ | --------- | ------------------------------------------------------- |
-| `settings:get`     | 渲染 → 主 | 读取设置（首次运行返回默认值）                          |
-| `settings:set`     | 渲染 → 主 | 局部更新设置并落盘；`appearance` 同步原生主题           |
-| `theme:set-native` | 渲染 → 主 | 只同步 `nativeTheme.themeSource`                        |
-| `app:get-info`     | 渲染 → 主 | 应用名 / 版本 / 作者 / 运行时版本 / 数据目录 / 当前语言 |
+| 通道                    | 方向      | 作用                                                    |
+| ----------------------- | --------- | ------------------------------------------------------- |
+| `settings:get`          | 渲染 → 主 | 读取设置（首次运行返回默认值）                          |
+| `settings:set`          | 渲染 → 主 | 局部更新设置并落盘；`appearance` 同步原生主题           |
+| `theme:set-native`      | 渲染 → 主 | 只同步 `nativeTheme.themeSource`                        |
+| `app:get-info`          | 渲染 → 主 | 应用名 / 版本 / 作者 / 运行时版本 / 数据目录 / 当前语言 |
+| `updates:get-state`     | 渲染 → 主 | 读更新流程的快照                                        |
+| `updates:check`         | 渲染 → 主 | 问 GitHub 有没有新版本，并记下检查时间                  |
+| `updates:download`      | 渲染 → 主 | 下载并用资产自带的 SHA-256 校验                         |
+| `updates:cancel`        | 渲染 → 主 | 放弃正在进行的下载                                      |
+| `updates:install`       | 渲染 → 主 | 以独立进程启动新版并退出本文进程                        |
+| `updates:state-changed` | 主 → 渲染 | 推送更新状态；下载进度必须实时，轮询就要加定时器        |
 
 窗口以 `contextIsolation: true`、`nodeIntegration: false`、`sandbox: true` 创建，渲染进程
 只能看到 preload 显式暴露的方法。

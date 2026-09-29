@@ -80,6 +80,37 @@ Release 并附上 exe。没有第二条能创建 Release 的路径，所以不�
 Release 建成 **draft**：流程跑完后到 Releases 页面确认 exe 能跑，再点 **Publish** 转正。
 同一个 tag 被重复推送时会走 `gh release upload --clobber` 覆盖资产，不会报「已存在」。
 
+> **draft 对应用内的检查更新是不可见的。** 未认证的 GitHub API 不返回 draft Release，
+> 所以在点 **Publish** 之前，用户端不会检测到新版本。这不是 bug，是 draft 这条流程的
+> 代价：发布权留在人手上，代价是新版本要等人工放行才可见。
+
+## 应用内检查更新
+
+实现见 `src/main/updater.ts`，版本比较与资产选择在纯逻辑层 `src/core/update.ts`。
+
+**没有用 `electron-updater`**：官方文档列出的可自动更新目标只有 macOS DMG、Linux
+AppImage/DEB/Pacman/RPM 与 **Windows NSIS**——本应用发布的是 `portable` 单文件 exe，
+不在其中；引入它还会违反「主进程不得依赖 `dependencies`」那条打包约束。
+
+流程：
+
+1. `updates:check` → `GET https://api.github.com/repos/black067/tyme4ts-gui/releases`；
+2. `parseReleases` 把响应当**不可信输入**校验，`selectLatestPortableRelease` 在可安装的
+   release 里挑版本号最大的一个（draft 与预发布默认排除）；
+3. `isNewerVersion` 与 `app.getVersion()` 比较；
+4. `updates:download` 流式下载到 `%APPDATA%\万年历\updates\`，边下边算 SHA-256；
+5. 与资产自带的 `digest`（`sha256:<hex>`）比对，不符就删掉文件并报错。
+
+**校验值直接来自 GitHub API 的资产字段**，所以发版流程不需要额外上传 checksum 文件；
+反过来，拿不到 digest 时**拒绝下载**——装一个无法校验的 exe 比不更新更糟。
+
+安装是「启动新版然后退出本进程」：便携版启动时会把内容解到自己的临时目录，所以新旧两版
+不会争抢文件；而 Windows 不允许替换正在运行的映像，所以只能是启动新文件而不是覆盖自己。
+
+请求都带 `User-Agent`（GitHub 拒绝无 UA 请求）；未认证接口限额为 60 次/小时，403/429
+会被映射成 `rate-limited` 而不是笼统的网络错误。启动后 3 秒才检查，慢或不通的 GitHub
+不会拖慢窗口出现。
+
 创建 Release 用的是 runner 自带的 `gh` CLI（`GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}`），没有引入
 任何第三方 Action：`actions/checkout`、`actions/setup-node`、`actions/cache`、
 `actions/upload-artifact` 是全部的外部依赖，且都是 GitHub 一方的。

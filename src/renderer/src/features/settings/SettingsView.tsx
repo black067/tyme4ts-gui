@@ -3,6 +3,7 @@ import { LOCALES, type AppearanceMode, type AppInfo, type Locale, type ViewId } 
 import { SegmentedControl, type SegmentedOption } from '@renderer/components/SegmentedControl'
 import { Toggle } from '@renderer/components/Toggle'
 import { useMessages, type ThemeNameKey } from '@renderer/i18n'
+import { UpdateSection } from '@renderer/features/updates/UpdateSection'
 import { useSettings } from '@renderer/state/settings-context'
 import { useTheme } from '@renderer/theme/theme-context'
 import { THEMES } from '@renderer/theme/themes'
@@ -167,6 +168,10 @@ export function SettingsView({ onClose }: { onClose: () => void }): ReactElement
               onChange={(defaultView) => update({ defaultView })}
             />
           </div>
+        </Section>
+
+        <Section title={t.settings.updates.title} description={t.settings.updates.description}>
+          <UpdateSection />
         </Section>
 
         <Section title={t.settings.data.title} description={t.settings.data.description}>

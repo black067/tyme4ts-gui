@@ -46,7 +46,15 @@ function normalize(raw: unknown): AppSettings {
         ? input.weekStartsOnMonday
         : defaults.weekStartsOnMonday,
     showGlossary:
-      typeof input.showGlossary === 'boolean' ? input.showGlossary : defaults.showGlossary
+      typeof input.showGlossary === 'boolean' ? input.showGlossary : defaults.showGlossary,
+    checkForUpdatesOnStart:
+      typeof input.checkForUpdatesOnStart === 'boolean'
+        ? input.checkForUpdatesOnStart
+        : defaults.checkForUpdatesOnStart,
+    lastUpdateCheckAt:
+      typeof input.lastUpdateCheckAt === 'string'
+        ? input.lastUpdateCheckAt
+        : defaults.lastUpdateCheckAt
   }
 }
 

@@ -3,13 +3,29 @@
  * renderer. Everything in this file must stay free of Electron, React and DOM
  * imports so that all three sides can depend on it.
  */
+import type { UpdatesApi } from './update'
+
+export type {
+  UpdateErrorCode,
+  UpdatePhase,
+  UpdateProgress,
+  UpdateState,
+  UpdatesApi
+} from './update'
 
 /** Channel names for the renderer <-> main bridge. */
 export const IPC = {
   settingsGet: 'settings:get',
   settingsSet: 'settings:set',
   themeSetNative: 'theme:set-native',
-  appGetInfo: 'app:get-info'
+  appGetInfo: 'app:get-info',
+  updatesGetState: 'updates:get-state',
+  updatesCheck: 'updates:check',
+  updatesDownload: 'updates:download',
+  updatesCancel: 'updates:cancel',
+  updatesInstall: 'updates:install',
+  /** Main -> renderer push of an `UpdateState` snapshot. */
+  updatesStateChanged: 'updates:state-changed'
 } as const
 
 /** Top-level views of the application shell. */
@@ -47,6 +63,15 @@ export interface AppSettings {
   weekStartsOnMonday: boolean
   /** Show the term glossary (hover a term for its meaning, click for the source). */
   showGlossary: boolean
+  /** Ask GitHub for a newer release shortly after launch. */
+  checkForUpdatesOnStart: boolean
+  /**
+   * ISO timestamp of the last completed check attempt, or `''` when never.
+   *
+   * Recorded so the settings screen can show when it last looked, and so a
+   * failed check is not retried on every navigation.
+   */
+  lastUpdateCheckAt: string
 }
 
 /** Runtime facts about the host, surfaced in the settings screen's About panel. */
@@ -83,6 +108,7 @@ export interface TymeApi {
   app: {
     getInfo(): Promise<AppInfo>
   }
+  updates: UpdatesApi
 }
 
 export const VIEW_IDS: readonly ViewId[] = ['month', 'day', 'year', 'timeline', 'tools']
@@ -105,7 +131,9 @@ export function createDefaultSettings(todayIso: string): AppSettings {
     lastViewedDate: todayIso,
     showAlmanac: true,
     weekStartsOnMonday: false,
-    showGlossary: true
+    showGlossary: true,
+    checkForUpdatesOnStart: true,
+    lastUpdateCheckAt: ''
   }
 }
 

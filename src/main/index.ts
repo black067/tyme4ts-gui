@@ -4,6 +4,14 @@ import { app, BrowserWindow, ipcMain, nativeTheme, shell } from 'electron'
 import { electronApp, is, optimizer } from '@electron-toolkit/utils'
 import { IPC, type AppInfo, type AppSettings, type AppearanceMode } from '@shared/ipc'
 import { readSettings, updateSettings } from './settings'
+import {
+  cancelUpdate,
+  checkForUpdates,
+  downloadUpdate,
+  getUpdateState,
+  installUpdate,
+  subscribeUpdates
+} from './updater'
 
 function applyNativeAppearance(mode: AppearanceMode): void {
   nativeTheme.themeSource = mode
@@ -57,6 +65,24 @@ function registerIpcHandlers(): void {
       locale: readSettings().locale
     }
   })
+
+  ipcMain.handle(IPC.updatesGetState, () => getUpdateState())
+
+  // Every update action records when it last looked, so the settings screen can
+  // show a real timestamp and a failed check is not retried on every mount.
+  const recordCheck = (): void => {
+    updateSettings({ lastUpdateCheckAt: new Date().toISOString() })
+  }
+
+  ipcMain.handle(IPC.updatesCheck, async () => {
+    const next = await checkForUpdates()
+    recordCheck()
+    return next
+  })
+
+  ipcMain.handle(IPC.updatesDownload, () => downloadUpdate())
+  ipcMain.handle(IPC.updatesCancel, () => cancelUpdate())
+  ipcMain.handle(IPC.updatesInstall, () => installUpdate())
 }
 
 function createWindow(): void {
@@ -107,7 +133,26 @@ app.whenReady().then(() => {
 
   applyNativeAppearance(readSettings().appearance)
   registerIpcHandlers()
+
+  // Push updater snapshots to every open window: download progress has to be
+  // live, and polling it from the renderer would need a timer.
+  subscribeUpdates((state) => {
+    for (const window of BrowserWindow.getAllWindows()) {
+      if (!window.isDestroyed()) window.webContents.send(IPC.updatesStateChanged, state)
+    }
+  })
+
   createWindow()
+
+  // Check shortly after launch rather than during it, so a slow or unreachable
+  // GitHub never delays the window appearing.
+  if (readSettings().checkForUpdatesOnStart) {
+    setTimeout(() => {
+      void checkForUpdates().finally(() => {
+        updateSettings({ lastUpdateCheckAt: new Date().toISOString() })
+      })
+    }, 3000)
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()

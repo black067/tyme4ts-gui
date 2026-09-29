@@ -4,7 +4,9 @@ import {
   type AppInfo,
   type AppSettings,
   type AppearanceMode,
-  type TymeApi
+  type TymeApi,
+  type UpdateState,
+  type UpdatesApi
 } from '@shared/ipc'
 
 export interface FakeBridge {
@@ -12,8 +14,29 @@ export interface FakeBridge {
   settings: AppSettings
   /** Every patch the renderer sent, in order. */
   patches: Array<Partial<AppSettings>>
+  /** Drives the updater from a test: change the snapshot and notify subscribers. */
+  setUpdates(next: Partial<UpdateState>): void
+  /** Every update action the renderer asked for, in order. */
+  updateActions: string[]
   /** Restores the previous `window.tyme`, if any. */
   restore(): void
+}
+
+/**
+ * A plain `idle` snapshot. The updater is not under test in the shell tests, so
+ * this stands in for the main process rather than exercising it.
+ */
+function idleUpdateState(version: string): UpdateState {
+  return {
+    phase: 'idle',
+    currentVersion: version,
+    latestVersion: null,
+    releaseNotes: null,
+    releaseUrl: null,
+    progress: null,
+    errorCode: null,
+    canInstall: false
+  }
 }
 
 const APP_INFO: AppInfo = {
@@ -36,7 +59,38 @@ const APP_INFO: AppInfo = {
 export function installFakeBridge(overrides: Partial<AppSettings> = {}): FakeBridge {
   const settings: AppSettings = { ...createDefaultSettings('2024-06-26'), ...overrides }
   const patches: Array<Partial<AppSettings>> = []
+  const updateActions: string[] = []
+  const updateListeners = new Set<(state: UpdateState) => void>()
+  let updateState = idleUpdateState(APP_INFO.version)
   const previous = window.tyme
+
+  const emitUpdate = (): void => {
+    for (const listener of updateListeners) listener(updateState)
+  }
+
+  const updates: UpdatesApi = {
+    getState: async () => updateState,
+    check: async () => {
+      updateActions.push('check')
+      return updateState
+    },
+    download: async () => {
+      updateActions.push('download')
+      return updateState
+    },
+    cancel: async () => {
+      updateActions.push('cancel')
+      return updateState
+    },
+    install: async () => {
+      updateActions.push('install')
+      return updateState
+    },
+    subscribe: (listener) => {
+      updateListeners.add(listener)
+      return () => updateListeners.delete(listener)
+    }
+  }
 
   const api: TymeApi = {
     settings: {
@@ -52,7 +106,8 @@ export function installFakeBridge(overrides: Partial<AppSettings> = {}): FakeBri
     },
     app: {
       getInfo: async () => APP_INFO
-    }
+    },
+    updates
   }
 
   Object.defineProperty(window, 'tyme', {
@@ -64,6 +119,11 @@ export function installFakeBridge(overrides: Partial<AppSettings> = {}): FakeBri
   return {
     settings,
     patches,
+    updateActions,
+    setUpdates: (next) => {
+      updateState = { ...updateState, ...next }
+      emitUpdate()
+    },
     restore: () => {
       Object.defineProperty(window, 'tyme', {
         value: previous,
