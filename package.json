@@ -1,7 +1,7 @@
 {
   "name": "tyme-app",
   "version": "0.1.0",
-  "description": "Windows 桌面万年历（Electron + React + TypeScript + tyme4ts）",
+  "description": "桌面万年历",
   "private": true,
   "productName": "万年历",
   "author": {
