@@ -1,0 +1,25 @@
+# Normalize line endings in the repository to LF; check out native on Windows.
+* text=auto
+
+*.ts    text
+*.tsx   text
+*.js    text
+*.mjs   text
+*.cjs   text
+*.json  text
+*.css   text
+*.html  text
+*.md    text
+*.yml   text
+*.yaml  text
+
+*.png   binary
+*.jpg   binary
+*.ico   binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.exe   binary
+
+# Keep vendored submodule content out of language statistics/diff noise.
+vendor/** -diff
