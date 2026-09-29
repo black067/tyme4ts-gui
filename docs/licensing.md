@@ -44,12 +44,13 @@
 | 典籍                   | 成书 | 状态                                       | 用途                     |
 | ---------------------- | ---- | ------------------------------------------ | ------------------------ |
 | 《钦定协纪辨方书》     | 1741 | 公有领域（作者逝世逾百年、1931 年前出版）  | 神煞、建除、二十八宿释义 |
+| 《晋书·天文志》        | 648  | 公有领域（唐修，成书于 1931 年前）         | 昴毕觜井鬼五宿的释义     |
 | [维基文库][wikisource] | —    | 仅作转录来源，正文本身属公有领域，无新版权 | 原文文本来源             |
 
 [wikisource]: https://zh.wikisource.org/zh-hant/%E6%AC%BD%E5%AE%9A%E5%8D%94%E7%B4%80%E8%BE%A8%E6%96%B9%E6%9B%B8_(%E5%9B%9B%E5%BA%AB%E5%85%A8%E6%9B%B8%E6%9C%AC)
 
-校验用的原文放在 `tests/fixtures/xieji-bianfangshu/`，只在测试里读取。数据来源、依据分档与
-已知缺口见 [glossary.md](glossary.md)。
+校验用的原文放在 `tests/fixtures/` 下（`xieji-bianfangshu/`、`jinshu-tianwenzhi/`），只在测试里
+读取。数据来源、依据分档与已知缺口见 [glossary.md](glossary.md)。
 
 ## 与打包的关系
 

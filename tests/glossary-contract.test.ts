@@ -121,8 +121,8 @@ describe('引文必须逐字出现在公版原文里', () => {
     if (data.basis !== 'xieji') continue
 
     it(`${family} 的每条引文都能在 fixture 中找到`, () => {
-      const haystack = fixtureText(data.fixture as string)
-      expect(haystack.length).toBeGreaterThan(1000)
+      const familyFixture = data.fixture as string
+      expect(fixtureText(familyFixture).length).toBeGreaterThan(1000)
 
       const offenders: string[] = []
       for (const [name, entry] of Object.entries(data.entries)) {
@@ -130,8 +130,11 @@ describe('引文必须逐字出现在公版原文里', () => {
           offenders.push(`${name}: 缺少 quote`)
           continue
         }
-        if (!haystack.includes(foldText(entry.quote))) {
-          offenders.push(`${name}: 引文不在原文中 → ${entry.quote}`)
+        // 一条引文只回到它自己那本书里校验：家族引了第二部书时，
+        // 用别的书"验"过就等于没验。
+        const fixture = entry.fixture ?? familyFixture
+        if (!fixtureText(fixture).includes(foldText(entry.quote))) {
+          offenders.push(`${name}: 引文不在 ${fixture} 中 → ${entry.quote}`)
         }
         if (!entry.source) offenders.push(`${name}: 缺少 source`)
       }
