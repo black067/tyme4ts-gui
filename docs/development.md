@@ -23,21 +23,22 @@ npm install
 
 ## 常用脚本
 
-| 命令                    | 说明                                                                           |
-| ----------------------- | ------------------------------------------------------------------------------ |
-| `npm run dev`           | 启动 Electron 开发模式（主进程 / preload / 渲染进程均带 HMR）                  |
-| `npm run build`         | 类型检查 + 构建生产产物到 `out/`（快速验证用）                                 |
-| `npm run preview`       | 用构建产物启动应用                                                             |
-| `npm run package`       | 构建 + 打包为免安装便携版 exe，产物在 `release/`                               |
-| `npm run package:dir`   | 只解包到 `release/win-unpacked`（更快，用于先验证再出单文件）                  |
-| `npm run clean`         | 删除 `out/` `release/` `.tsbuild/`                                             |
-| `npm run typecheck`     | 主进程侧 + 渲染进程侧类型检查                                                  |
-| `npm run lint`          | ESLint                                                                         |
-| `npm run format`        | Prettier 格式化（会改写文件）                                                  |
-| `npm run format:check`  | Prettier 只检查不修改（CI 跑的就是这个）                                       |
-| `npm test`              | Vitest 单测                                                                    |
-| `npm run test:watch`    | Vitest 监听模式                                                                |
-| `npm run release:patch` | 出正式版本：升版本号 + 提交 + 打标签 + 推送（见 [packaging.md](packaging.md)） |
+| 命令                     | 说明                                                                           |
+| ------------------------ | ------------------------------------------------------------------------------ |
+| `npm run dev`            | 启动 Electron 开发模式（主进程 / preload / 渲染进程均带 HMR）                  |
+| `npm run build`          | 类型检查 + 构建生产产物到 `out/`（快速验证用）                                 |
+| `npm run preview`        | 用构建产物启动应用                                                             |
+| `npm run package`        | 构建 + 打包为免安装便携版 exe，产物在 `release/`                               |
+| `npm run package:dir`    | 只解包到 `release/win-unpacked`（更快，用于先验证再出单文件）                  |
+| `npm run clean`          | 删除 `out/` `release/` `.tsbuild/`                                             |
+| `npm run typecheck`      | 主进程侧 + 渲染进程侧类型检查                                                  |
+| `npm run lint`           | ESLint                                                                         |
+| `npm run format`         | Prettier 格式化（会改写文件）                                                  |
+| `npm run format:check`   | Prettier 只检查不修改（CI 跑的就是这个）                                       |
+| `npm test`               | Vitest 单测                                                                    |
+| `npm run test:watch`     | Vitest 监听模式                                                                |
+| `npm run release:patch`  | 出正式版本：升版本号 + 提交 + 打标签 + 推送（见 [packaging.md](packaging.md)） |
+| `scripts/glossary/*.mjs` | 术语释义的原文抓取与抽取工具，需要网络，用法见 [glossary.md](glossary.md)      |
 
 ## 在 VS Code 里开发
 
@@ -74,6 +75,7 @@ npm install
 | 渲染层集成 | `src/renderer/src/__tests__/*`           | jsdom + 伪 preload bridge：视图切换、选日、主题、工具页、快捷键     |
 | 架构契约   | `tests/theme-tokens.test.ts`             | 配色是否越界、主题 token 是否完整                                   |
 | 打包契约   | `tests/packaging-contract.test.ts`       | 主进程 / preload 没有引入运行时要 `require` 的 `dependencies`       |
+| 释义契约   | `tests/glossary-contract.test.ts`        | 词条的 key 都在引擎表里、引文逐字可查、缺口显式                     |
 
 `perf.test.ts` 用宽松上限（约实测值的 10 倍）守住数量级回退，例如网格单元不得退化成构建完整黄历。
 

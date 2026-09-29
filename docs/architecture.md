@@ -8,8 +8,10 @@ src/
 ├─ preload/     通过 contextBridge 暴露 window.tyme
 ├─ shared/      主进程与渲染进程共用的 IPC 契约与类型
 ├─ core/        纯 TypeScript 历法内核（零 Electron / React / DOM 依赖）
+│  └─ glossary/ 术语释义：纯数据 + 查表，同样不依赖引擎
 └─ renderer/    React 界面：视图、组件、主题、hooks
-tests/          读取源码树的架构契约测试（配色 / token 完整性、打包前提）
+tests/          读取源码树的架构契约测试（配色 / token、打包前提、术语释义）
+tests/fixtures/ 术语释义校验用的公版原文（公有领域，不进包）
 scripts/        开发辅助脚本（clean.mjs 清理产物、capture-window.ps1 截图验证）
 docs/           本目录
 .vscode/        tasks.json / launch.json / settings.json（构建产物监听排除）
@@ -34,6 +36,8 @@ vendor/tyme4ts/ 只读 git submodule，用于查阅 tyme4ts 源码
    core 的出口契约是「不可变」的：网格里的同一天在不同月份共享同一个对象。
 4. `vendor/**` 被 tsconfig、ESLint、Prettier 全部忽略，不参与编译与检查。
 5. 渲染层组件**禁止硬编码颜色**，只能使用语义化主题 token（见 [theming.md](theming.md)）。
+6. `src/core/glossary/**` 是**纯数据**：不 import tyme4ts，也不碰 Electron / React / DOM。
+   引擎的权威名单由 `tests/glossary-contract.test.ts` 交叉校验。
 
 这些规则都写在 `eslint.config.mjs` 里，违反时会直接报错而不是警告。
 
