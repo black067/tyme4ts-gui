@@ -15,8 +15,9 @@
 
 1. 在 `src/renderer/src/theme/themes/` 下新增一个定义文件，导出 `ThemeDefinition`；
 2. 在 `src/renderer/src/theme/themes/index.ts` 中注册；
-3. 在 `src/renderer/src/theme/tokens.css` 中为两个 variant 各添加一个
-   `:root[data-theme='<id>']` 规则块。
+3. 在 `src/renderer/src/theme/tokens.css` 中，为 `variants.light` / `variants.dark` 声明的两个
+   名称各写一个 `:root[data-theme='<该名称>']` 规则块（既有的族用的是 `<family>-light` /
+   `<family>-dark`）。
 
 ## 被测试强制的两条约束
 
