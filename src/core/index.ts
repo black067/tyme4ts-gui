@@ -12,6 +12,7 @@ export {
   SOLAR_YEAR_MAX,
   SOLAR_YEAR_MIN,
   addDays,
+  addMonths,
   compareDateKey,
   dateKeyEquals,
   daysInMonth,

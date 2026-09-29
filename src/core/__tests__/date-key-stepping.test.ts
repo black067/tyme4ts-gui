@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { SolarDay } from 'tyme4ts'
 import {
   addDays,
+  addMonths,
   formatSolarDate,
   isValidDateKey,
   nextDay,
@@ -70,5 +71,74 @@ describe('pure day stepping', () => {
     // Callers decide what to do; the grid renders these as empty cells.
     expect(isValidDateKey(prevDay({ year: 1, month: 1, day: 1 }))).toBe(false)
     expect(isValidDateKey(nextDay({ year: 9999, month: 12, day: 31 }))).toBe(false)
+  })
+})
+
+describe('addMonths', () => {
+  it('shifts within a year', () => {
+    expect(addMonths({ year: 2024, month: 6, day: 26 }, 1)).toEqual({
+      year: 2024,
+      month: 7,
+      day: 26
+    })
+    expect(addMonths({ year: 2024, month: 6, day: 26 }, -5)).toEqual({
+      year: 2024,
+      month: 1,
+      day: 26
+    })
+  })
+
+  it('rolls across year boundaries in both directions', () => {
+    expect(addMonths({ year: 2024, month: 12, day: 15 }, 1)).toEqual({
+      year: 2025,
+      month: 1,
+      day: 15
+    })
+    expect(addMonths({ year: 2024, month: 1, day: 15 }, -1)).toEqual({
+      year: 2023,
+      month: 12,
+      day: 15
+    })
+    expect(addMonths({ year: 2024, month: 1, day: 15 }, -13)).toEqual({
+      year: 2022,
+      month: 12,
+      day: 15
+    })
+  })
+
+  it('clamps the day to the target month length', () => {
+    expect(addMonths({ year: 2024, month: 1, day: 31 }, 1)).toEqual({
+      year: 2024,
+      month: 2,
+      day: 29
+    })
+    expect(addMonths({ year: 2023, month: 1, day: 31 }, 1)).toEqual({
+      year: 2023,
+      month: 2,
+      day: 28
+    })
+    expect(addMonths({ year: 2024, month: 3, day: 31 }, -1)).toEqual({
+      year: 2024,
+      month: 2,
+      day: 29
+    })
+  })
+
+  it('refuses to leave the representable range', () => {
+    expect(addMonths({ year: 1, month: 1, day: 1 }, -1)).toEqual({ year: 1, month: 1, day: 1 })
+    expect(addMonths({ year: 9999, month: 12, day: 31 }, 1)).toEqual({
+      year: 9999,
+      month: 12,
+      day: 31
+    })
+  })
+
+  it('rejects a non-integer delta', () => {
+    expect(() => addMonths({ year: 2024, month: 1, day: 1 }, 1.5)).toThrow(RangeError)
+  })
+
+  it('is reversible when no clamping occurred', () => {
+    const start: DateKey = { year: 2024, month: 6, day: 15 }
+    expect(addMonths(addMonths(start, 30), -30)).toEqual(start)
   })
 })

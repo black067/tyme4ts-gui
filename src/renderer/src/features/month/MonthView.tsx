@@ -1,9 +1,7 @@
 import { useMemo, type ReactElement } from 'react'
 import {
-  SOLAR_YEAR_MAX,
-  SOLAR_YEAR_MIN,
+  addMonths,
   buildMonthGrid,
-  daysInMonth,
   dateKeyEquals,
   formatMonthTitle,
   weekdayOrder,
@@ -37,16 +35,16 @@ export function MonthView({
     [selected.year, selected.month, weekStartsOnMonday]
   )
 
+  const rows = useMemo(() => {
+    const chunks: Array<Array<DaySummary | null>> = []
+    for (let index = 0; index < grid.cells.length; index += 7) {
+      chunks.push(grid.cells.slice(index, index + 7))
+    }
+    return chunks
+  }, [grid.cells])
+
   const columns = weekdayOrder(weekStartsOnMonday)
   const monthPrefix = `${String(selected.year).padStart(4, '0')}-${String(selected.month).padStart(2, '0')}`
-
-  const shiftMonth = (delta: number): void => {
-    const total = selected.year * 12 + (selected.month - 1) + delta
-    const year = Math.floor(total / 12)
-    const month = (total % 12) + 1
-    if (year < SOLAR_YEAR_MIN || year > SOLAR_YEAR_MAX) return
-    onSelect({ year, month, day: Math.min(selected.day, daysInMonth(year, month)) })
-  }
 
   const handleSelect = (summary: DaySummary): void => onSelect(summary.key)
 
@@ -57,7 +55,7 @@ export function MonthView({
           <button
             type="button"
             className="icon-button"
-            onClick={() => shiftMonth(-1)}
+            onClick={() => onSelect(addMonths(selected, -1))}
             aria-label="上一个月"
           >
             ‹
@@ -65,7 +63,7 @@ export function MonthView({
           <button
             type="button"
             className="icon-button"
-            onClick={() => shiftMonth(1)}
+            onClick={() => onSelect(addMonths(selected, 1))}
             aria-label="下一个月"
           >
             ›
@@ -84,7 +82,7 @@ export function MonthView({
         </button>
       </header>
 
-      <div className="month-view__weekdays">
+      <div className="month-view__weekdays" aria-hidden="true">
         {columns.map((label) => (
           <span
             key={label}
@@ -101,24 +99,34 @@ export function MonthView({
 
       <div
         className="month-view__grid"
-        style={{ gridTemplateRows: `repeat(${grid.rows}, minmax(0, 1fr))` }}
+        role="grid"
+        aria-label={`${grid.year}年${grid.month}月，共 ${rows.length} 周`}
       >
-        {grid.cells.map((cell, index) =>
-          cell === null ? (
-            // A date outside tyme4ts's representable range (before year 1 or
-            // after 9999). Kept as a placeholder so the grid stays rectangular.
-            <div key={`empty-${index}`} className="day-cell day-cell--empty" aria-hidden="true" />
-          ) : (
-            <DayCell
-              key={cell.iso}
-              summary={cell}
-              inMonth={cell.iso.startsWith(monthPrefix)}
-              isToday={dateKeyEquals(cell.key, today)}
-              isSelected={dateKeyEquals(cell.key, selected)}
-              onSelect={handleSelect}
-            />
-          )
-        )}
+        {rows.map((row, rowIndex) => (
+          <div key={rowIndex} className="month-view__row" role="row">
+            {row.map((cell, columnIndex) =>
+              cell === null ? (
+                // A date outside tyme4ts's representable range (before year 1
+                // or after 9999). Kept as a placeholder so the grid stays
+                // rectangular, but not rendered as a grid cell.
+                <span
+                  key={`empty-${rowIndex}-${columnIndex}`}
+                  className="day-cell day-cell--empty"
+                  aria-hidden="true"
+                />
+              ) : (
+                <DayCell
+                  key={cell.iso}
+                  summary={cell}
+                  inMonth={cell.iso.startsWith(monthPrefix)}
+                  isToday={dateKeyEquals(cell.key, today)}
+                  isSelected={dateKeyEquals(cell.key, selected)}
+                  onSelect={handleSelect}
+                />
+              )
+            )}
+          </div>
+        ))}
       </div>
     </section>
   )

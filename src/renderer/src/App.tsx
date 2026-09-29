@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from 'react'
 import type { ViewId } from '@shared/ipc'
 import {
+  addDays,
+  addMonths,
   buildDaySummary,
   formatFullDate,
   fromIsoDate,
@@ -19,6 +21,7 @@ import { YearView } from './features/year/YearView'
 import { TimelineView } from './features/timeline/TimelineView'
 import { ToolsView } from './features/tools/ToolsView'
 import { DayPanel } from './features/day/DayPanel'
+import { SHORTCUTS, useKeyboardNav, type KeyboardNavHandlers } from './hooks/useKeyboardNav'
 import './styles/global.css'
 
 /** `day` is not a tab: the day detail is always visible as the side panel. */
@@ -29,8 +32,8 @@ const TABS: readonly ViewTab[] = [
   { id: 'tools', label: '工具' }
 ]
 
-function initialView(stored: ViewId): ViewId {
-  return TABS.some((tab) => tab.id === stored) ? stored : 'month'
+function isTabView(stored: ViewId): boolean {
+  return TABS.some((tab) => tab.id === stored)
 }
 
 export function App(): ReactElement {
@@ -60,8 +63,8 @@ function AppContent(): ReactElement {
  * day's panel.
  *
  * `selected` is the single source of truth for "which day is the user looking
- * at". Every view derives its own window from it, so paging, picking and the
- * side panel can never drift apart.
+ * at". Every view derives its own window from it, so paging, picking, keyboard
+ * navigation and the side panel can never drift apart.
  */
 function AppShell(): ReactElement {
   const { settings, update, error } = useSettings()
@@ -69,7 +72,10 @@ function AppShell(): ReactElement {
   const [selected, setSelected] = useState<DateKey>(
     () => fromIsoDate(settings.lastViewedDate) ?? today
   )
-  const [view, setView] = useState<ViewId>(() => initialView(settings.defaultView))
+  const [view, setView] = useState<ViewId>(() =>
+    isTabView(settings.defaultView) ? settings.defaultView : 'month'
+  )
+  const [showShortcuts, setShowShortcuts] = useState(false)
   const skipFirstPersist = useRef(true)
 
   // Persist the selection, debounced so rapid navigation stays cheap. The
@@ -98,6 +104,23 @@ function AppShell(): ReactElement {
     setView('month')
   }, [])
 
+  const keyboard = useMemo<KeyboardNavHandlers>(
+    () => ({
+      shiftDays: (delta) => setSelected((current) => addDays(current, delta)),
+      shiftMonths: (delta) => setSelected((current) => addMonths(current, delta)),
+      goToday: () => setSelected(today),
+      setView: (next) => {
+        setView(next)
+        update({ defaultView: next })
+      },
+      toggleShortcuts: () => setShowShortcuts((current) => !current),
+      closeOverlays: () => setShowShortcuts(false)
+    }),
+    [today, update]
+  )
+
+  useKeyboardNav(keyboard)
+
   const todaySummary = useMemo(() => buildDaySummary(today), [today])
 
   return (
@@ -116,7 +139,30 @@ function AppShell(): ReactElement {
 
       <div className="app-toolbar">
         <ViewTabs tabs={TABS} active={view} onChange={changeView} />
+        <button
+          type="button"
+          className="text-button"
+          aria-expanded={showShortcuts}
+          onClick={() => setShowShortcuts((current) => !current)}
+        >
+          快捷键
+        </button>
       </div>
+
+      {showShortcuts ? (
+        <section className="shortcuts" aria-label="键盘快捷键">
+          <dl className="shortcuts__list">
+            {SHORTCUTS.map((shortcut) => (
+              <div key={shortcut.keys} className="shortcuts__item">
+                <dt>
+                  <kbd>{shortcut.keys}</kbd>
+                </dt>
+                <dd>{shortcut.label}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      ) : null}
 
       <SettingsBar />
 
@@ -143,6 +189,12 @@ function AppShell(): ReactElement {
             />
           )}
         </main>
+
+        {/* Announced by screen readers whenever the focused day changes. */}
+        <output className="visually-hidden" aria-live="polite">
+          当前选中 {formatFullDate(selected.year, selected.month, selected.day)}
+        </output>
+
         <DayPanel selected={selected} />
       </div>
     </div>

@@ -125,6 +125,22 @@ export function addDays(key: DateKey, delta: number): DateKey {
   return cursor
 }
 
+/**
+ * Shifts by whole months, clamping the day to the target month's length so
+ * `1月31日` + 1 month is `2月29日` rather than an impossible date. Returns the
+ * input unchanged when the shift would leave the representable range.
+ */
+export function addMonths(key: DateKey, delta: number): DateKey {
+  if (!Number.isInteger(delta)) {
+    throw new RangeError(`month delta must be an integer, received ${delta}`)
+  }
+  const total = key.year * 12 + (key.month - 1) + delta
+  const year = Math.floor(total / 12)
+  const month = total - year * 12 + 1
+  if (year < SOLAR_YEAR_MIN || year > SOLAR_YEAR_MAX) return key
+  return { year, month, day: Math.min(key.day, daysInMonth(year, month)) }
+}
+
 /** The local calendar day of the machine clock. */
 export function todayKey(now: Date = new Date()): DateKey {
   return { year: now.getFullYear(), month: now.getMonth() + 1, day: now.getDate() }

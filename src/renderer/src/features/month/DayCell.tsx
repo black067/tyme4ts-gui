@@ -1,4 +1,4 @@
-import type { ReactElement } from 'react'
+import { memo, type ReactElement } from 'react'
 import { dayCellText, describeDay, type DaySummary } from '@core'
 import { cx } from '@renderer/components/cx'
 
@@ -11,7 +11,13 @@ interface DayCellProps {
   onSelect: (summary: DaySummary) => void
 }
 
-export function DayCell({
+/**
+ * One calendar cell.
+ *
+ * Memoized because a selection change re-renders the grid: without this, all
+ * 42 cells would rebuild their `dayCellText` on every arrow-key press.
+ */
+function DayCellImpl({
   summary,
   inMonth,
   isToday,
@@ -24,6 +30,7 @@ export function DayCell({
   return (
     <button
       type="button"
+      role="gridcell"
       className={cx(
         'day-cell',
         `day-cell--${text.tone}`,
@@ -34,6 +41,7 @@ export function DayCell({
       )}
       onClick={() => onSelect(summary)}
       aria-label={describeDay(summary)}
+      aria-selected={isSelected}
       aria-current={isToday ? 'date' : undefined}
       tabIndex={isSelected ? 0 : -1}
     >
@@ -44,3 +52,5 @@ export function DayCell({
     </button>
   )
 }
+
+export const DayCell = memo(DayCellImpl)
