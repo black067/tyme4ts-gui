@@ -63,12 +63,9 @@ export function HolidaySection(): ReactElement | null {
         />
       </div>
 
-      <p className="settings-note">{t.settings.holidays.note}</p>
-
       {years.length > 0 ? (
         <p className="settings-note">{t.settings.holidays.years({ years: years.join('、') })}</p>
       ) : null}
-
       <p className="settings-note">
         {updatedAt === null
           ? t.settings.holidays.never
@@ -79,8 +76,6 @@ export function HolidaySection(): ReactElement | null {
         <p className="tool__error">{errorText(t, status.errorCode)}</p>
       ) : null}
 
-      {/* The source records which gov.cn papers each file was scraped from, so
-          the primary source stays one click away. */}
       {status.papers.length > 0 ? (
         <div className="holidays__papers">
           <span className="settings-field__label">{t.settings.holidays.papers}</span>

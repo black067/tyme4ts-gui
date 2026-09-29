@@ -80,10 +80,6 @@ Release 并附上 exe。没有第二条能创建 Release 的路径，所以不�
 Release 建成 **draft**：流程跑完后到 Releases 页面确认 exe 能跑，再点 **Publish** 转正。
 同一个 tag 被重复推送时会走 `gh release upload --clobber` 覆盖资产，不会报「已存在」。
 
-> **draft 对应用内的检查更新是不可见的。** 未认证的 GitHub API 不返回 draft Release，
-> 所以在点 **Publish** 之前，用户端不会检测到新版本。这不是 bug，是 draft 这条流程的
-> 代价：发布权留在人手上，代价是新版本要等人工放行才可见。
-
 ## 应用内检查更新
 
 实现见 `src/main/updater.ts`，版本比较与资产选择在纯逻辑层 `src/core/update.ts`。

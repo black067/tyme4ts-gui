@@ -17,11 +17,11 @@ async function openSettings(): Promise<void> {
 }
 
 describe('节假日数据小节', () => {
-  it('没有数据时说清楚正在用内置表，而不是假装有数据', async () => {
+  it('没有数据时不冒充有数据', async () => {
     await renderApp()
     await openSettings()
 
-    expect(screen.getByText('尚未更新过，正在使用内置数据。')).toBeInTheDocument()
+    expect(screen.getByText('尚未更新过。')).toBeInTheDocument()
     // 没有覆盖年份时不该出现年份行。
     expect(screen.queryByText(/已覆盖年份/)).toBeNull()
   })
@@ -96,6 +96,6 @@ describe('节假日数据小节', () => {
     })
 
     expect(screen.queryByText(/Invalid Date/)).toBeNull()
-    expect(screen.getByText('尚未更新过，正在使用内置数据。')).toBeInTheDocument()
+    expect(screen.getByText('尚未更新过。')).toBeInTheDocument()
   })
 })

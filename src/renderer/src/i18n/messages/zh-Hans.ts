@@ -119,9 +119,8 @@ export const zhHans = {
     male: '男',
     female: '女',
     birthTimeLabel: '出生时刻',
-    /** 排盘规则说明：日期来源与晚子时进位。 */
-    ruleNote:
-      '日期取自当前浏览的日期（在月视图中选择）。时柱按 tyme4ts 默认规则换算：23:00–23:59 出生时，日柱进位到次日（晚子时）。',
+    /** 晚子时规则：23:00–23:59 出生时，日柱进位到次日。 */
+    ruleNote: '23:00–23:59 出生时，日柱进位到次日（晚子时）。',
     /** 四柱表的列头。 */
     columns: {
       year: '年柱',
@@ -352,7 +351,6 @@ export const zhHans = {
 
     appearance: {
       title: '外观',
-      description: '主题决定配色与字体，外观决定使用浅色还是深色变体。',
       themeLabel: '主题',
       modeLabel: '外观',
       /** 主题族的显示名，按 `ThemeDefinition.id` 取。 */
@@ -374,13 +372,11 @@ export const zhHans = {
     },
 
     language: {
-      title: '语言',
-      description: '界面文案的语言。历法与黄历数据来自引擎，其术语不随此设置变化。'
+      title: '语言'
     },
 
     display: {
       title: '显示',
-      description: '影响日历网格与黄历内容的呈现。',
       weekStart: '周一为一周首日',
       almanac: '显示黄历（宜忌 / 神煞 / 胎神等）',
       glossary: '术语说明（悬停看释义，点击看出处）',
@@ -389,7 +385,6 @@ export const zhHans = {
 
     updates: {
       title: '更新',
-      description: '从 GitHub Releases 检查新版本，下载后校验 SHA-256。',
       /** 当前版本行。 */
       current: ({ version }: { version: string }): string => `当前版本 ${version}`,
       /** 发现新版本时的一句话。 */
@@ -422,7 +417,6 @@ export const zhHans = {
 
     data: {
       title: '数据',
-      description: '所有设置只保存在本机，不会上传。',
       dir: '数据目录',
       file: '设置文件'
     },
@@ -430,13 +424,12 @@ export const zhHans = {
     holidays: {
       title: '节假日数据',
       autoUpdate: '启动时更新节假日数据',
-      /** 覆盖层的来源说明。引擎内置表有截止日期，所以要讲清楚为什么需要在线更新。 */
-      note: 'tyme4ts 内置的法定假日数据是固定的，超出其覆盖范围后由这里从公开数据源补全。',
       refresh: '立即更新',
       refreshing: '正在更新…',
-      /** 最近一次成功更新的时间；从未成功时用 never。 */
+      /** 最近一次成功更新的时间。 */
       lastUpdated: ({ time }: { time: string }): string => `上次更新：${time}`,
-      never: '尚未更新过，正在使用内置数据。',
+      /** 还没有数据时的状态。 */
+      never: '尚未更新过。',
       /** 覆盖了哪些年份。 */
       years: ({ years }: { years: string }): string => `已覆盖年份：${years}`,
       /** 官方公告链接的标题。 */
@@ -460,7 +453,6 @@ export const zhHans = {
 
     thirdParty: {
       title: '第三方许可',
-      description: '本应用基于以下开源项目与资产构建。',
       usage: {
         tyme4ts: '全部历法、节假日与黄历数据（公历 / 农历 / 藏历 / 回历 / 节气 / 宜忌 / 八字）',
         electron: '桌面应用运行时（Chromium + Node.js）',
@@ -473,7 +465,6 @@ export const zhHans = {
 
     assets: {
       title: '资产署名',
-      description: '应用图标等美术资源的来源与作者。',
       /** 资产条目里代替具体许可的说明，因为授权条款在来源页。 */
       licenceSeeSource: '来源授权见下',
       authorLabel: '作者',

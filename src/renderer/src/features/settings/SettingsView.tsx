@@ -97,10 +97,7 @@ export function SettingsView({ onClose }: { onClose: () => void }): ReactElement
       </header>
 
       <div className="settings-view__body">
-        <Section
-          title={t.settings.appearance.title}
-          description={t.settings.appearance.description}
-        >
+        <Section title={t.settings.appearance.title}>
           <div className="settings-field">
             <span className="settings-field__label">{t.settings.appearance.themeLabel}</span>
             <SegmentedControl
@@ -127,7 +124,7 @@ export function SettingsView({ onClose }: { onClose: () => void }): ReactElement
           </p>
         </Section>
 
-        <Section title={t.settings.language.title} description={t.settings.language.description}>
+        <Section title={t.settings.language.title}>
           <div className="settings-field">
             <SegmentedControl
               label={t.settings.language.title}
@@ -138,7 +135,7 @@ export function SettingsView({ onClose }: { onClose: () => void }): ReactElement
           </div>
         </Section>
 
-        <Section title={t.settings.display.title} description={t.settings.display.description}>
+        <Section title={t.settings.display.title}>
           <div className="settings-field">
             <Toggle
               label={t.settings.display.weekStart}
@@ -171,11 +168,11 @@ export function SettingsView({ onClose }: { onClose: () => void }): ReactElement
           </div>
         </Section>
 
-        <Section title={t.settings.updates.title} description={t.settings.updates.description}>
+        <Section title={t.settings.updates.title}>
           <UpdateSection />
         </Section>
 
-        <Section title={t.settings.data.title} description={t.settings.data.description}>
+        <Section title={t.settings.data.title}>
           <dl className="settings-rows">
             <Row label={t.settings.data.dir} value={info?.userDataPath ?? t.common.pending} />
             <Row
@@ -199,10 +196,7 @@ export function SettingsView({ onClose }: { onClose: () => void }): ReactElement
           </dl>
         </Section>
 
-        <Section
-          title={t.settings.thirdParty.title}
-          description={t.settings.thirdParty.description}
-        >
+        <Section title={t.settings.thirdParty.title}>
           <ul className="credits">
             {THIRD_PARTY.map((entry) => (
               <li key={entry.name} className="credit">
@@ -224,7 +218,7 @@ export function SettingsView({ onClose }: { onClose: () => void }): ReactElement
           </ul>
         </Section>
 
-        <Section title={t.settings.assets.title} description={t.settings.assets.description}>
+        <Section title={t.settings.assets.title}>
           <ul className="credits">
             {ASSET_CREDITS.map((credit) => (
               <li key={credit.path} className="credit">
