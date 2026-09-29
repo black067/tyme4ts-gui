@@ -2,14 +2,14 @@
 
 ## 产物形态
 
-只产出 **Windows x64 免安装便携版单文件 exe**，不生成安装程序：
+产出 **Windows x64 免安装便携版单文件 exe**：
 
 ```
 release/万年历-<version>-portable.exe
 ```
 
 文件名模板来自 `electron-builder.yml` 的 `portable.artifactName`（`${productName}-${version}-portable.${ext}`）。
-双击即用，不写注册表、不建开始菜单项；设置写在 `%APPDATA%\万年历\settings.json`。
+双击即用；设置写在 `%APPDATA%\万年历\settings.json`。
 
 便携版是个自解压包：启动时先把约 246 MB 的内容解到 `%TEMP%` 下的临时目录再运行，所以首帧会比
 安装版慢一点，exe 本身也因此只有 95 MB 左右。设置不放在临时目录，仍然在 `%APPDATA%` 下。
@@ -34,11 +34,10 @@ npm run clean         # 清理 out/ release/ .tsbuild/
   窗口**（`Developer: Reload Window`）即可释放。
 - 清理产物用 `npm run clean`（或 VS Code 的 **clean** task），哪个目录被占用会明确报出来。
 - 应用图标由 `electron-builder.yml` 的 `win.icon: assets/calendar.svg` 指定，electron-builder 会
-  光栅化成多尺寸 `.ico` 写入 exe（已实测）。开发模式跑的是原版 `electron.exe`，而 Electron 的
+  光栅化成多尺寸 `.ico` 写入 exe。开发模式跑的是原版 `electron.exe`，而 Electron 的
   `nativeImage` 不支持 SVG，所以开发时任务栏仍是 Electron 默认图标。
 - **改 `productName` 会改数据目录**：Electron 用 `productName` 推导 `app.getName()`，进而决定
-  `app.getPath('userData')`。从 `tyme-app` 改成 `万年历` 时，旧设置文件会留在
-  `%APPDATA%\tyme-app\` 下不再被读取。
+  `app.getPath('userData')`，所以改名之后新目录是空的，旧目录里的设置不会被读到。
 
 ### 配置要点
 

@@ -18,7 +18,7 @@ directories:
 # 也同样在 bundle 里。因此包里只需要 out/ 与 package.json。
 #
 # `!node_modules/**` 是这个前提的兑现：electron-builder 默认会把
-# dependencies 一起塞进 asar，实测多出约 9 MB 永远不会被 require 的文件。
+# dependencies 一起塞进 asar，多出约 9 MB 永远不会被 require 的文件。
 # 代价是主进程 / preload 不能从 dependencies 里导入任何包 —— 否则
 # electron-vite 的 externalizeDepsPlugin 会把它变成运行时 require。
 # 这条约束由 tests/packaging-contract.test.ts 守着。
@@ -44,7 +44,7 @@ files:
 npmRebuild: false
 
 win:
-  # electron-builder 会把 SVG 光栅化成多尺寸 .ico 再写入 exe（已实测生效）。
+  # electron-builder 会把 SVG 光栅化成多尺寸 .ico 再写入 exe。
   # 来源与署名见 assets/calendar-author.txt 与 docs/licensing.md。
   icon: assets/calendar.svg
   target:
