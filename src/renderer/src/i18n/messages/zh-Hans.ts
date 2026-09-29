@@ -426,12 +426,6 @@ export const zhHans = {
       }
     },
 
-    data: {
-      title: '数据',
-      dir: '数据目录',
-      file: '设置文件'
-    },
-
     holidays: {
       title: '节假日数据',
       autoUpdate: '启动时更新节假日数据',
@@ -452,12 +446,32 @@ export const zhHans = {
       }
     },
 
-    author: {
-      title: '作者信息',
-      app: '应用',
-      name: '作者',
+    /**
+     * 关于：应用名、版本、作者、运行时与数据位置。
+     *
+     * 这些原本分成四个区块（作者信息 / 运行环境 / 数据…），每个只装一两行内容，
+     * 却各占一整行标题加上下间距，页面显得很空。并成一个区块、用紧凑的键值列表。
+     * 版本号只在这里出现一次——「更新」区块里已有它自己的版本号。
+     */
+    about: {
+      title: '关于',
+      versionLabel: '版本',
+      authorLabel: '作者',
+      runtimeLabel: '运行时',
+      dataDirLabel: '数据目录',
+      settingsFileLabel: '设置文件',
       /** package.json 里没写作者时的占位。 */
-      missing: '（package.json 未填写）'
+      missingAuthor: '（package.json 未填写）',
+      /** 三个运行时版本并成一行，省掉三行标签。 */
+      runtimeVersions: ({
+        electron,
+        chromium,
+        node
+      }: {
+        electron: string
+        chromium: string
+        node: string
+      }): string => `Electron ${electron} · Chromium ${chromium} · Node ${node}`
     },
 
     thirdParty: {
@@ -479,10 +493,6 @@ export const zhHans = {
       names: {
         calendarIcon: '应用图标（日历）'
       }
-    },
-
-    runtime: {
-      title: '运行环境'
     }
   },
 

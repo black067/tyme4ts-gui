@@ -168,27 +168,37 @@ export function SettingsView({ onClose }: { onClose: () => void }): ReactElement
           <UpdateSection />
         </Section>
 
-        <Section title={t.settings.data.title}>
-          <dl className="settings-rows">
-            <Row label={t.settings.data.dir} value={info?.userDataPath ?? t.common.pending} />
-            <Row
-              label={t.settings.data.file}
-              value={info ? `${info.userDataPath}\\settings.json` : t.common.pending}
-            />
-          </dl>
-        </Section>
-
         <Section title={t.settings.holidays.title}>
           <HolidaySection />
         </Section>
 
-        <Section title={t.settings.author.title}>
+        {/*
+          只读信息（版本 / 作者 / 运行时 / 数据位置）合并成一个区块。
+          每个都单起一个区块时，标题加间距占的地方比内容还多，页面显得很空。
+        */}
+        <Section title={t.settings.about.title}>
           <dl className="settings-rows">
+            <Row label={t.settings.about.versionLabel} value={info?.version ?? t.common.pending} />
             <Row
-              label={t.settings.author.app}
-              value={info ? `${info.name} v${info.version}` : t.common.pending}
+              label={t.settings.about.authorLabel}
+              value={info?.author || t.settings.about.missingAuthor}
             />
-            <Row label={t.settings.author.name} value={info?.author || t.settings.author.missing} />
+            <Row
+              label={t.settings.about.runtimeLabel}
+              value={
+                info
+                  ? t.settings.about.runtimeVersions({
+                      electron: info.electron,
+                      chromium: info.chrome,
+                      node: info.node
+                    })
+                  : t.common.pending
+              }
+            />
+            <Row
+              label={t.settings.about.dataDirLabel}
+              value={info?.userDataPath ?? t.common.pending}
+            />
           </dl>
         </Section>
 
@@ -237,14 +247,6 @@ export function SettingsView({ onClose }: { onClose: () => void }): ReactElement
               </li>
             ))}
           </ul>
-        </Section>
-
-        <Section title={t.settings.runtime.title}>
-          <dl className="settings-rows">
-            <Row label="Electron" value={info?.electron ?? t.common.pending} />
-            <Row label="Chromium" value={info?.chrome ?? t.common.pending} />
-            <Row label="Node.js" value={info?.node ?? t.common.pending} />
-          </dl>
         </Section>
       </div>
     </section>

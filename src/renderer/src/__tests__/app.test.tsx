@@ -153,10 +153,14 @@ describe('settings screen', () => {
     expect(screen.getByRole('heading', { name: '2024年6月' })).toBeInTheDocument()
   })
 
-  it('shows the author information from the main process', async () => {
+  it('shows the version, author and runtime from the main process', async () => {
     await openSettings()
-    expect(await screen.findByText('万年历 v0.0.0-test')).toBeInTheDocument()
+
+    // 这些只读信息同属一个「关于」区块：版本、作者、运行时、数据目录。
+    // 版本号在这里只出现一次——「更新」区块有它自己的版本号。
+    expect(await screen.findByText('0.0.0-test')).toBeInTheDocument()
     expect(screen.getByText('Tester <tester@example.com>')).toBeInTheDocument()
+    expect(screen.getByText(/Electron test · Chromium test · Node test/)).toBeInTheDocument()
   })
 
   it('lists third-party licences and the asset credit', async () => {
@@ -181,10 +185,12 @@ describe('settings screen', () => {
     expect(screen.getByText('assets/calendar.svg')).toBeInTheDocument()
   })
 
-  it('shows where the settings file lives', async () => {
+  it('shows where the data lives', async () => {
     await openSettings()
+
+    // 只保留数据目录：settings.json 的完整路径只是把文件名接在目录后面，
+    // 与上一行重复，看的人还得自己比对两行。
     expect(screen.getByText('/tmp/tyme-app-test')).toBeInTheDocument()
-    expect(screen.getByText('/tmp/tyme-app-test\\settings.json')).toBeInTheDocument()
   })
 
   it('persists the start view choice', async () => {
