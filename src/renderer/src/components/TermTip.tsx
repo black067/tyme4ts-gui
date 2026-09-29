@@ -36,26 +36,26 @@ interface TermTipProps {
 /**
  * 一个术语。
  *
- * 有释义时渲染成可聚焦的按钮：悬停或聚焦出简介，点击展开详情。
- * 没有释义、或设置里关掉了「术语说明」时退化成纯文本，且不注册任何事件监听——
- * 缺口是常态（见 KNOWN_GAPS），不能让它们变成一堆点了没反应的按钮。
+ * 有释义时浮层给释义，没找到释义时浮层**老实说明缺什么**，并把能找到的位置指出来——
+ * 两种情况都渲染成可聚焦的按钮，只有设置里关掉「术语说明」、或这个名字连引擎都不认识时
+ * 才退化成纯文本。
  */
 export function TermTip({ family, name, children, className }: TermTipProps): ReactElement {
   const { enabled, active, show, pin, hideHover } = useTermTip()
   const id = useId()
   const ref = useRef<HTMLButtonElement>(null)
-  const entry = useMemo(() => (enabled ? lookupTerm(family, name) : null), [enabled, family, name])
+  const lookup = useMemo(() => (enabled ? lookupTerm(family, name) : null), [enabled, family, name])
 
   const open = useCallback(
     (mode: ActiveTerm['mode']) => {
       const anchor = ref.current
-      if (anchor === null || entry === null) return
-      show({ id, family, name, entry, anchor, mode })
+      if (anchor === null || lookup === null) return
+      show({ id, family, name, lookup, anchor, mode })
     },
-    [entry, family, id, name, show]
+    [lookup, family, id, name, show]
   )
 
-  if (entry === null) return <span className={className}>{children ?? name}</span>
+  if (lookup === null) return <span className={className}>{children ?? name}</span>
 
   const isHover = active?.id === id && active.mode === 'hover'
   const isPinned = active?.id === id && active.mode === 'pinned'
@@ -65,7 +65,7 @@ export function TermTip({ family, name, children, className }: TermTipProps): Re
       ref={ref}
       type="button"
       id={id}
-      className={cx('term', className)}
+      className={cx('term', lookup.kind === 'gap' && 'term--gap', className)}
       aria-describedby={isHover || isPinned ? `${id}-tip` : undefined}
       aria-expanded={isPinned}
       onMouseEnter={() => open('hover')}
@@ -75,7 +75,7 @@ export function TermTip({ family, name, children, className }: TermTipProps): Re
       onClick={() => {
         const anchor = ref.current
         if (anchor === null) return
-        pin({ id, family, name, entry, anchor, mode: 'pinned' })
+        pin({ id, family, name, lookup, anchor, mode: 'pinned' })
       }}
     >
       {children ?? name}
@@ -144,27 +144,46 @@ function TermTipLayer(): ReactElement | null {
 
   const family = GLOSSARY[active.family]
   const pinned = active.mode === 'pinned'
+  const missing = active.lookup.kind === 'gap'
 
   return createPortal(
     <div
       ref={boxRef}
       id={`${active.id}-tip`}
-      className={cx('term-tip', pinned && 'term-tip--pinned')}
+      className={cx('term-tip', pinned && 'term-tip--pinned', missing && 'term-tip--gap')}
       role={pinned ? 'dialog' : 'tooltip'}
     >
       <p className="term-tip__head">
         <span className="term-tip__name">{active.name}</span>
         <span className="term-tip__family">{family.label}</span>
       </p>
-      <p className="term-tip__summary">{active.entry.summary}</p>
-      {active.entry.quote ? <p className="term-tip__quote">{active.entry.quote}</p> : null}
-      {pinned ? (
+
+      {active.lookup.kind === 'entry' ? (
         <>
-          <p className="term-tip__source">{active.entry.source ?? family.rationale ?? ''}</p>
-          <button type="button" className="term-tip__close" onClick={close}>
-            关闭
-          </button>
+          <p className="term-tip__summary">{active.lookup.entry.summary}</p>
+          {active.lookup.entry.quote ? (
+            <p className="term-tip__quote">{active.lookup.entry.quote}</p>
+          ) : null}
+          {pinned ? (
+            <p className="term-tip__source">
+              {active.lookup.entry.source ?? family.rationale ?? ''}
+            </p>
+          ) : null}
         </>
+      ) : (
+        <>
+          <p className="term-tip__summary term-tip__summary--missing">暂无释义</p>
+          <p className="term-tip__reason">{active.lookup.note.reason}</p>
+          {active.lookup.note.source ? (
+            <p className="term-tip__source">{active.lookup.note.source}</p>
+          ) : null}
+        </>
+      )}
+
+      {pinned ? (
+        <button type="button" className="term-tip__close" onClick={close}>
+          关闭
+        </button>
       ) : null}
     </div>,
     document.body

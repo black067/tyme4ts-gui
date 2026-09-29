@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react'
-import type { GlossaryEntry, GlossaryFamily } from '@core'
+import type { GlossaryFamily, TermLookup } from '@core'
 
 /** 当前展示的术语。`mode` 决定它是悬停浮层还是点击固定的详情。 */
 export interface ActiveTerm {
@@ -7,7 +7,8 @@ export interface ActiveTerm {
   id: string
   family: GlossaryFamily
   name: string
-  entry: GlossaryEntry
+  /** 有释义还是只有缺口说明——两者都出浮层，区别只在内容。 */
+  lookup: TermLookup
   /** 触发元素，用来定位浮层。 */
   anchor: HTMLElement
   mode: 'hover' | 'pinned'
@@ -17,7 +18,7 @@ export interface TermTipContextValue {
   /** 设置里关掉「术语说明」时为 false，此时所有术语渲染成纯文本。 */
   enabled: boolean
   active: ActiveTerm | null
-  /** 悬停或聚焦时展示简介。 */
+  /** 悬停或聚焦时展示。 */
   show(term: ActiveTerm): void
   /** 点击时固定详情；已固定同一个则收起。 */
   pin(term: ActiveTerm): void

@@ -104,3 +104,23 @@
   background: var(--color-surface-sunken);
   color: var(--color-text);
 }
+
+/* 缺口：没有释义的术语。仍然可以悬停，只是浮层说的不是释义。 */
+.term--gap:hover,
+.term--gap:focus-visible {
+  text-decoration-color: var(--color-text-subtle);
+}
+
+.term-tip--gap {
+  background: var(--color-surface-alt);
+}
+
+.term-tip__summary--missing {
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+.term-tip__reason {
+  margin: var(--space-1) 0 0;
+  color: var(--color-text-muted);
+}

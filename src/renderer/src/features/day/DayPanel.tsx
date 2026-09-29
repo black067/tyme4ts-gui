@@ -114,15 +114,23 @@ function buildAlmanacRows(info: DayInfo): RowSpec[] {
       info.twelveStar,
       info.twelveStar ? { family: 'twelveStar', name: info.twelveStar } : undefined
     ],
-    ['六曜', info.sixStar, undefined],
-    ['九星', info.nineStar, undefined],
+    ['六曜', info.sixStar, info.sixStar ? { family: 'sixStar', name: info.sixStar } : undefined],
+    [
+      '九星',
+      info.nineStar,
+      info.nineStar ? { family: 'nineStar', name: info.nineStar } : undefined
+    ],
     ['胎神', info.fetus, undefined],
     [
       '二十八宿',
       star ? `${star.name}宿（${star.zone}方${star.beast}）· ${star.luck}` : null,
       star ? { family: 'star28', name: star.name } : undefined
     ],
-    ['小六壬', info.minorRen, undefined],
+    [
+      '小六壬',
+      info.minorRen,
+      info.minorRen ? { family: 'minorRen', name: info.minorRen } : undefined
+    ],
     ['彭祖百忌', info.ganzhi?.pengZu ?? null, undefined]
   ]
 }
