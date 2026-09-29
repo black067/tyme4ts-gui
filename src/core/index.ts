@@ -62,6 +62,16 @@ export {
 } from './vocabulary'
 
 export {
+  GLOSSARY,
+  GLOSSARY_FAMILIES,
+  lookupTerm,
+  type GlossaryBasis,
+  type GlossaryEntry,
+  type GlossaryFamily,
+  type GlossaryFamilyData
+} from './glossary'
+
+export {
   buildEightChar,
   type ChildLimitInfo,
   type DecadeEntry,
