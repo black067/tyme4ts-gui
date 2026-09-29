@@ -62,6 +62,50 @@ export const zhHans = {
     restBadge: '休'
   },
 
+  tools: {
+    /** 工具页的子工具选择。 */
+    label: '工具',
+    converter: '日期换算',
+    search: '择日检索',
+    pillars: '八字排盘'
+  },
+
+  converter: {
+    /** 区域名称与标题共用。 */
+    title: '日期换算器',
+    useBrowsed: '用浏览中的日期',
+    /** 输入历法的分段控件标签。 */
+    inputKind: '输入历法',
+    /** 各历法的名字。 */
+    calendars: {
+      solar: '公历',
+      lunar: '农历',
+      hijri: '回历',
+      rabByung: '藏历',
+      julianDay: '儒略日'
+    },
+    /** 字段标签。 */
+    field: {
+      year: '年',
+      month: '月',
+      day: '日',
+      leap: '闰月',
+      julianDay: '儒略日'
+    },
+    resultTitle: '换算结果',
+    /** 结果行里独有的标签；历法名复用上方的 `calendars`。 */
+    result: {
+      solarWithWeekday: ({ solar, weekday }: { solar: string; weekday: string }): string =>
+        `${solar} 星期${weekday}`,
+      ganzhi: '干支',
+      zodiac: '生肖',
+      constellation: '星座'
+    },
+    /** 藏历的年份范围提示。范围是引擎的能力边界，所以由参数传入。 */
+    rabByungRange: ({ from, to }: { from: number; to: number }): string =>
+      `藏历仅支持 ${from}–${to} 饶迥年。`
+  },
+
   dayPanel: {
     /** 日详情侧栏的区域名称。 */
     title: '日详情',
