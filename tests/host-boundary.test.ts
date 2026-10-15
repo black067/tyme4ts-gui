@@ -413,7 +413,17 @@ describe('打出来的 bundle 不留运行时外部依赖', () => {
   function ensureBuilt(): void {
     if (built) return
     if (!existsSync(BUNDLE_GLOB)) {
-      execFileSync('npx', ['vite', 'build'], { cwd: ROOT, stdio: 'pipe', shell: true })
+      // 不走 `npx` + shell：Windows 上 npx 是 .cmd，非得 shell:true 不可，而那正好触发
+      // Node 的 DEP0190（参数只被拼接不被转义）。拿当前这个 node 直接跑依赖里的 vite 入口，
+      // 跨平台、无 shell，也不依赖 PATH 上有没有 npx。
+      execFileSync(
+        process.execPath,
+        [join(ROOT, 'node_modules', 'vite', 'bin', 'vite.js'), 'build'],
+        {
+          cwd: ROOT,
+          stdio: 'pipe'
+        }
+      )
     }
     built = true
   }
@@ -424,7 +434,7 @@ describe('打出来的 bundle 不留运行时外部依赖', () => {
     'dist/ 里有 JS bundle 可查',
     () => {
       ensureBuilt()
-      expect(existsSync(BUNDLE_GLOB), 'npx vite build 没有产出 dist/assets').toBe(true)
+      expect(existsSync(BUNDLE_GLOB), 'vite build 没有产出 dist/assets').toBe(true)
       expect(
         readdirSync(BUNDLE_GLOB).filter((name) => name.endsWith('.js')).length
       ).toBeGreaterThan(0)
