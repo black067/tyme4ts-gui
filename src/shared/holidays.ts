@@ -1,5 +1,5 @@
 /**
- * IPC contract for the statutory-holiday data.
+ * The contract for statutory-holiday data.
  *
  * The calendar engine's built-in holiday table is frozen (`tyme4ts` ships it as
  * a compressed string covering 2001-12-29 … 2026-10-10), so beyond that range
@@ -7,7 +7,7 @@
  * that extends it, fetched from a public-domain-friendly mirror of the official
  * State Council announcements.
  *
- * Like `update.ts`, this file must stay free of Electron / React / DOM imports.
+ * Like `update.ts`, this file must stay free of host / React / DOM imports.
  */
 
 /** Shared with the update flow: a code the renderer turns into wording. */

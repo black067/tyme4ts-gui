@@ -23,8 +23,8 @@
 
 数据来自 [vsme/chinese-days](https://github.com/vsme/chinese-days)（MIT）：它的 CI 跟随
 国务院公告更新，按年发布 `dist/years/<年>.json`，每份含 `holidays`（休）与 `workdays`（班）
-两张表。取数在 `src/main/holidays.ts`，缓存到 `userData/holidays/<年>.json`，启动时先读
-缓存再后台更新。
+两张表。取数在 `src/backend/holidays.ts`（跑在 webview 里，走 `@tauri-apps/plugin-http`），
+缓存到 `%APPDATA%\万年历\holidays\<年>.json`，启动时先读缓存再后台更新。
 
 三点要注意：
 

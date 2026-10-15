@@ -1,0 +1,76 @@
+[package]
+name = "chinese-calendar"
+version = "0.0.0"
+description = "桌面万年历"
+authors = ["black067 <24395526+black067@users.noreply.github.com>"]
+license = "MIT"
+edition = "2021"
+rust-version = "1.90"
+
+# 二进制名保持 ASCII：`chinese-calendar.exe`。GitHub Releases 会丢弃含 CJK 的文件名，
+# 而 src/core/update.ts 的产物名匹配、tauri.conf.json 的 productName（万年历）分别负责
+# "机器可读的名字"和"人看到的名字"。真实版本号来自 tauri.conf.json 的 `version: "../package.json"`。
+
+[lib]
+name = "chinese_calendar_lib"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-fs = "2"
+# TLS 后端选系统自带的 Schannel（`native-tls`），不用插件默认的 rustls。
+# 三个理由，按分量排序：
+#   1. rustls 依赖 ring，ring 的 build.rs 要用 cl.exe 编 C；本机的 MSVC 14.51 在 `/Z7`
+#      下会对 curve25519.c 报 `D8050: 未能将命令行放入调试记录中`，整棵依赖树就此卡住；
+#   2. 走系统证书库才是 Windows 应用该有的行为——企业代理、自己加了根证书的机器、
+#      以及装了安全软件改了信任链的机器，都只认系统那套；
+#   3. 少一个 C 依赖，产物更小，CI 也不必赌某台 runner 的 MSVC 版本。
+# 相对插件的 default（rustls-tls / http2 / charset / system-proxy / cookies）去掉两项：
+#   - cookies：旧版主进程用的是 Node 的 https，本来就没有 cookie jar；三个数据源
+#     也都不靠 cookie。带上它要多背一份 publicsuffix 表（几百 KB）。
+#   - brotli / deflate：CDN 与 GitHub 都支持 gzip，一个解压后端够了。
+tauri-plugin-http = { version = "2", default-features = false, features = [
+  "http2",
+  "charset",
+  "system-proxy",
+  "native-tls",
+  "gzip",
+] }
+tauri-plugin-opener = "2"
+# 必须在最前面注册：single-instance 会吞掉后续实例的启动，注册顺序决定它能否拦到。
+tauri-plugin-single-instance = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# 更新包流式下载：特性组合与 tauri-plugin-http 内部那份 reqwest 保持一致，好共用同一棵树。
+reqwest = { version = "0.12", default-features = false, features = [
+  "native-tls",
+  "stream",
+  "http2",
+  "charset",
+  "system-proxy",
+  "gzip",
+  "deflate",
+  "brotli",
+] }
+futures-util = "0.3"
+sha2 = "0.10"
+tokio = { version = "1", features = ["fs", "io-util", "time"] }
+
+# 只在 Windows 上用：读 AppsUseLightTheme（窗口创建前就要知道系统深浅色，那时没有
+# webview 可问）与 EdgeUpdate 注册键（判断 WebView2 在不在）。
+[target.'cfg(windows)'.dependencies]
+winreg = "0.56"
+
+# 体积优先：这个应用的计算量全在 JS 侧，Rust 只是搬运字节，瘦身比极限优化更值钱。
+#
+# 这里刻意不设 `[profile.dev] debug`：换成 Schannel 之后依赖树里没有 C 要编（压缩、h2、
+# TLS 都是纯 Rust 或纯 FFI），所以不必为 cl.exe 的行为做任何妥协。若将来某个依赖又带进 C 构建
+# 并撞上 MSVC 的 `/Z7` 毛病（本机 14.51 编 ring 的 curve25519.c 会报 D8050），
+# 用 `[profile.dev.package.<那个包>] debug = false` 只关那一个包，别动全局。
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true

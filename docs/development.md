@@ -5,82 +5,109 @@
 - Node.js `^20.19.0 || >=22.12.0`（开发机验证版本：`v24.14.0`）
 - npm（开发机验证版本：`11.9.0`）
 - Git（开发机验证版本：`2.50.1.windows.1`）
+- Rust 稳定版 GNU/MSVC 工具链（开发机验证版本：`cargo 1.98.0`，`stable-msvc`）
+- Microsoft C++ 生成工具（VS 2022/2026 的「使用 C++ 的桌面开发」工作负载）：链接
+  `webview2loader.lib` 之类不需要它，但 `ring` 一类的 C 依赖需要；本机是 MSVC 14.51.36231
+- WebView2 运行时：Win11 与近年的 Win10 已随系统装好；没有的话应用会自己下载官方
+  bootstrapper 并静默安装（见 [packaging.md](packaging.md)）
 
 ## 首次准备
 
 ```bash
 npm install
+npm run dev      # 第一次会编译整个 Rust 依赖树，几分钟量级
 ```
 
-> **首次运行的额外下载**：Electron 44 不再提供 `postinstall` 脚本，改为惰性安装 —— 第一次执行
-> `npm run dev`（或任何 `require('electron')`）时才会下载约 120 MB 的运行时到
-> `node_modules/electron/dist`。若下载失败（网络受限），可手动执行
-> `node node_modules/electron/install.js`；或先设置镜像
-> `$env:ELECTRON_MIRROR='https://npmmirror.com/mirrors/electron/'` 再重试。
+> 与 Electron 时代的最大差别：没有"首次运行才下载的 120 MB 运行时"。Node 侧装完就能跑，
+> 慢的那一次是 cargo 首次编译，之后都是增量。
 
 > 首次 clone 后如果 `vendor/tyme4ts` 是空的，执行：
 > `git submodule update --init --depth 1`
 
 ## 常用脚本
 
-| 命令                        | 说明                                                                           |
-| --------------------------- | ------------------------------------------------------------------------------ |
-| `npm run dev`               | 启动 Electron 开发模式（主进程 / preload / 渲染进程均带 HMR）                  |
-| `npm run build`             | 类型检查 + 构建生产产物到 `out/`（快速验证用）                                 |
-| `npm run preview`           | 用构建产物启动应用                                                             |
-| `npm run package`           | 构建 + 打包为免安装便携版 exe，产物在 `release/`                               |
-| `npm run package:dir`       | 只解包到 `release/win-unpacked`（更快，用于先验证再出单文件）                  |
-| `npm run clean`             | 删除 `out/` `release/` `.tsbuild/`                                             |
-| `npm run typecheck`         | 主进程侧 + 渲染进程侧类型检查                                                  |
-| `npm run lint`              | ESLint                                                                         |
-| `npm run format`            | Prettier 格式化（会改写文件）                                                  |
-| `npm run format:check`      | Prettier 只检查不修改（提交前跑一次，免得格式问题混进提交）                    |
-| `npm test`                  | Vitest 单测                                                                    |
-| `npm run test:watch`        | Vitest 监听模式                                                                |
-| `npm run release:patch`     | 出正式版本：升版本号 + 提交 + 打标签 + 推送（见 [packaging.md](packaging.md)） |
-| `scripts/glossary/*.mjs`    | 术语释义的原文抓取与抽取工具，需要网络，用法见 [glossary.md](glossary.md)      |
-| `scripts/i18n/cjk-scan.mjs` | 统计渲染层里硬编码中文的行数，`--update` 重建基线，见 [i18n.md](i18n.md)       |
+| 命令                        | 说明                                                                            |
+| --------------------------- | ------------------------------------------------------------------------------- |
+| `npm run dev`               | Tauri 开发模式：起 Vite + 编译并启动 Rust 宿主，前端改动热更新，改 Rust 重编译  |
+| `npm run dev:web`           | 只起 Vite（在浏览器里看界面；涉及宿主能力的部分因为没有 `window.tyme` 不工作）  |
+| `npm run build`             | 类型检查 + 构建前端到 `dist/`（快速验证用，不产出 exe）                         |
+| `npm run package`           | 构建并产出免安装便携版 exe 到 `release/`（`--no-build` 只从已有产物复制）       |
+| `npm run icon`              | 从 `assets/calendar.svg` 重新生成 `src-tauri/icons/`（需要网络装 sharp 时同理） |
+| `npm run clean`             | 删除 `dist/` `release/` `.tsbuild/`；`node scripts/clean.mjs host` 再清 Rust    |
+| `npm run typecheck`         | Node 侧 + webview 侧类型检查                                                    |
+| `npm run lint`              | ESLint                                                                          |
+| `npm run format`            | Prettier 格式化（会改写文件）                                                   |
+| `npm run format:check`      | Prettier 只检查不修改（提交前跑一次，免得格式问题混进提交）                     |
+| `npm test`                  | Vitest 单测                                                                     |
+| `npm run test:watch`        | Vitest 监听模式                                                                 |
+| `npm run release:patch`     | 出正式版本：升版本号 + 提交 + 打标签 + 推送（见 [packaging.md](packaging.md)）  |
+| `scripts/glossary/*.mjs`    | 术语释义的原文抓取与抽取工具，需要网络，用法见 [glossary.md](glossary.md)       |
+| `scripts/i18n/cjk-scan.mjs` | 统计渲染层里硬编码中文的行数，`--update` 重建基线，见 [i18n.md](i18n.md)        |
+
+Rust 侧另有两条常用命令：
+
+```bash
+cd src-tauri && cargo fmt            # 格式化宿主代码（CI 会跑 --check）
+cd src-tauri && cargo check --all-targets
+```
+
+> **dev 与便携版共用同一个 WebView2 用户数据目录**（`%LOCALAPPDATA%\com.tyme.desktop\EBWebView`，
+> 位置由 `identifier` 决定）。同一时刻只开一个：两个都在，后起的那个会在创建 webview 时失败。
+> 强杀进程（任务管理器、`Stop-Process -Force`）也可能留下占着这个目录的 `msedgewebview2.exe`
+> 子进程，下一次启动就报"请求的资源在使用中"——等它退出或手动结束即可，正常关窗口不会有这问题。
+>
+> 在受限环境里（沙箱、CI、某些作业对象）新编译的 debug 版可能起不来，报 `拒绝访问 (os error 5)`：
+> WebView2 要在 `%LOCALAPPDATA%` 下建目录并拉起浏览器进程，这类写入被拦时就是这一个样子。
+> 宿主起不来时会把要用的缓存目录一并打出来（对话框 + stderr），照着判断是被权限挡了还是有别的实例。
+> 这种环境下验证界面请改用 `npm run package` 出来的 exe。
 
 ## 在 VS Code 里开发
 
 仓库内置 `.vscode/tasks.json` 与 `.vscode/launch.json`，`Ctrl+Shift+P` → **Tasks: Run Task** 即可看到：
 
-| Task                                              | 对应命令               | 用途                               |
-| ------------------------------------------------- | ---------------------- | ---------------------------------- |
-| **dev**（默认构建任务）                           | `npm run dev`          | `Ctrl+Shift+B` 直接起开发模式      |
-| **build**                                         | `npm run build`        | 快速验证生产产物                   |
-| **package**                                       | `npm run package`      | 出便携版 exe 到 `release/`         |
-| **package:dir**                                   | `npm run package:dir`  | 只解包，快速验证打包配置           |
-| **preview**                                       | `npm run preview`      | 跑构建产物                         |
-| **clean**                                         | `npm run clean`        | 清理 `out/` `release/` `.tsbuild/` |
-| **typecheck / lint / test / test:watch / format** | 同名脚本               | 日常检查                           |
-| **format:check**                                  | `npm run format:check` | 提交前确认格式没问题               |
+| Task                                              | 对应命令                  | 用途                                     |
+| ------------------------------------------------- | ------------------------- | ---------------------------------------- |
+| **dev**（默认构建任务）                           | `npm run dev`             | `Ctrl+Shift+B` 直接起开发模式            |
+| **dev:webview**                                   | `npm run dev` + 9222 端口 | 给前端调试配置用（见下）                 |
+| **dev:web**                                       | `npm run dev:web`         | 只起 Vite                                |
+| **build**                                         | `npm run build`           | 快速验证前端产物                         |
+| **package**                                       | `npm run package`         | 出便携版 exe 到 `release/`               |
+| **build:host:debug / host:debug:prepare**         | `cargo build`（+ Vite）   | 宿主调试用：编译 debug exe 并备好 devUrl |
+| **clean**                                         | `npm run clean`           | 清理 `dist/` `release/` `.tsbuild/`      |
+| **typecheck / lint / test / test:watch / format** | 同名脚本                  | 日常检查                                 |
+| **format:check**                                  | `npm run format:check`    | 提交前确认格式没问题                     |
 
-`dev` 配了 problem matcher，以主进程打印的 `[tyme-app] main window ready` 作为就绪信号，因此
-`launch.json` 里的调试配置可以拿它当 `preLaunchTask`：按 F5 会先起应用再挂调试器。
+`dev` 与 `dev:webview` 配了 problem matcher，以宿主打印的
+`[tyme-app] main window ready` 作为就绪信号，因此 `launch.json` 里的调试配置可以拿它当
+`preLaunchTask`：按 F5 会先起应用再挂调试器。
 
-| 调试配置             | 说明                                                       |
-| -------------------- | ---------------------------------------------------------- |
-| 调试主进程（dev）    | 以 `--inspect=5858` 起开发模式并自动附加，可断点主进程代码 |
-| 调试渲染进程（dev）  | 以 `--remoteDebuggingPort=9222` 起开发模式并自动附加       |
-| 调试主进程（仅附加） | 应用已在运行时手动附加                                     |
+| 调试配置                   | 说明                                                                                                |
+| -------------------------- | --------------------------------------------------------------------------------------------------- |
+| 调试界面（WebView2）       | 用 Chrome 调试器附加到 9222；端口由 `dev:webview` 通过 `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS` 打开 |
+| 调试宿主（Rust）           | `cppvsdbg` 启动 debug 版 exe（`preLaunchTask` 先 cargo 再起 Vite），可断点 Rust 代码                |
+| 调试界面（仅附加，不启动） | 应用（或 `dev:webview`）已经在跑时手动附加                                                          |
 
-渲染层也可以直接按 `F12` 打开 DevTools（开发模式下由 `@electron-toolkit/utils` 提供）。
+装的是 CodeLLDB 的话，把宿主调试配置的 `type` 换成 `lldb` 即可，`program` 路径不变。
+
+渲染层也可以直接按 `F12` 打开 DevTools：开发模式的窗口默认开着，不需要额外参数。
 
 ## 测试
 
-| 层次       | 位置                                     | 覆盖内容                                                            |
-| ---------- | ---------------------------------------- | ------------------------------------------------------------------- |
-| 引擎一致性 | `src/core/__tests__/tyme4ts-conformance` | 直接移植 `vendor/tyme4ts/test/**` 的断言，作为 DTO 字段映射是否正确 |
-| 引擎单元   | `src/core/__tests__/*`                   | 日期步进、月/年网格、换算、检索、八字、术语表、性能预算             |
-| 渲染层集成 | `src/renderer/src/__tests__/*`           | jsdom + 伪 preload bridge：视图切换、选日、主题、工具页、快捷键     |
-| 架构契约   | `tests/theme-tokens.test.ts`             | 配色是否越界、主题 token 是否完整                                   |
-| 打包契约   | `tests/packaging-contract.test.ts`       | 主进程 / preload 没有引入运行时要 `require` 的 `dependencies`       |
-| 释义契约   | `tests/glossary-contract.test.ts`        | 词条的 key 都在引擎表里、引文逐字可查、缺口显式                     |
-| 文案契约   | `tests/i18n-contract.test.ts`            | 各语言目录的键对齐、渲染层硬编码中文只减不增                        |
-| 骨架契约   | `tests/splash-contract.test.ts`          | 首帧骨架的文案与目录逐字一致、配色全在 tokens 里、脚本面守住 CSP    |
+| 层次       | 位置                                     | 覆盖内容                                                                                                                             |
+| ---------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| 引擎一致性 | `src/core/__tests__/tyme4ts-conformance` | 直接移植 `vendor/tyme4ts/test/**` 的断言，作为 DTO 字段映射是否正确                                                                  |
+| 引擎单元   | `src/core/__tests__/*`                   | 日期步进、月/年网格、换算、检索、八字、术语表、性能预算                                                                              |
+| 渲染层集成 | `src/renderer/src/__tests__/*`           | jsdom + 伪 `window.tyme`：视图切换、选日、主题、工具页、快捷键                                                                       |
+| 架构契约   | `tests/theme-tokens.test.ts`             | 配色是否越界、主题 token 是否完整                                                                                                    |
+| 宿主契约   | `tests/host-boundary.test.ts`            | 分层禁令、命令/事件/参数名跨语言对账、`tauri.conf.json` 不变式、能力清单范围、产物名与更新器正则同源、打出的 bundle 不留裸 `require` |
+| 释义契约   | `tests/glossary-contract.test.ts`        | 词条的 key 都在引擎表里、引文逐字可查、缺口显式                                                                                      |
+| 文案契约   | `tests/i18n-contract.test.ts`            | 各语言目录的键对齐、渲染层硬编码中文只减不增                                                                                         |
+| 骨架契约   | `tests/splash-contract.test.ts`          | 首帧骨架的文案与目录逐字一致、配色全在 tokens 里、Rust 侧注入规则与 TS 规范同源                                                      |
 
 `perf.test.ts` 用宽松上限（约实测值的 10 倍）守住数量级回退，例如网格单元不得退化成构建完整黄历。
 
 渲染层测试通过在文件顶部加 `// @vitest-environment jsdom` 单独选择 DOM 环境，`vitest.config.ts`
 的默认环境仍是 `node`（core 测试不需要 DOM，跑得更快）。
+
+`tests/host-boundary.test.ts` 里那组「打出的 bundle」检查会读 `dist/`，缺产物时自己跑一次
+`npx vite build`；平时先 `npm run build` 再 `npm test`，能省掉这十几秒。

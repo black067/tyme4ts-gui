@@ -145,14 +145,14 @@ describe('settings screen', () => {
     expect(screen.getByRole('heading', { name: '2024年6月' })).toBeInTheDocument()
   })
 
-  it('shows the version, author and runtime from the main process', async () => {
+  it('shows the version, author and runtime from the host', async () => {
     await openSettings()
 
     // 这些只读信息同属一个「关于」区块：版本、作者、运行时、数据目录。
     // 版本号在这里只出现一次——「更新」区块有它自己的版本号。
     expect(await screen.findByText('0.0.0-test')).toBeInTheDocument()
     expect(screen.getByText('Tester <tester@example.com>')).toBeInTheDocument()
-    expect(screen.getByText(/Electron test · Chromium test · Node test/)).toBeInTheDocument()
+    expect(screen.getByText(/Tauri 0\.0\.0-test · WebView2 0\.0\.0-test/)).toBeInTheDocument()
   })
 
   it('lists third-party licences and the asset credit', async () => {
@@ -166,7 +166,7 @@ describe('settings screen', () => {
       screen.getByRole('link', { name: 'https://github.com/6tail/tyme4ts' })
     ).toBeInTheDocument()
     expect(
-      screen.getByRole('link', { name: 'https://github.com/electron/electron' })
+      screen.getByRole('link', { name: 'https://github.com/tauri-apps/tauri' })
     ).toBeInTheDocument()
     expect(
       screen.getByRole('link', { name: 'https://github.com/TanStack/virtual' })

@@ -1,5 +1,4 @@
 node_modules/
-out/
 dist/
 release/
 coverage/
@@ -7,6 +6,17 @@ vendor/
 .eslintcache
 *.tsbuildinfo
 package-lock.json
+
+# Rust 宿主的构建产物与 Tauri 自动生成的权限 schema。它们不是人写的代码，
+# 交给 cargo 与 `tauri build` 自己管；格式化它们只会把 diff 变成噪音。
+src-tauri/target/
+src-tauri/gen/
+
+# Cargo.lock 由 cargo 写出，保持它的原始换行，不然每次构建都会重排一次。
+src-tauri/Cargo.lock
+
+# 图标目录里只有位图与 .ico，但 tauri icon 也会写一个 README，别去动它。
+src-tauri/icons/
 
 # Verbatim third-party data snapshots (see scripts/glossary/fetch-holidays.mjs).
 # They must stay byte-identical to what the source published, or the tests no

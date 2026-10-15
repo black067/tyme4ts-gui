@@ -2,7 +2,7 @@
 /**
  * 更新小节的接线测试。
  *
- * 重点是「主进程推状态 → 界面跟着变」这条链路，以及「已是最新」是**标记**而不是
+ * 重点是「后端推状态 → 界面跟着变」这条链路，以及「已是最新」是**标记**而不是
  * 一句话——那是刻意的排版决定，顺手用测试钉住。
  */
 import { afterEach, describe, expect, it } from 'vitest'
@@ -51,7 +51,7 @@ describe('更新小节', () => {
     expect(screen.getByText(/上次检查|尚未检查过/)).toBeInTheDocument()
   })
 
-  it('点击检查会请求主进程', async () => {
+  it('点击检查会请求后端', async () => {
     const bridge = await renderApp()
     await openSettings()
 

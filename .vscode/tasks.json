@@ -5,7 +5,7 @@
       "label": "dev",
       "type": "npm",
       "script": "dev",
-      "detail": "启动 Electron 开发模式（主进程 / preload / 渲染进程均带热更新）",
+      "detail": "启动 Tauri 开发模式（Rust 宿主 + Vite 热更新；前端改动即时生效，改 Rust 会重新编译）",
       "isBackground": true,
       "group": {
         "kind": "build",
@@ -18,16 +18,83 @@
         "group": "dev"
       },
       "problemMatcher": {
-        "owner": "electron-vite",
-        "source": "electron-vite",
-        "fileLocation": ["relative", "${workspaceFolder}"],
-        "pattern": {
-          "regexp": "^(?:.{0})$"
-        },
+        "owner": "tauri-dev",
+        "source": "rustc",
+        "fileLocation": ["relative", "${workspaceFolder}/src-tauri"],
+        "pattern": [
+          {
+            "regexp": "^(warning|error)(?:\\[(?:E\\d+|CL\\d+)\\])?\\s+(\\S.+)$",
+            "severity": 1,
+            "message": 2
+          },
+          {
+            "regexp": "^\\s+-->\\s+(.+):(\\d+):(\\d+)$",
+            "file": 1,
+            "line": 2,
+            "column": 3
+          }
+        ],
         "background": {
           "activeOnStart": true,
-          "beginsPattern": "^> electron-vite dev",
+          "beginsPattern": "^\\s*(Compiling|Building|Running)",
           "endsPattern": "\\[tyme-app\\] main window ready"
+        }
+      }
+    },
+    {
+      "label": "dev:webview",
+      "type": "shell",
+      "command": "npm run dev",
+      "options": {
+        "env": {
+          // 让 WebView2 开放 CDP 端口，VS Code 的 chrome 调试配置才连得上前端。
+          // 只有这一个用途；不带这个变量时开发模式的 F12 已经够用。
+          "WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS": "--remote-debugging-port=9222"
+        }
+      },
+      "detail": "带远程调试端口 9222 启动开发模式（供 launch.json 的前端调试配置使用）",
+      "isBackground": true,
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": false,
+        "group": "dev"
+      },
+      "problemMatcher": {
+        "owner": "tauri-dev",
+        "source": "rustc",
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^\\s*(Compiling|Building|Running)",
+          "endsPattern": "\\[tyme-app\\] main window ready"
+        },
+        "pattern": {
+          "regexp": "^(?:.{0})$"
+        }
+      }
+    },
+    {
+      "label": "dev:web",
+      "type": "npm",
+      "script": "dev:web",
+      "detail": "只起 Vite（在浏览器里看界面；涉及宿主能力的部分会因为没有 window.tyme 而不工作）",
+      "isBackground": true,
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": false,
+        "group": "dev"
+      },
+      "problemMatcher": {
+        "owner": "vite",
+        "source": "vite",
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^\\s*VITE",
+          "endsPattern": "ready in"
+        },
+        "pattern": {
+          "regexp": "^(?:.{0})$"
         }
       }
     },
@@ -35,7 +102,7 @@
       "label": "build",
       "type": "npm",
       "script": "build",
-      "detail": "类型检查 + 构建生产产物到 out/（快速验证用，不产出安装包）",
+      "detail": "类型检查 + 构建前端到 dist/（快速验证用，不产出 exe）",
       "group": "build",
       "presentation": {
         "reveal": "always",
@@ -48,7 +115,7 @@
       "label": "package",
       "type": "npm",
       "script": "package",
-      "detail": "构建并打包为免安装便携版 exe，产物在 release/",
+      "detail": "cargo release 构建并整理为单文件便携版 exe，产物在 release/",
       "group": "build",
       "presentation": {
         "reveal": "always",
@@ -58,23 +125,11 @@
       "problemMatcher": ["$tsc"]
     },
     {
-      "label": "package:dir",
-      "type": "npm",
-      "script": "package:dir",
-      "detail": "只解包到 release/win-unpacked（打包速度更快，用于先验证再出单文件 exe）",
+      "label": "build:host:debug",
+      "type": "shell",
+      "command": "cargo build --manifest-path src-tauri/Cargo.toml",
+      "detail": "编译 Rust 宿主的 debug 版（供 launch.json 的宿主调试配置使用）",
       "group": "build",
-      "presentation": {
-        "reveal": "always",
-        "panel": "shared",
-        "clear": true
-      },
-      "problemMatcher": ["$tsc"]
-    },
-    {
-      "label": "clean",
-      "type": "npm",
-      "script": "clean",
-      "detail": "删除 out/ release/ .tsbuild/（打包报 EBUSY 时用它清理被占用的产物目录）",
       "presentation": {
         "reveal": "always",
         "panel": "shared",
@@ -83,15 +138,23 @@
       "problemMatcher": []
     },
     {
-      "label": "preview",
+      // 调试宿主需要两件事同时成立：exe 存在，且 devUrl 后面有 Vite 在应答。
+      // 顺序执行——先 cargo，再起 Vite（Vite 是后台任务，只有它打出 ready 才算准备好）。
+      "label": "host:debug:prepare",
+      "dependsOn": ["build:host:debug", "dev:web"],
+      "dependsOrder": "sequence",
+      "detail": "编译 debug 宿主并起 Vite（launch.json 的宿主调试配置用它当 preLaunchTask）",
+      "problemMatcher": []
+    },
+    {
+      "label": "clean",
       "type": "npm",
-      "script": "preview",
-      "detail": "用构建产物启动应用（等价于跑一次 npm run build 后的成品）",
+      "script": "clean",
+      "detail": "删除 dist/ release/ .tsbuild/（打包报 EBUSY 时用它清理被占用的产物目录）",
       "presentation": {
         "reveal": "always",
-        "panel": "dedicated",
-        "clear": false,
-        "group": "dev"
+        "panel": "shared",
+        "clear": true
       },
       "problemMatcher": []
     },
@@ -99,7 +162,7 @@
       "label": "typecheck",
       "type": "npm",
       "script": "typecheck",
-      "detail": "主进程侧 + 渲染进程侧类型检查（不改动任何文件）",
+      "detail": "Node 侧 + webview 侧类型检查（不改动任何文件）",
       "presentation": {
         "reveal": "always",
         "panel": "shared",
@@ -137,6 +200,7 @@
       "type": "npm",
       "script": "test:watch",
       "detail": "Vitest 监听模式",
+      "group": "test",
       "presentation": {
         "reveal": "always",
         "panel": "dedicated",
@@ -168,58 +232,6 @@
         "clear": true
       },
       "problemMatcher": []
-    },
-    {
-      "label": "dev:inspect",
-      "type": "shell",
-      "command": "npm run dev -- --inspect=5858",
-      "detail": "以主进程调试端口 5858 启动开发模式（供 launch.json 的调试配置使用）",
-      "isBackground": true,
-      "presentation": {
-        "reveal": "always",
-        "panel": "dedicated",
-        "clear": false,
-        "group": "dev"
-      },
-      "problemMatcher": {
-        "owner": "electron-vite",
-        "source": "electron-vite",
-        "fileLocation": ["relative", "${workspaceFolder}"],
-        "pattern": {
-          "regexp": "^(?:.{0})$"
-        },
-        "background": {
-          "activeOnStart": true,
-          "beginsPattern": "^> electron-vite dev",
-          "endsPattern": "\\[tyme-app\\] main window ready"
-        }
-      }
-    },
-    {
-      "label": "dev:remote-debug",
-      "type": "shell",
-      "command": "npm run dev -- --remoteDebuggingPort=9222",
-      "detail": "以渲染进程调试端口 9222 启动开发模式（供 launch.json 的调试配置使用）",
-      "isBackground": true,
-      "presentation": {
-        "reveal": "always",
-        "panel": "dedicated",
-        "clear": false,
-        "group": "dev"
-      },
-      "problemMatcher": {
-        "owner": "electron-vite",
-        "source": "electron-vite",
-        "fileLocation": ["relative", "${workspaceFolder}"],
-        "pattern": {
-          "regexp": "^(?:.{0})$"
-        },
-        "background": {
-          "activeOnStart": true,
-          "beginsPattern": "^> electron-vite dev",
-          "endsPattern": "\\[tyme-app\\] main window ready"
-        }
-      }
     }
   ]
 }

@@ -183,18 +183,7 @@ export function SettingsView({ onClose }: { onClose: () => void }): ReactElement
               label={t.settings.about.authorLabel}
               value={info?.author || t.settings.about.missingAuthor}
             />
-            <Row
-              label={t.settings.about.runtimeLabel}
-              value={
-                info
-                  ? t.settings.about.runtimeVersions({
-                      electron: info.electron,
-                      chromium: info.chrome,
-                      node: info.node
-                    })
-                  : t.common.pending
-              }
-            />
+            <Row label={t.settings.about.runtimeLabel} value={info?.runtime ?? t.common.pending} />
             <Row
               label={t.settings.about.dataDirLabel}
               value={info?.userDataPath ?? t.common.pending}

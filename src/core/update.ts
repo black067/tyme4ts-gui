@@ -1,14 +1,15 @@
 /**
  * Update check: version precedence and GitHub Releases asset selection.
  *
- * Pure by design — no `https`, no Electron, no Node API — so the network layer
- * in the main process stays a thin adapter and every rule below is unit
- * testable. It also keeps the main process free of runtime dependencies, which
- * `tests/packaging-contract.test.ts` requires.
+ * Pure by design — no `https`, no host API, no Node API — so the network layer in
+ * `src/backend` stays a thin adapter and every rule below is unit testable. It also
+ * keeps `src/core` importable from anywhere, including the tests, with no host at all.
  *
- * `electron-updater` is deliberately not used: it can only auto-update the NSIS
- * Windows target, while this app ships a `portable` single-file exe, and it
- * would add a runtime dependency the package does not carry.
+ * `tauri-plugin-updater` is deliberately not used, for the same reason `electron-updater`
+ * wasn't: it updates a *managed installation* (an MSI/NSIS target plus a signed
+ * `latest.json` manifest), while this app ships one portable exe on GitHub Releases.
+ * Checking Releases through the public API needs no plugin either — and the plugin would
+ * add an ACL surface we would then have to keep out of the way.
  *
  * The JSON this module reads comes over the network, so it is treated as
  * hostile: every parser coerces instead of trusting, and failure is a returned
@@ -16,13 +17,16 @@
  */
 
 /**
- * Asset name produced by `portable.artifactName` in electron-builder.yml
- * (`chinese-calendar-${version}-portable.${ext}`), e.g.
+ * Asset name produced by `artifactName()` in `scripts/package.mjs`
+ * (`chinese-calendar-${version}-portable.exe`), e.g.
  * `chinese-calendar-0.1.3-portable.exe`.
  *
  * Matching a pattern rather than an exact string survives a version bump, and
  * the capture group doubles as the authoritative artifact version. Do not add
  * the `g` flag: `test()`/`exec()` would then depend on `lastIndex`.
+ *
+ * `tests/host-boundary.test.ts` reconciles this with the packaging script; the name
+ * stays ASCII on purpose because GitHub Releases drops CJK asset file names.
  */
 export const PORTABLE_ASSET_PATTERN =
   /^chinese-calendar-(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?)-portable\.exe$/i

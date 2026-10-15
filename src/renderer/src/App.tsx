@@ -64,9 +64,9 @@ export function App(): ReactElement {
 /**
  * Waits for the persisted settings before mounting the shell.
  *
- * Reading them takes one IPC round trip, and mounting only afterwards lets the
- * shell seed its state from real values instead of syncing them in an effect.
- * While that round trip is in flight the user is not looking at a blank page:
+ * Reading them is one awaited call into the in-process backend, and mounting only
+ * afterwards lets the shell seed its state from real values instead of syncing them
+ * in an effect. While that call is in flight the user is not looking at a blank page:
  * the first frame is the static skeleton in `index.html`, and `AppShell`
  * dismisses it once the real UI has committed.
  */
@@ -170,9 +170,8 @@ function AppShell(): ReactElement {
 
   const todaySummary = useMemo(() => buildDaySummary(today), [today])
 
-  // Electron derives the native window title from the page title, so setting it
-  // here is what keeps the title bar (and the taskbar entry) in the same
-  // language as the rest of the chrome.
+  // 宿主把 document.title 同步进原生标题栏（src-tauri/src/lib.rs 里的
+  // on_document_title_changed），所以在这里改标题就等于让标题栏跟着界面语言一起变。
   useEffect(() => {
     document.title = info === null ? t.app.title : t.app.titleWithVersion({ version: info.version })
   }, [info, t])

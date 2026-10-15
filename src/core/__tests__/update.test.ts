@@ -379,10 +379,10 @@ describe('parseReleases', () => {
 })
 
 /**
- * `portable.artifactName` in electron-builder.yml —
+ * `artifactName()` in scripts/package.mjs —
  * `chinese-calendar-${version}-portable.${ext}`.
  *
- * 这里刻意用字面量 + package.json 里的真实版本，而不是读 electron-builder.yml：
+ * 这里刻意用字面量 + package.json 里的真实版本，而不是 import 打包脚本：
  * `src/core/**` 同时被 tsconfig.web.json 编译，那里没有 Node 类型（这是有意的，
  * 防止 core 不小心依赖 Node），所以 core 的测试里不能 import `node:fs`。
  */
@@ -394,7 +394,7 @@ function realArtifactName(version: string): string {
 
 describe('PORTABLE_ASSET_PATTERN', () => {
   it('matches the artifact name this repo actually builds', () => {
-    // 反空转守卫：拿 package.json 里真实的版本，按 electron-builder.yml 的
+    // 反空转守卫：拿 package.json 里真实的版本，按打包脚本的
     // artifactName 拼出产物名，模式必须匹配它，否则下面所有断言都可能跑在一个
     // 不存在的世界里。
     expect(manifest.version).toMatch(/^\d+\.\d+\.\d+/)

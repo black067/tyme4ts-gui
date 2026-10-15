@@ -1,6 +1,15 @@
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
-import { app } from 'electron'
+/**
+ * 设置持久化。
+ *
+ * 逐字移植自 Electron 时代的 `src/main/settings.ts`：字段逐个校验、缓存、原子写盘
+ * 三件事都保持原样，只有两点不同——
+ *
+ * 1. 文件读写交给 `host.ts`（也就是 plugin-fs），不再直接用 `node:fs`；
+ * 2. 于是所有入口都变成异步的。缓存语义没变：同一个 realm 里读到的仍是同一个对象，
+ *    今天靠"主进程只有一份设置"保证的事，现在靠"整个应用只有一个 JS 世界"保证。
+ *
+ * 路径写成相对应用数据目录的 `settings.json`，位置与今天完全一致。
+ */
 import {
   createDefaultSettings,
   isAppearanceMode,
@@ -8,6 +17,9 @@ import {
   isViewId,
   type AppSettings
 } from '@shared/ipc'
+import { readText, replace, writeText } from './host'
+
+const SETTINGS_FILE = 'settings.json'
 
 /** `YYYY-MM-DD` for the local calendar day, matching `DateKey`'s ISO form. */
 function localTodayIso(): string {
@@ -64,52 +76,33 @@ function normalize(raw: unknown): AppSettings {
 
 let cached: AppSettings | null = null
 
-function settingsPath(): string {
-  return join(app.getPath('userData'), 'settings.json')
-}
-
-/**
- * Whether a settings file existed on disk when this process first looked —
- * the difference between a genuine first run and a user who simply has not
- * saved anything. Cached, because a later write in the same session must not
- * re-flag the launch as first-run.
- */
-let hadStoredFile: boolean | null = null
-
-export function hasStoredSettings(): boolean {
-  if (hadStoredFile === null) {
-    try {
-      hadStoredFile = existsSync(settingsPath())
-    } catch {
-      hadStoredFile = false
-    }
-  }
-  return hadStoredFile
-}
-
-export function readSettings(): AppSettings {
+export async function readSettings(): Promise<AppSettings> {
   if (cached !== null) return cached
-  try {
-    cached = normalize(JSON.parse(readFileSync(settingsPath(), 'utf8')))
-  } catch {
+  const raw = await readText(SETTINGS_FILE)
+  if (raw === null) {
     // Missing or unreadable file on first run: fall back to defaults.
+    cached = createDefaultSettings(localTodayIso())
+    return cached
+  }
+  try {
+    cached = normalize(JSON.parse(raw))
+  } catch {
     cached = createDefaultSettings(localTodayIso())
   }
   return cached
 }
 
-export function updateSettings(patch: Partial<AppSettings>): AppSettings {
-  cached = normalize({ ...readSettings(), ...patch })
-  persist(cached)
+export async function updateSettings(patch: Partial<AppSettings>): Promise<AppSettings> {
+  cached = normalize({ ...(await readSettings()), ...patch })
+  await persist(cached)
   return cached
 }
 
-/** Writes atomically so a crash mid-write cannot leave a truncated settings file. */
-function persist(settings: AppSettings): void {
-  const target = settingsPath()
-  mkdirSync(dirname(target), { recursive: true })
-  const temp = `${target}.tmp`
-  writeFileSync(temp, `${JSON.stringify(settings, null, 2)}\n`, 'utf8')
-  renameSync(temp, target)
-  hadStoredFile = true
+/** 原子写：临时文件 + 改名，崩溃时不会留下半截设置文件。 */
+async function persist(settings: AppSettings): Promise<void> {
+  // 应用数据目录本身由宿主在建窗口前建好（`src-tauri/src/splash.rs` 的 `data_dir`），
+  // 这里只负责临时文件与改名两步。
+  const temp = `${SETTINGS_FILE}.tmp`
+  await writeText(temp, `${JSON.stringify(settings, null, 2)}\n`)
+  await replace(temp, SETTINGS_FILE)
 }

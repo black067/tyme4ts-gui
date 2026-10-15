@@ -19,18 +19,25 @@
  *
  * 另外钉住主题串格式：`resolvedSplashTheme()` 与 `theme/themes/*` 的
  * `variants` 必须给出一样的 `data-theme` 值，否则首帧与 React 起来之后会换装。
+ *
+ * 4. **宿主这一半**——窗口现在由 Rust 创建（`src-tauri/src/splash.rs`），首帧的三个输入
+ *    由它经一段初始化脚本递给页面。底色字面量、`window.__TAYME_SPLASH__` 这个键名、
+ *    主题串的拼法，都是跨语言抄了一遍的同一套规则：抄错不会编译失败，只会首帧闪错色。
+ *    所以这里直接读 Rust 源文本，跟 `src/shared/splash.ts` 逐项对账。
  */
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_LOCALE, LOCALES } from '../src/shared/ipc'
-import { resolvedSplashTheme, splashBackground, splashSearch } from '../src/shared/splash'
+import { resolvedSplashTheme, splashBackground, splashBootstrap } from '../src/shared/splash'
 import { THEMES, DEFAULT_THEME } from '../src/renderer/src/theme/themes'
 import { getMessages } from '../src/renderer/src/i18n/messages'
 
 const ROOT = process.cwd()
 const HTML_PATH = join(ROOT, 'src', 'renderer', 'index.html')
 const TOKENS_PATH = join(ROOT, 'src', 'renderer', 'src', 'theme', 'tokens.css')
+const SPLASH_JS_PATH = join(ROOT, 'src', 'renderer', 'public', 'splash.js')
+const RUST_SPLASH_PATH = join(ROOT, 'src-tauri', 'src', 'splash.rs')
 
 const html = readFileSync(HTML_PATH, 'utf8')
 const tokens = readFileSync(TOKENS_PATH, 'utf8')
@@ -133,12 +140,104 @@ describe('骨架屏配色不许自成一套', () => {
     }
   })
 
-  it('查询串把主题、语言、首启三样都带上', () => {
-    const search = splashSearch('classic', 'zh-Hans', true, true)
-    expect(search).toContain('dt=classic-dark')
-    expect(search).toContain('locale=zh-Hans')
-    expect(search).toContain('first=1')
-    expect(splashSearch('minimal', 'zh-Hans', false, false)).not.toContain('first')
+  it('递给骨架屏的三个输入把主题、语言、首启都带上', () => {
+    const bootstrap = splashBootstrap('classic', 'zh-Hans', true, true)
+    expect(bootstrap.dt).toBe('classic-dark')
+    expect(bootstrap.locale).toBe('zh-Hans')
+    expect(bootstrap.first).toBe(true)
+
+    const quiet = splashBootstrap('minimal', 'zh-Hans', false, false)
+    expect(quiet.dt).toBe('minimal-light')
+    expect(quiet.first).toBe(false)
+  })
+})
+
+/**
+ * 宿主这一半是规范的另一份抄本，改动最不容易被发现的地方。
+ *
+ * 底色写错、`window.__TAYME_SPLASH__` 这个键名写错、主题串写成 `light-minimal`：
+ * 三种都不会让 Rust 编译失败，也不会让 TS 类型检查失败，只会在用户机上表现为
+ * "首帧闪一下错色"或"首帧永远是默认主题"。所以直接从源文本对账。
+ */
+describe('宿主（Rust）抄的这套规则与 TS 规范一致', () => {
+  const rust = readFileSync(RUST_SPLASH_PATH, 'utf8')
+  const splashJs = readFileSync(SPLASH_JS_PATH, 'utf8')
+
+  /** 从 `background_rgb` 里抠出四组字面量，键成 `{theme}-{variant}`。 */
+  function rustBackgrounds(): Map<string, string> {
+    const body = rust.slice(rust.indexOf('fn background_rgb'))
+    const out = new Map<string, string>()
+    for (const match of body.matchAll(
+      /\((?:"([a-z]+)"|_),\s*(true|false)\)\s*=>\s*\[0x([0-9a-f]{2}),\s*0x([0-9a-f]{2}),\s*0x([0-9a-f]{2}),\s*0x([0-9a-f]{2})\]/gi
+    )) {
+      const theme = (match[1] ?? '*').toLowerCase()
+      const variant = match[2] === 'true' ? 'dark' : 'light'
+      out.set(`${theme}-${variant}`, `#${match[3]}${match[4]}${match[5]}`.toLowerCase())
+    }
+    return out
+  }
+
+  it('底色表能解析出四组字面量（抠不动就说明 Rust 的写法变了）', () => {
+    // 反空转守卫：正则一旦够不着新的写法，下面的对账会全部变成"没东西可对"。
+    expect([...rustBackgrounds().keys()].sort()).toEqual([
+      '*-dark',
+      '*-light',
+      'classic-dark',
+      'classic-light'
+    ])
+  })
+
+  it('每个主题的底色与 splashBackground() 相同', () => {
+    const rustColors = rustBackgrounds()
+    for (const theme of THEMES) {
+      for (const dark of [false, true]) {
+        const key = `${theme.id === 'classic' ? 'classic' : '*'}-${dark ? 'dark' : 'light'}`
+        expect(
+          rustColors.get(key),
+          `${resolvedSplashTheme(theme.id, dark)}：Rust 抄本 vs splashBackground()`
+        ).toBe(splashBackground(theme.id, dark).toLowerCase())
+      }
+    }
+  })
+
+  it('alpha 恒为 255：底色不需要透明，透明会让窗口在出现那一瞬透出桌面', () => {
+    for (const match of rust
+      .slice(rust.indexOf('fn background_rgb'))
+      .matchAll(/0x([0-9a-f]{2})\]/gi)) {
+      expect((match[1] ?? '').toLowerCase()).toBe('ff')
+    }
+  })
+
+  it('主题串按 {theme_id}-{variant} 拼', () => {
+    expect(rust).toMatch(/"dt":\s*format!\("\{theme_id\}-\{variant\}"/)
+    expect(rust).toMatch(/let variant = if dark \{ "dark" \} else \{ "light" \}/)
+  })
+
+  it('三个输入经 window.__TAYME_SPLASH__ 递交，键名三处一致', () => {
+    expect(rust).toContain('window.__TAYME_SPLASH__')
+    expect(splashJs).toContain('window.__TAYME_SPLASH__')
+    // TS 侧那份声明（宿主注入的对象形状）。
+    const globals = readFileSync(join(ROOT, 'src', 'backend', 'global.d.ts'), 'utf8')
+    expect(globals).toContain('__TAYME_SPLASH__')
+    for (const key of ['dt', 'locale', 'first']) {
+      expect(rust).toMatch(new RegExp(`"${key}"`))
+      expect(splashJs).toMatch(new RegExp(`\\.${key}\\b`))
+    }
+  })
+
+  it('查询串仍是回退路径（浏览器里直接跑 dev:web 时仍然可用）', () => {
+    expect(splashJs).toContain('URLSearchParams(window.location.search)')
+    expect(splashJs).toMatch(/injected\?\.dt \?\? fallback\.dt/)
+  })
+
+  it('宿主与 TS 用同一组默认值', () => {
+    expect(rust).toContain('const DEFAULT_THEME_ID: &str = "minimal"')
+    expect(rust).toContain('const DEFAULT_LOCALE: &str = "zh-Hans"')
+  })
+
+  it('深浅色的判据仍是注册表那一个键（与 Electron 的 nativeTheme 同源）', () => {
+    expect(rust).toContain('AppsUseLightTheme')
+    expect(rust).toContain('Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize')
   })
 })
 

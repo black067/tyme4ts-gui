@@ -175,4 +175,4 @@ tests/fixtures/jinshu-tianwenzhi/   《晋书·天文志》卷十一–十三（
 
 `src/core/glossary/**` **不 import tyme4ts**——它保持纯数据，引擎的权威名单由测试自己引入并交叉校验。
 
-fixture 放 `tests/` 而不是 `src/`：运行时永不 import，`electron-builder.yml` 已排除 `tests/**`，不会进 asar；同时它是引文校验的输入。
+fixture 放 `tests/` 而不是 `src/`：运行时永不 import，Vite 只会把 `src/renderer` 里被 import 到的东西打进 `dist/`，`tests/**` 根本进不了产物；同时它是引文校验的输入。

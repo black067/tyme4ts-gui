@@ -23,7 +23,7 @@ export async function setField(element: HTMLElement, value: string): Promise<voi
   })
 }
 
-/** Installs the fake preload bridge and renders the app once settings load. */
+/** Installs the fake `window.tyme` facade and renders the app once settings load. */
 export async function renderApp(overrides: Partial<AppSettings> = {}): Promise<FakeBridge> {
   const bridge = installFakeBridge({
     lastViewedDate: '2024-06-26',

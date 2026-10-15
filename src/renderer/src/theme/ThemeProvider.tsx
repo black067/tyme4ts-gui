@@ -40,7 +40,7 @@ export function ThemeProvider({ children }: { children: ReactNode }): ReactEleme
     document.documentElement.dataset.theme = resolvedThemeId
   }, [resolvedThemeId])
 
-  // Keep Electron's own theme source in step so native chrome matches.
+  // 让宿主窗口的深浅色跟着设置走，标题栏才与页面同色调（system 交给系统判定）。
   useEffect(() => {
     void window.tyme.theme.setNative(settings.appearance)
   }, [settings.appearance])

@@ -1,13 +1,14 @@
-# 抓取 Electron 窗口内容，用于在无人值守时验证界面。
+# 抓取窗口内容，用于在无人值守时验证界面。
 #
 # 用法：
 #   pwsh -NoProfile -File scripts/capture-window.ps1 -Out shot.png
-#   pwsh -NoProfile -File scripts/capture-window.ps1 -Out shot.png -ProcessName 万年历
+#   pwsh -NoProfile -File scripts/capture-window.ps1 -Out shot.png -ProcessName 'chinese-calendar*'
 #
-# 开发模式（npm run dev）进程名是 electron；打包后是 productName（万年历）。
+# 默认用通配：`tauri dev` 的进程名是 `chinese-calendar`，而发布产物的文件名带着版本号
+# （`chinese-calendar-0.1.4-portable.exe`），进程名跟着文件名走，精确匹配会漏掉后者。
 param(
   [string]$Out = "$env:TEMP\tyme-shot.png",
-  [string]$ProcessName = 'electron'
+  [string]$ProcessName = 'chinese-calendar*'
 )
 Add-Type -TypeDefinition @'
 using System;
@@ -34,6 +35,8 @@ if ($w -le 0 -or $ht -le 0) { Write-Host "WINDOW HAS NO SIZE ($w x $ht)"; exit 1
 $bmp = New-Object System.Drawing.Bitmap $w, $ht
 $g = [System.Drawing.Graphics]::FromImage($bmp)
 $hdc = $g.GetHdc()
+# flags=2 是 PW_RENDERFULLCONTENT：webview 的内容走 DirectComposition 合成，
+# 不带这个标志抓出来是黑底。Win10 1709+ 支持。
 $ok = [WinShot]::PrintWindow($h, $hdc, 2)
 $g.ReleaseHdc($hdc); $g.Dispose()
 $bmp.Save($Out, [System.Drawing.Imaging.ImageFormat]::Png); $bmp.Dispose()

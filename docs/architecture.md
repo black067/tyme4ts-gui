@@ -4,89 +4,127 @@
 
 ```
 src/
-├─ main/        Electron 主进程：窗口、设置持久化、IPC handler
-├─ preload/     通过 contextBridge 暴露 window.tyme
-├─ shared/      主进程与渲染进程共用的 IPC 契约与类型
-├─ core/        纯 TypeScript 历法内核（零 Electron / React / DOM 依赖）
+├─ core/        纯 TypeScript 历法内核（零框架、零 DOM、零宿主依赖）
 │  └─ glossary/ 术语释义：纯数据 + 查表，同样不依赖引擎
-└─ renderer/    React 界面：视图、组件、主题、语言、hooks；index.html 带零脚本
-                依赖的首帧骨架屏，public/splash.js 在首帧前写入主题/语言/首启
-tests/          读取源码树的架构契约测试（配色 / token、打包前提、术语释义、语言、骨架）
+├─ shared/      跨层共用的契约与类型：window.tyme 的形状、命令名、事件名
+├─ backend/     能力层：实现 window.tyme。跑在 webview 里，是唯一知道 Tauri 存在的地方
+├─ renderer/    React 界面：视图、组件、主题、语言、hooks；index.html 带零脚本
+│               依赖的首帧骨架屏，public/splash.js 在首帧前写入主题/语言/首启
+src-tauri/      Rust 宿主：窗口、单实例、更新下载、WebView2 运行库
+│  ├─ src/      lib.rs 装配 + splash.rs 首帧 + update.rs 下载 + webview.rs 运行库
+│  ├─ capabilities/default.json  文件与网络的权限清单
+│  ├─ tauri.conf.json            窗口默认值、devUrl、数据目录覆盖
+│  └─ icons/                     由 scripts/make-icon.mjs 从 assets/calendar.svg 生成
+tests/          读取源码树的架构契约测试（配色 / token、层边界与跨语言契约、术语释义、语言、骨架）
 tests/fixtures/ 术语释义校验用的公版原文与其它测试数据（不进包）
-scripts/        开发辅助脚本（clean.mjs、截图验证、术语抓取、语言基线）
+scripts/        开发辅助脚本（clean / make-icon / package / 截图验证 / 术语抓取 / 语言基线）
 docs/           本目录
 .vscode/        tasks.json / launch.json / settings.json（构建产物监听排除）
 .github/        Actions 工作流（见 packaging.md）
-electron-builder.yml  便携版打包配置
 vendor/tyme4ts/ 只读 git submodule，用于查阅 tyme4ts 源码
 ```
 
-`main` 与 `preload` 的产物只 `require('electron')` 和 `node:` 内置模块（其余依赖已全部被 Vite
-打进 bundle），因此打包时不需要任何运行时 `node_modules`。
-
-这条约束有前提：electron-vite 的 `externalizeDepsPlugin()` 会把 `dependencies` 里出现过的包
-改写成运行时 `require()`。所以**主进程与 preload 不得从 `dependencies` 导入任何包**，由
-`tests/packaging-contract.test.ts` 在 `npm test` 里守住。
+`src-tauri/target/` 与 `src-tauri/gen/` 是 cargo 与 Tauri 的产物目录，不进版本库。
 
 ## 模块边界（由 ESLint 强制）
 
 1. `src/renderer/**` **只允许**从 `@core` 单一入口导入，**禁止**直接 `import 'tyme4ts'`
-   或深入 `@core/*` 内部模块。
-2. `src/core/**` 不得导入 Electron、React 或任何 DOM API。
+   或深入 `@core/*` 内部模块；也**禁止**导入 `@backend/*` 与 `@tauri-apps/*`——界面只认
+   `window.tyme`，能力从哪来与它无关。
+2. `src/core/**` 不得导入 React、DOM、`@tauri-apps/*`、`node:*`，也不得反向依赖 renderer。
 3. `src/core` 对外暴露的全部是可序列化的普通对象（DTO），不泄露 tyme4ts 的类实例。
    core 的出口契约是「不可变」的：网格里的同一天在不同月份共享同一个对象。
-4. `vendor/**` 被 tsconfig、ESLint、Prettier 全部忽略，不参与编译与检查。
-5. 渲染层组件**禁止硬编码颜色**，只能使用语义化主题 token（见 [theming.md](theming.md)）。
-6. `src/core/glossary/**` 是**纯数据**：不 import tyme4ts，也不碰 Electron / React / DOM。
+4. `src/shared/**` 只放契约与类型：不得导入 `@tauri-apps/*`、`node:*`、`@backend/*`。
+5. `src/backend/**` 里**只有 `host.ts`** 允许 `import '@tauri-apps/*'`；其余模块通过它拿
+   能力，这样"换宿主"这件事在代码里只有一个落点。例外是 `main.tsx`：它负责装配
+   `window.tyme`，因此可以导入 `@backend`。
+6. `vendor/**` 被 tsconfig、ESLint、Prettier 全部忽略，不参与编译与检查。
+7. 渲染层组件**禁止硬编码颜色**，只能使用语义化主题 token（见 [theming.md](theming.md)）。
+8. `src/core/glossary/**` 是**纯数据**：不 import tyme4ts，也不碰 React / DOM。
    引擎的权威名单由 `tests/glossary-contract.test.ts` 交叉校验。
-7. `src/renderer/src/i18n/**` 是**唯一的文案来源**：渲染层不得再写死中文，由
+9. `src/renderer/src/i18n/**` 是**唯一的文案来源**：渲染层不得再写死中文，由
    `tests/i18n-contract.test.ts` 按文件守住"只减不增"（见 [i18n.md](i18n.md)）。
-8. `src/renderer/index.html` 的首帧骨架屏是 i18n 目录与 `tokens.css` 的**受契约
-   副本**：文案逐字一致、颜色只许用既有 token 值、非 module 脚本只许
-   `public/splash.js` 一个，由 `tests/splash-contract.test.ts` 守住（见
-   [i18n.md](i18n.md)）。它存在的理由：窗口出现的第一帧必须已有内容，而那时
-   React 与文案层还没起来。
+10. `src/renderer/index.html` 的首帧骨架屏是 i18n 目录与 `tokens.css` 的**受契约
+    副本**：文案逐字一致、颜色只许用既有 token 值、非 module 脚本只许
+    `public/splash.js` 一个，由 `tests/splash-contract.test.ts` 守住（见
+    [i18n.md](i18n.md)）。它存在的理由：窗口出现的第一帧必须已有内容，而那时
+    React 与文案层还没起来。
 
-这些规则都写在 `eslint.config.mjs` 里，违反时会直接报错而不是警告。
+第 1–5 条由 `eslint.config.mjs` 强制，违反时直接报错而不是警告；第 5 条与
+`src-tauri` 的跨语言契约（命令名、事件名、权限范围、产物名）另由
+`tests/host-boundary.test.ts` 守住——ESLint 看不见 Rust，那些名字只能靠读源码树对账。
 
 ## 架构要点
 
 - **`src/core` 是唯一接触 tyme4ts 的地方。** 它把引擎的类实例转换成 plain object DTO，
-  因此这一层可以整体搬进 Web Worker 或主进程而无需改动调用方。
+  因此这一层与宿主、与 React 都无耦合。
 - **失败是返回值，不是异常。** `convert()` 与 `buildEightChar()` 返回
   `{ ok: false, error }`，工具页在用户输入过程中就地渲染错误。
 - **引擎能力按天分档。** `DaySummary`（0.17 ms/天）服务月/年网格，
   `DayInfo`（1.6 ms/天）只在日详情与时间轴按需构建，都由 LRU 缓存记忆化。
 - **选中日期是唯一真相。** 月、年、时间轴、键盘导航与侧栏全部由 `selected` 派生。
+- **Rust 不做业务判断。** 宿主只剩"窗口、进程、字节"三件事：建窗与显形、单实例、
+  流式下载 + SHA-256 校验、拉起新版。哪个版本算新版、下载哪个文件、失败后界面显示什么，
+  全在 TypeScript 里（`src/core/update.ts` + `src/backend/updater.ts`）。
 
 ## 数据流
 
 ```
 tyme4ts ──▶ src/core（DTO + LRU 缓存）──▶ React 组件
-                    ▲                          │
-                    │ 仅 @core 单一入口         │ 文案取自 renderer/src/i18n
-                    │                          ▼
-渲染进程 ──window.tyme──▶ preload（contextBridge）──IPC──▶ 主进程
-                                                          ├─ settings.json 读写
-                                                          ├─ nativeTheme.themeSource
-                                                          └─ app.getPath('userData')
+                     ▲                          │
+                     │ 仅 @core 单一入口         │ 文案取自 renderer/src/i18n
+                     │                          ▼
+                  （同一个 realm：webview）  src/backend ──window.tyme──┘
+                                  ├─ @tauri-apps/plugin-fs     settings.json / holidays 缓存
+                                  ├─ @tauri-apps/plugin-http   GitHub Releases 与节假日数据源
+                                  ├─ @tauri-apps/plugin-opener 外链交给系统浏览器
+                                  └─ invoke / listen  ──▶ Rust 宿主
+                                                          ├─ download_update  流式下载 + sha256
+                                                          ├─ cancel_update    置取消标志
+                                                          ├─ delete_update    删已下载文件
+                                                          └─ install_update   拉起新版并退出
 ```
 
-IPC 契约集中在 `src/shared/ipc.ts`（更新部分拆到 `src/shared/update.ts` 再 re-export），
-主进程 / preload / 渲染进程三侧共用；这些文件不得导入 Electron / React / DOM。
+`window.tyme` 的形状定义在 `src/shared/ipc.ts`（更新部分在 `src/shared/update.ts`，
+节假日部分在 `src/shared/holidays.ts`，由 `ipc.ts` re-export）。因为能力层和界面层在
+同一个 realm 里，这些文件只是类型与常量，没有序列化边界：`AppInfo`、`UpdateState`
+这些对象直接就是 JS 值，不需要 structured-clone 兼容。
 
-| 通道                    | 方向      | 作用                                                    |
-| ----------------------- | --------- | ------------------------------------------------------- |
-| `settings:get`          | 渲染 → 主 | 读取设置（首次运行返回默认值）                          |
-| `settings:set`          | 渲染 → 主 | 局部更新设置并落盘；`appearance` 同步原生主题           |
-| `theme:set-native`      | 渲染 → 主 | 只同步 `nativeTheme.themeSource`                        |
-| `app:get-info`          | 渲染 → 主 | 应用名 / 版本 / 作者 / 运行时版本 / 数据目录 / 当前语言 |
-| `updates:get-state`     | 渲染 → 主 | 读更新流程的快照                                        |
-| `updates:check`         | 渲染 → 主 | 问 GitHub 有没有新版本，并记下检查时间                  |
-| `updates:download`      | 渲染 → 主 | 下载并用资产自带的 SHA-256 校验                         |
-| `updates:cancel`        | 渲染 → 主 | 放弃正在进行的下载                                      |
-| `updates:install`       | 渲染 → 主 | 以独立进程启动新版并退出本文进程                        |
-| `updates:state-changed` | 主 → 渲染 | 推送更新状态；下载进度必须实时，轮询就要加定时器        |
+Rust 侧只有四个命令和一个事件，名字在 `src/shared/ipc.ts` 的 `HOST_COMMAND` /
+`HOST_EVENT` 里，`tests/host-boundary.test.ts` 会去 `src-tauri/src` 里逐个核对：
 
-窗口以 `contextIsolation: true`、`nodeIntegration: false`、`sandbox: true` 创建，渲染进程
-只能看到 preload 显式暴露的方法。
+| 名字                | 方向      | 作用                                                    |
+| ------------------- | --------- | ------------------------------------------------------- |
+| `download_update`   | JS → Rust | 流式下载一个发布资产到数据目录，边下边算 SHA-256        |
+| `cancel_update`     | JS → Rust | 让正在下载的 `download_update` 停下来并返回 `cancelled` |
+| `delete_update`     | JS → Rust | 删掉已下载的文件（文件名先过白名单，只能碰数据目录）    |
+| `install_update`    | JS → Rust | 以独立进程启动新版，成功后退出本进程                    |
+| `update://progress` | Rust → JS | 下载进度（字节数与速率），80 ms 节流                    |
+
+文件与网络的可达范围由 `src-tauri/capabilities/default.json` 决定：文件只允许
+`$APPDATA/**`（读写、建目录、改名），网络只允许 `api.github.com`、`cdn.jsdelivr.net`、
+`unpkg.com` 三个域，外链只允许 `https`。这四个命令是 `invoke` 的自定义命令，
+不需要出现在能力清单里；`update://progress` 由宿主发出，同样发给 `main` 窗口。
+
+## 首帧与窗口生命周期
+
+窗口在 `tauri.conf.json` 里声明但 `create: false`、`visible: false`：真正建窗的是
+`src-tauri/src/lib.rs`，因为只有它能先读 `%APPDATA%\万年历\settings.json` 决定主题与底色。
+
+1. `splash::build()` 读设置，得出「主题 id-深浅色 / 语言 / 是否首启」，拼成一段
+   `window.__TAYME_SPLASH__ = {...}` 的初始化脚本，并算出窗口底色（与骨架屏同一个
+   `--color-bg`，见 `tests/splash-contract.test.ts` 里两侧规则的对账）。
+2. `WebviewWindowBuilder::from_config()` 复用配置里的窗口参数，加上
+   `background_color`、`theme`、`initialization_script`。这一步让窗口出现的第一帧就是
+   正确底色，`public/splash.js` 则在 React 起来之前画出骨架屏。
+3. `on_page_load(Finished)` 里 `show()`；另有 2500 ms 看门狗兜底，页面加载失败也不会
+   留一个永远不出现的窗口。`show()` 用 `AtomicBool` 保证只执行一次。
+4. `on_document_title_changed` 把 `document.title` 同步到原生标题栏，界面层照常
+   `useEffect` 设标题即可（含版本号），不需要额外的命令。
+
+## 数据位置
+
+`app.appDirectoriesOverride.data = "$DATA/万年历"` 把应用数据目录钉在
+`%APPDATA%\万年历`，与 Electron 时代逐字相同：老用户的 `settings.json` 与
+`holidays/*.json` 原地可读，`tests/host-boundary.test.ts` 也钉着这一条。
+WebView2 自己的缓存与 cookie 落在 `%LOCALAPPDATA%\com.tyme.desktop\`，那部分不是用户数据。

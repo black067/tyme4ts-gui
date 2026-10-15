@@ -1,12 +1,12 @@
 /**
- * IPC contract for the update check.
+ * The update-check contract.
  *
- * Kept separate from `ipc.ts` because both sides need the shapes but the
- * channel list is getting long; `ipc.ts` re-exports these names so the preload
- * bridge and the renderer have a single import site.
+ * Kept separate from `ipc.ts` because both sides need the shapes and the type list is
+ * getting long; `ipc.ts` re-exports these names so the renderer and `src/backend` have
+ * a single import site.
  *
- * Nothing here may import Electron / React / DOM — main, preload and renderer
- * all depend on this file.
+ * Nothing here may import a host API / React / DOM — core, backend and renderer all
+ * depend on this file.
  */
 
 /** Where the update flow currently is. */

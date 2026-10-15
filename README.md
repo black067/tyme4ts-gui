@@ -3,8 +3,9 @@
 [![Release](https://github.com/black067/tyme4ts-gui/actions/workflows/release.yml/badge.svg)](https://github.com/black067/tyme4ts-gui/actions/workflows/release.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-一个运行在 Windows 上的桌面万年历程序，基于 **Electron + React + TypeScript**，历法数据全部来自
-[`tyme4ts`](https://github.com/6tail/tyme4ts)。
+一个运行在 Windows 上的桌面万年历程序，基于 **Tauri 2 + React + TypeScript**，历法数据全部来自
+[`tyme4ts`](https://github.com/6tail/tyme4ts)。界面与历法推算都跑在系统自带的 WebView2 里，
+产物是一个免安装 exe（9.9 MB），启动时不解压、不留临时目录。
 
 ## 功能
 
@@ -33,8 +34,10 @@ npm install
 npm run dev
 ```
 
-需要 Node.js `^20.19.0 || >=22.12.0`。已经 clone 过但 `vendor/tyme4ts` 是空的，执行
-`git submodule update --init --depth 1` 补齐即可。
+需要 Node.js `^20.19.0 || >=22.12.0` 与 Rust 稳定版（MSVC 工具链，含 C++ 生成工具）；
+Windows 上的 WebView2 运行时通常已随系统装好。已经 clone 过但 `vendor/tyme4ts` 是空的，
+执行 `git submodule update --init --depth 1` 补齐即可。第一次 `npm run dev` 会编译整个
+Rust 依赖树，需要几分钟，之后都是增量。
 
 ## 下载与打包
 
@@ -64,10 +67,12 @@ npm run package   # → release/chinese-calendar-<version>-portable.exe
 
 本仓库自身代码采用 **MIT 许可**，全文见 [`LICENSE`](LICENSE)。
 
-历法与节假日数据来自 [`tyme4ts`](https://github.com/6tail/tyme4ts)，桌面运行时为
-[Electron](https://github.com/electron/electron)，界面用 [React](https://github.com/facebook/react)，
-时间轴虚拟滚动用 [TanStack Virtual](https://github.com/TanStack/virtual)，主进程辅助用
-[electron-toolkit](https://github.com/alex8088/electron-toolkit)：均为 MIT。应用图标来自
+历法与节假日数据来自 [`tyme4ts`](https://github.com/6tail/tyme4ts)，桌面宿主为
+[Tauri 2](https://github.com/tauri-apps/tauri)（渲染引擎是系统自带的
+[WebView2](https://developer.microsoft.com/microsoft-edge/webview2/)），界面用
+[React](https://github.com/facebook/react)，时间轴虚拟滚动用
+[TanStack Virtual](https://github.com/TanStack/virtual)：Tauri 与其余项目均为
+MIT（Tauri 为 MIT 或 Apache-2.0 双许可，可任选）。应用图标来自
 [paomedia](https://github.com/paomedia)，授权以来源页面为准。
 
 完整清单与署名见 [docs/licensing.md](docs/licensing.md)，应用内「设置 → 第三方许可 / 资产署名」

@@ -1,7 +1,12 @@
 /**
- * IPC contract shared by the Electron main process, the preload bridge and the
- * renderer. Everything in this file must stay free of Electron, React and DOM
- * imports so that all three sides can depend on it.
+ * Contract shared by the webview (renderer + its in-process backend) and the Rust
+ * host. Everything in this file must stay free of React, DOM and Tauri imports so
+ * that the core, the renderer and the backend can all depend on it.
+ *
+ * The old `IPC` channel map is gone: with no second JS realm there is nothing to
+ * bridge, so `window.tyme` is implemented directly in TypeScript (`src/backend`).
+ * What remains is only the surface that genuinely crosses into Rust — the update
+ * artefact download, which needs a byte stream and a hash computed on the machine.
  */
 import type { UpdatesApi } from './update'
 import type { HolidaysApi } from './holidays'
@@ -16,23 +21,18 @@ export type {
 
 export type { HolidayErrorCode, HolidayStatus, HolidaysApi } from './holidays'
 
-/** Channel names for the renderer <-> main bridge. */
-export const IPC = {
-  settingsGet: 'settings:get',
-  settingsSet: 'settings:set',
-  themeSetNative: 'theme:set-native',
-  appGetInfo: 'app:get-info',
-  updatesGetState: 'updates:get-state',
-  updatesCheck: 'updates:check',
-  updatesDownload: 'updates:download',
-  updatesCancel: 'updates:cancel',
-  updatesInstall: 'updates:install',
-  /** Main -> renderer push of an `UpdateState` snapshot. */
-  updatesStateChanged: 'updates:state-changed',
-  holidaysGetStatus: 'holidays:get-status',
-  holidaysRefresh: 'holidays:refresh',
-  /** Main -> renderer push of a `HolidayStatus`. */
-  holidaysStatusChanged: 'holidays:status-changed'
+/** Commands implemented in `src-tauri/src/update.rs`. */
+export const HOST_COMMAND = {
+  downloadUpdate: 'download_update',
+  cancelUpdate: 'cancel_update',
+  deleteUpdate: 'delete_update',
+  installUpdate: 'install_update'
+} as const
+
+/** Events pushed from Rust to the single webview. */
+export const HOST_EVENT = {
+  /** An `UpdateProgress` snapshot while the update artefact is streaming in. */
+  downloadProgress: 'update://progress'
 } as const
 
 /** Top-level views of the application shell. */
@@ -90,33 +90,38 @@ export interface AppSettings {
 
 /** Runtime facts about the host, surfaced in the settings screen's About panel. */
 export interface AppInfo {
-  /** The application name Electron resolved, i.e. `productName`. */
+  /** The application name the host resolved, i.e. `productName`. */
   name: string
   version: string
   /** Author as recorded in the shipped `package.json`, e.g. `name <email>`. */
   author: string
-  electron: string
-  chrome: string
-  node: string
+  /**
+   * One display string for the stack underneath, e.g.
+   * `Tauri 2.12.4 · WebView2 154.0.4258.62`.
+   *
+   * The three separate Electron/Chromium/Node fields are gone: with no Node
+   * runtime in the shipped app there are no three numbers to show, and the
+   * webview version can be read from the user agent but need not be.
+   */
+  runtime: string
   userDataPath: string
   /**
    * Language of the app chrome, from the persisted settings.
    *
-   * The renderer needs it to set `document.title`: Electron derives the window
-   * title from the page title, so this is how the localized name reaches the
-   * native title bar.
+   * The renderer needs it to set `document.title`: the host mirrors the page
+   * title onto the native title bar, so this is how the localized name reaches it.
    */
   locale: Locale
 }
 
-/** The API surface exposed on `window.tyme` by the preload script. */
+/** The API surface implemented in `src/backend` and published on `window.tyme`. */
 export interface TymeApi {
   settings: {
     get(): Promise<AppSettings>
     set(patch: Partial<AppSettings>): Promise<AppSettings>
   }
   theme: {
-    /** Mirrors the renderer's appearance choice onto Electron's `nativeTheme`. */
+    /** Mirrors the renderer's appearance choice onto the window and the webview. */
     setNative(mode: AppearanceMode): Promise<void>
   }
   app: {

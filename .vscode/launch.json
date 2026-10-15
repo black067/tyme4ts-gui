@@ -2,36 +2,40 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "调试主进程（dev）",
-      "type": "node",
-      "request": "attach",
-      "port": 5858,
-      "cwd": "${workspaceFolder}",
-      "sourceMaps": true,
-      "outFiles": ["${workspaceFolder}/out/main/**/*.js"],
-      "skipFiles": ["<node_internals>/**", "**/node_modules/**"],
-      "preLaunchTask": "dev:inspect",
-      "timeout": 30000
-    },
-    {
-      "name": "调试渲染进程（dev）",
+      // 界面这一侧现在就是 WebView2：用 Chrome 调试器 attach 到 dev 模式开出来的 CDP 端口。
+      // 端口由 dev:webview 任务通过 WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS 打开；
+      // 只想快速看元素与控制台的话，开发模式的窗口里直接按 F12 就够了。
+      "name": "调试界面（WebView2）",
       "type": "chrome",
       "request": "attach",
       "port": 9222,
+      "urlFilter": "http://localhost:5173/*",
       "webRoot": "${workspaceFolder}/src/renderer",
       "sourceMaps": true,
-      "preLaunchTask": "dev:remote-debug",
-      "timeout": 30000
+      "preLaunchTask": "dev:webview",
+      "timeout": 60000
     },
     {
-      "name": "调试主进程（仅附加，不启动）",
-      "type": "node",
-      "request": "attach",
-      "port": 5858,
+      // 宿主这一侧是 Rust。工具链是 MSVC，所以用 cppvsdbg；装的是 CodeLLDB 的话
+      // 把 type 换成 lldb 也能用，program 路径不变。
+      // debug 版 exe 读的是 tauri.conf.json 里的 devUrl，所以必须先把 Vite 起起来，
+      // 否则窗口只会显示"无法连接"。
+      "name": "调试宿主（Rust）",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/src-tauri/target/debug/chinese-calendar.exe",
       "cwd": "${workspaceFolder}",
-      "sourceMaps": true,
-      "outFiles": ["${workspaceFolder}/out/main/**/*.js"],
-      "skipFiles": ["<node_internals>/**", "**/node_modules/**"]
+      "console": "integratedTerminal",
+      "preLaunchTask": "host:debug:prepare"
+    },
+    {
+      "name": "调试界面（仅附加，不启动）",
+      "type": "chrome",
+      "request": "attach",
+      "port": 9222,
+      "urlFilter": "http://localhost:5173/*",
+      "webRoot": "${workspaceFolder}/src/renderer",
+      "sourceMaps": true
     }
   ]
 }

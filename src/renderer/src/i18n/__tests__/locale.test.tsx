@@ -24,14 +24,14 @@ describe('语言骨架接线', () => {
     expect(document.documentElement.dataset.locale).toBe('zh-Hans')
   })
 
-  it('窗口标题带上版本号（Electron 用它推导原生标题栏）', async () => {
+  it('窗口标题带上版本号（宿主用它同步原生标题栏）', async () => {
     await renderApp()
 
     // 版本来自 fake bridge 的 app:get-info，是异步的，等它落地。
     expect(document.title).toBe('万年历 v0.0.0-test')
   })
 
-  it('设置页里能选语言，并写回主进程', async () => {
+  it('设置页里能选语言，并写回设置', async () => {
     const bridge = await renderApp()
 
     await click(screen.getByRole('button', { name: '设置' }))

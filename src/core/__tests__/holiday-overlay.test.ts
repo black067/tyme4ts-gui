@@ -146,7 +146,7 @@ describe('normalizeHolidayPayload', () => {
 
   it('refuses raw text as a payload instead of throwing on it', () => {
     // 调用方负责 JSON.parse，验收入口只接收已解析的值。字符串被当成不可用载荷
-    // 拒掉，而不是抛异常——截断的响应体因此不会把主进程打崩。
+    // 拒掉，而不是抛异常——截断的响应体因此不会把取数那一层打崩。
     const body = JSON.stringify(fixture2026)
     expect(normalizeHolidayPayload(body)).toMatchObject({ ok: false })
     expect(normalizeHolidayPayload(body.slice(0, 120))).toMatchObject({ ok: false })

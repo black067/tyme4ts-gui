@@ -8,7 +8,8 @@ export default defineConfig({
     alias: {
       '@core': resolve('src/core/index.ts'),
       '@shared': resolve('src/shared'),
-      '@renderer': resolve('src/renderer/src')
+      '@renderer': resolve('src/renderer/src'),
+      '@backend': resolve('src/backend')
     }
   },
   test: {

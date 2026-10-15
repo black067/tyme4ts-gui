@@ -1,7 +1,7 @@
 /**
  * 术语释义的查表入口。
  *
- * 纯数据 + 纯函数：不 import tyme4ts，不碰 Electron / React / DOM。
+ * 纯数据 + 纯函数：不 import tyme4ts，不碰宿主 / React / DOM。
  * 引擎的权威名单与引文的逐字真实性都由 `tests/glossary-contract.test.ts` 交叉校验。
  *
  * 约定：每个家族的 `entries` 与 `gaps` 合起来必须**恰好覆盖**引擎的名单。

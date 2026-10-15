@@ -467,27 +467,21 @@ export const zhHans = {
       dataDirLabel: '数据目录',
       settingsFileLabel: '设置文件',
       /** package.json 里没写作者时的占位。 */
-      missingAuthor: '（package.json 未填写）',
-      /** 三个运行时版本并成一行，省掉三行标签。 */
-      runtimeVersions: ({
-        electron,
-        chromium,
-        node
-      }: {
-        electron: string
-        chromium: string
-        node: string
-      }): string => `Electron ${electron} · Chromium ${chromium} · Node ${node}`
+      missingAuthor: '（package.json 未填写）'
+      // 运行时那一行由宿主直接给字符串（`Tauri 2.12.4 · WebView2 154…`）：
+      // 旧版这里有三个版本号要并成一行，所以文案里带一个拼装函数；现在只剩一个值，
+      // 没有文案可组装，格式属于运行时事实，不属于界面文案。
     },
 
     thirdParty: {
       title: '第三方许可',
       usage: {
         tyme4ts: '全部历法、节假日与黄历数据（公历 / 农历 / 藏历 / 回历 / 节气 / 宜忌 / 八字）',
-        electron: '桌面应用运行时（Chromium + Node.js）',
+        tauri: '桌面宿主：窗口、单实例、文件与网络能力的来源（含 fs / http / opener 三个官方插件）',
+        webview2: '系统提供的浏览器引擎，界面与推算都跑在它里面；缺失时联网安装官方运行库',
+        rustCrates: '宿主侧的下载、校验与注册表读取；完整清单见 src-tauri/Cargo.lock',
         react: '界面渲染',
         tanstackVirtual: '时间轴视图的虚拟滚动',
-        electronToolkit: '主进程开发期辅助（开发者快捷键等）',
         chineseDays: '在线更新的法定节假日数据（抓取自国务院公告）'
       }
     },
@@ -503,7 +497,7 @@ export const zhHans = {
   },
 
   common: {
-    /** 数据尚未从主进程返回时的占位。 */
+    /** 数据尚未取到时的占位。 */
     pending: '…',
     /** 无法计算时显示的占位符。 */
     unavailable: '—',

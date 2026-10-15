@@ -42,7 +42,7 @@ describe('节假日数据小节', () => {
     expect(screen.getByText(/上次更新：/)).toBeInTheDocument()
   })
 
-  it('点击立即更新会请求主进程', async () => {
+  it('点击立即更新会请求后端', async () => {
     const bridge = await renderApp()
     await openSettings()
 

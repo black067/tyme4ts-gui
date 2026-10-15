@@ -1,10 +1,8 @@
 {
   "include": [
-    "electron.vite.config.ts",
+    "vite.config.ts",
     "vitest.config.ts",
     "tests/**/*",
-    "src/main/**/*",
-    "src/preload/**/*",
     "src/shared/**/*",
     "src/core/**/*"
   ],
@@ -17,7 +15,7 @@
     "lib": ["ES2023"],
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "types": ["node", "vitest/globals", "electron-vite/node"],
+    "types": ["node", "vitest/globals"],
 
     "strict": true,
     "noUnusedLocals": true,

@@ -4,7 +4,7 @@
  * `src/core/__tests__/update.test.ts` exercises the rules with hand-written
  * shapes, which proves the rules are self-consistent but not that they match
  * what GitHub actually sends — field names, the `digest` format, the asset
- * naming that `electron-builder.yml` produces. This fixture is a trimmed copy of
+ * naming that `scripts/package.mjs` produces. This fixture is a trimmed copy of
  * a real response from this repository's own releases endpoint, so a passing run
  * means the adapter matches the live API rather than my idea of it.
  *
@@ -33,7 +33,7 @@ describe('parseReleases against a real GitHub response', () => {
     if (!picked.ok) return
 
     const selection = picked.selection
-    // The asset name is what `electron-builder.yml`'s `portable.artifactName`
+    // The asset name is what `scripts/package.mjs` produces from
     // produces; the version comes from the file name, not the tag.
     expect(selection.name).toMatch(/^chinese-calendar-\d+\.\d+\.\d+-portable\.exe$/)
     expect(selection.version).toBe('0.1.3')

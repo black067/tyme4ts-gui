@@ -24,25 +24,45 @@ jobs:
           node-version: 24
           cache: npm
 
+      # Rust 已经装在 windows-latest 镜像里，这里只固定工具链版本，
+      # 免得某次镜像更新把 MSVC 换掉之后构建行为跟着变。
+      - name: 准备 Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
       - name: 安装依赖
         run: npm ci
 
-      # 发布的产物必须自己证明它来自一个测试通过的提交，不能依赖发版前在本地跑过什么。
-      - name: 单元测试
-        run: npm test
-
-      # Electron 发行包（约 120 MB）和 electron-builder 自己下载的打包工具
-      # （nsis / winCodeSign / 7zip）都在 %LOCALAPPDATA% 下，缓存之后后续构建
-      # 只剩解包时间。
-      - name: 缓存 electron 与打包工具
+      # 下载的 crate 与索引：命中后省掉几分钟的解析与下载。target/ 不缓存——
+      # 增量构建的失效条件（features、profile、依赖版本）在 Windows 上很难对齐，
+      # 缓存错一次的代价比重新编译一次大。
+      - name: 缓存 cargo
         uses: actions/cache@v6
         with:
           path: |
-            ~/AppData/Local/electron/Cache
-            ~/AppData/Local/electron-builder/Cache
-          key: electron-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+            ~/AppData/Local/cargo/registry
+            ~/AppData/Local/cargo/index
+            ~/.cargo/registry
+            ~/.cargo/index
+          key: cargo-${{ runner.os }}-${{ hashFiles('src-tauri/Cargo.lock') }}
           restore-keys: |
-            electron-${{ runner.os }}-
+            cargo-${{ runner.os }}-
+
+      # 发布的产物必须自己证明它来自一个测试通过的提交，不能依赖发版前在本地跑过什么。
+      - name: 静态检查与单元测试
+        run: |
+          npm run typecheck
+          npm run lint
+          npm run format:check
+          npm test
+        shell: bash
+
+      - name: Rust 格式与检查
+        run: |
+          cargo fmt --all --check
+          cargo check --manifest-path src-tauri/Cargo.toml --all-targets
+        shell: bash
 
       # 版本号只写在 package.json 里，tag 必须与它一致，否则产物文件名会和
       # Release 标题对不上。
@@ -81,6 +101,10 @@ jobs:
           $tag = '${{ github.ref_name }}'
           $exe = Get-ChildItem release/*.exe | Select-Object -First 1
           if (-not $exe) { throw '未找到 release/*.exe' }
+
+          # 摘要：用户最关心的是"这个 exe 有多大"，旧版是 90+ MB 的自解压包。
+          $size = [math]::Round($exe.Length / 1MB, 1)
+          Write-Host "产物 $($exe.Name)：$size MB"
 
           gh release view $tag 2>$null | Out-Null
           if ($LASTEXITCODE -eq 0) {

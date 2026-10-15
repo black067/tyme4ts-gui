@@ -1,7 +1,7 @@
 /**
  * 术语释义的数据契约。
  *
- * 这一层是**纯数据**：不 import tyme4ts、不碰 Electron / React / DOM。
+ * 这一层是**纯数据**：不 import tyme4ts、不碰宿主 / React / DOM。
  * 引擎的权威名单由 `tests/glossary-contract.test.ts` 交叉校验，词条里的 `quote`
  * 也必须逐字出现在 `tests/fixtures/` 的公版原文里——所以这里写错字或编造引文都会失败。
  */

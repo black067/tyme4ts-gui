@@ -7,25 +7,31 @@
 许可证标识取自各自安装包内的 `package.json`，并非照抄文档；应用内「设置 → 第三方许可」展示同一
 份清单（源码在 `src/renderer/src/features/settings/third-party.ts`）。
 
-| 项目                        | 许可 | 用途                                                             |
-| --------------------------- | ---- | ---------------------------------------------------------------- |
-| [tyme4ts][tyme4ts]          | MIT  | 全部历法、节假日与黄历数据（公历/农历/藏历/回历/节气/宜忌/八字） |
-| [chinese-days][chinesedays] | MIT  | 在线更新的法定节假日数据（其 CI 抓取国务院公告，按年发布 JSON）  |
-| [Electron][electron]        | MIT  | 桌面应用运行时（Chromium + Node.js）                             |
-| [React][react]              | MIT  | 界面渲染                                                         |
-| [TanStack Virtual][tv]      | MIT  | 时间轴视图的虚拟滚动                                             |
-| [electron-toolkit][etk]     | MIT  | 主进程开发期辅助工具                                             |
+| 项目                        | 许可                   | 用途                                                             |
+| --------------------------- | ---------------------- | ---------------------------------------------------------------- |
+| [tyme4ts][tyme4ts]          | MIT                    | 全部历法、节假日与黄历数据（公历/农历/藏历/回历/节气/宜忌/八字） |
+| [chinese-days][chinesedays] | MIT                    | 在线更新的法定节假日数据（其 CI 抓取国务院公告，按年发布 JSON）  |
+| [Tauri 2][tauri]            | MIT OR Apache-2.0      | 桌面宿主：窗口、单实例、文件/网络/外链权限（含三个官方插件）     |
+| [WebView2][webview2]        | Microsoft 软件许可条款 | 渲染引擎与 JS 运行时（Edge 内核，系统自带或应用自行下载安装）    |
+| [reqwest 等 crate][crates]  | MIT / Apache-2.0 / ISC | 宿主侧的流式下载、SHA-256、异步 IO、注册表读取                   |
+| [React][react]              | MIT                    | 界面渲染                                                         |
+| [TanStack Virtual][tv]      | MIT                    | 时间轴视图的虚拟滚动                                             |
 
 [tyme4ts]: https://github.com/6tail/tyme4ts
 [chinesedays]: https://github.com/vsme/chinese-days
-[electron]: https://github.com/electron/electron
+[tauri]: https://github.com/tauri-apps/tauri
+[webview2]: https://developer.microsoft.com/microsoft-edge/webview2/
+[crates]: https://crates.io/
 [react]: https://github.com/facebook/react
 [tv]: https://github.com/TanStack/virtual
-[etk]: https://github.com/alex8088/electron-toolkit
 
 `chinese-days` 不是运行时依赖：应用只通过 HTTP 读取它发布的 JSON，所以它不出现在
 `package.json` 里，但用户看到的是它的数据，因此照旧列在这里与「设置 → 第三方许可」中。
 每份数据都记录了自己对应的 gov.cn 公告链接，并在设置页展示出来——源头始终可追溯。
+
+Rust 侧的依赖只列直接依赖（`src-tauri/Cargo.toml`），完整清单与精确版本在
+`src-tauri/Cargo.lock`；WebView2 是系统组件，不随 exe 分发，用户机器上没有时由应用
+自己下载微软官方 bootstrapper 安装。
 
 ## 资产署名
 
@@ -54,6 +60,11 @@
 
 ## 与打包的关系
 
-打包时 electron-builder 会把 `assets/calendar.svg` 光栅化成多尺寸 `.ico` 写入 exe。开发模式下
-运行的是原版 `electron.exe`，而 Electron 的 `nativeImage` 不支持 SVG，因此**开发时任务栏显示的
-是 Electron 默认图标**，打包后才显示本图标。
+应用图标只有一个来源文件：`assets/calendar.svg`。`npm run icon`（`scripts/make-icon.mjs`）
+先用 sharp 把它光栅化成 1024×1024 PNG，再交给 `tauri icon` 生成 `src-tauri/icons/` 下的
+`.ico` 与几个 PNG；`tauri build` 只认这个目录里现成的文件，不会自己转 SVG。
+
+因为开发与发布跑的是同一个 exe（都是本 crate 编译出来的 `chinese-calendar.exe`），
+**开发模式下任务栏显示的就是本图标**——旧版跑的是原版 `electron.exe`，只有打包后才换图标。
+
+改完 `assets/calendar.svg` 记得重跑 `npm run icon`，否则 exe 上还是旧图标。

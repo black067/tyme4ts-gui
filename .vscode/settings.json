@@ -1,22 +1,28 @@
 {
   // 构建产物很大，必须排除在文件监听与搜索之外。
   //
-  // 否则 VS Code 的文件服务进程会一直持有 release/win-unpacked/resources/app.asar，
-  // 下一次 electron-builder 打包时会以 EBUSY 失败（Windows 不允许删除被占用的文件）。
+  // 两个原因，都和 Windows 有关：VS Code 的文件服务进程会一直持有正在被使用的文件，
+  // 而 Windows 不允许删除被占用的文件——`src-tauri/target` 被盯住时，下一次 cargo 会 EBUSY；
+  // `release/` 被盯住时，清理旧产物的那一步会失败。
   //
-  // 用 `release*` 而不是 `release`：临时换个输出目录验证打包（release-check、
-  // release-measure…）同样会被盯上，而被盯住的目录又会被 electron-builder 扫进 asar。
+  // 用 `release*` 而不是 `release`：临时换个输出目录验证发布（release-check…）同样会被盯上。
   "files.watcherExclude": {
     "**/node_modules/**": true,
+    "**/dist/**": true,
     "**/out/**": true,
     "**/release*/**": true,
     "**/.tsbuild/**": true,
+    "**/src-tauri/target/**": true,
+    "**/src-tauri/gen/**": true,
     "**/vendor/**": true
   },
   "search.exclude": {
     "**/node_modules": true,
+    "**/dist": true,
     "**/out": true,
     "**/release*": true,
+    "**/src-tauri/target": true,
+    "**/src-tauri/gen": true,
     "**/coverage": true
   },
   // 使用仓库里安装的 TypeScript，保证与 npm run typecheck 行为一致。

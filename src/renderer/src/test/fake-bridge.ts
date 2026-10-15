@@ -1,6 +1,5 @@
 import {
   createDefaultSettings,
-  IPC,
   type AppInfo,
   type AppSettings,
   type AppearanceMode,
@@ -12,7 +11,7 @@ import {
 } from '@shared/ipc'
 
 export interface FakeBridge {
-  /** The settings the fake main process currently holds. */
+  /** The settings this stand-in currently holds. */
   settings: AppSettings
   /** Every patch the renderer sent, in order. */
   patches: Array<Partial<AppSettings>>
@@ -41,7 +40,7 @@ function emptyHolidayStatus(): HolidayStatus {
 
 /**
  * A plain `idle` snapshot. The updater is not under test in the shell tests, so
- * this stands in for the main process rather than exercising it.
+ * this stands in for `src/backend` rather than exercising it.
  */
 function idleUpdateState(version: string): UpdateState {
   return {
@@ -60,18 +59,17 @@ const APP_INFO: AppInfo = {
   name: '万年历',
   version: '0.0.0-test',
   author: 'Tester <tester@example.com>',
-  electron: 'test',
-  chrome: 'test',
-  node: 'test',
+  runtime: 'Tauri 0.0.0-test · WebView2 0.0.0-test',
   userDataPath: '/tmp/tyme-app-test',
   locale: 'zh-Hans'
 }
 
 /**
- * Installs a controllable stand-in for the preload bridge.
+ * Installs a controllable stand-in for the `window.tyme` facade.
  *
- * The renderer is exercised in jsdom, where no preload script runs, so the
- * tests provide the same `window.tyme` surface the real app sees.
+ * The renderer is exercised in jsdom, where `src/backend` never runs — it needs a
+ * real host for files, network and events. So the tests hand the renderer the same
+ * `window.tyme` surface the shipped app sees, and record what it was asked to do.
  */
 export function installFakeBridge(overrides: Partial<AppSettings> = {}): FakeBridge {
   const settings: AppSettings = { ...createDefaultSettings('2024-06-26'), ...overrides }
@@ -175,6 +173,3 @@ export function installFakeBridge(overrides: Partial<AppSettings> = {}): FakeBri
     }
   }
 }
-
-/** The IPC channel names, re-exported so tests can assert against them. */
-export { IPC }
