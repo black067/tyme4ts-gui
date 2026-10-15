@@ -9,8 +9,8 @@
  * - 作者不再读盘——产物里没有 `package.json` 可读，构建时由 `vite.config.ts` 注成常量；
  * - 运行时只剩两个数：Tauri 版本与 WebView2 版本（后者从用户代理的 `Edg/` 里取），
  *   Node 那一档随主进程一起消失了；
- * - 数据目录是 `appDataDir()`，被 `appDirectoriesOverride` 指到 `%APPDATA%\万年历`，
- *   与旧版的 `userData` 同一个路径。
+ * - 数据目录是 `appDataDir()`：默认被 `appDirectoriesOverride` 指到 `%APPDATA%\万年历`，
+ *   与旧版的 `userData` 同一个路径；用户在设置里搬走之后，这里显示的就是搬去的那个。
  */
 import type { AppInfo } from '@shared/ipc'
 import { appName, appVersion, runtimeLabel, userDataPath } from './host'

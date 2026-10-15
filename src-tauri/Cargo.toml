@@ -39,6 +39,11 @@ tauri-plugin-http = { version = "2", default-features = false, features = [
   "gzip",
 ] }
 tauri-plugin-opener = "2"
+# 选数据目录用的原生对话框（Windows 上就是系统那个"选择文件夹"）。
+# 选它而不是自己拿 `rfd` 或 COM 写一遍：官方插件会把对话框挂到主窗口上（模态、跟着深浅色），
+# 而 `rfd` 单独用只能得到一个不属于任何窗口的浮窗。它**不**授予任何文件权限——
+# 能读写哪里仍然只由 `$APPDATA/**` 那几条决定。
+tauri-plugin-dialog = "2"
 # 必须在最前面注册：single-instance 会吞掉后续实例的启动，注册顺序决定它能否拦到。
 tauri-plugin-single-instance = "2"
 serde = { version = "1", features = ["derive"] }

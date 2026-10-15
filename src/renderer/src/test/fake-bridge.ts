@@ -3,6 +3,7 @@ import {
   type AppInfo,
   type AppSettings,
   type AppearanceMode,
+  type DataDirMoveOutcome,
   type HolidayStatus,
   type HolidaysApi,
   type TymeApi,
@@ -19,10 +20,14 @@ export interface FakeBridge {
   setUpdates(next: Partial<UpdateState>): void
   /** Drives the holiday status from a test. */
   setHolidayStatus(next: Partial<HolidayStatus>): void
+  /** 决定下一次 `dataDir.move()` 的结果：搬运要弹系统对话框，测试里只能由测试来当那个用户。 */
+  setDataDirMove(next: DataDirMoveOutcome): void
   /** Every update action the renderer asked for, in order. */
   updateActions: string[]
   /** Every holiday action the renderer asked for, in order. */
   holidayActions: string[]
+  /** Every data-directory action the renderer asked for, in order. */
+  dataDirActions: string[]
   /** Restores the previous `window.tyme`, if any. */
   restore(): void
 }
@@ -82,6 +87,8 @@ export function installFakeBridge(overrides: Partial<AppSettings> = {}): FakeBri
   const holidayActions: string[] = []
   const holidayListeners = new Set<(status: HolidayStatus) => void>()
   let holidayStatus = emptyHolidayStatus()
+  const dataDirActions: string[] = []
+  let dataDirMove: DataDirMoveOutcome = { kind: 'cancelled' }
   const previous = window.tyme
 
   const emitUpdate = (): void => {
@@ -143,6 +150,15 @@ export function installFakeBridge(overrides: Partial<AppSettings> = {}): FakeBri
     app: {
       getInfo: async () => APP_INFO
     },
+    dataDir: {
+      reveal: async () => {
+        dataDirActions.push('reveal')
+      },
+      move: async () => {
+        dataDirActions.push('move')
+        return dataDirMove
+      }
+    },
     updates,
     holidays
   }
@@ -158,6 +174,7 @@ export function installFakeBridge(overrides: Partial<AppSettings> = {}): FakeBri
     patches,
     updateActions,
     holidayActions,
+    dataDirActions,
     setUpdates: (next) => {
       updateState = { ...updateState, ...next }
       emitUpdate()
@@ -165,6 +182,9 @@ export function installFakeBridge(overrides: Partial<AppSettings> = {}): FakeBri
     setHolidayStatus: (next) => {
       holidayStatus = { ...holidayStatus, ...next }
       emitHoliday()
+    },
+    setDataDirMove: (next) => {
+      dataDirMove = next
     },
     restore: () => {
       Object.defineProperty(window, 'tyme', {

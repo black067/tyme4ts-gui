@@ -10,6 +10,7 @@
  */
 import type { UpdatesApi } from './update'
 import type { HolidaysApi } from './holidays'
+import type { DataDirApi } from './data-dir'
 
 export type {
   UpdateErrorCode,
@@ -21,13 +22,28 @@ export type {
 
 export type { HolidayErrorCode, HolidayStatus, HolidaysApi } from './holidays'
 
-/** Commands implemented in `src-tauri/src/update.rs`. */
+export type {
+  DataDirApi,
+  DataDirErrorCode,
+  DataDirFacts,
+  DataDirFailureReason,
+  DataDirMoveOutcome,
+  DataDirMoveReport,
+  DataDirReason,
+  DataDirRejectReason
+} from './data-dir'
+export { classifyDataDirError, formatBytes, isRejectReason } from './data-dir'
+
+/** 宿主侧命令名：`update.rs` 管更新产物，`paths.rs` 管数据目录。 */
 export const HOST_COMMAND = {
   downloadUpdate: 'download_update',
   cancelUpdate: 'cancel_update',
   deleteUpdate: 'delete_update',
   installUpdate: 'install_update',
-  updaterContext: 'update_context'
+  updaterContext: 'update_context',
+  revealDataDir: 'reveal_data_dir',
+  inspectDataDir: 'inspect_data_dir',
+  setDataDir: 'set_data_dir'
 } as const
 
 /** Events pushed from Rust to the single webview. */
@@ -128,6 +144,7 @@ export interface TymeApi {
   app: {
     getInfo(): Promise<AppInfo>
   }
+  dataDir: DataDirApi
   updates: UpdatesApi
   holidays: HolidaysApi
 }

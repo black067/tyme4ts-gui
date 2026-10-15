@@ -1,6 +1,6 @@
 {
   "identifier": "default",
-  "description": "主窗口的全部能力：读写自己的数据目录、访问三个公开数据源、把外链交给系统浏览器。",
+  "description": "主窗口的全部能力：读写自己的数据目录、访问三个公开数据源、把外链交给系统浏览器、用系统对话框选一个文件夹。",
   "windows": ["main"],
   "permissions": [
     "core:default",
@@ -37,6 +37,10 @@
     {
       "identifier": "opener:allow-open-url",
       "allow": [{ "url": "https://**" }]
+    },
+    {
+      "identifier": "dialog:allow-open",
+      "description": "只用于「修改数据目录」：把选哪个文件夹的决定交给用户自己，选完之后能读写哪里仍由 $APPDATA/** 决定。"
     }
   ]
 }

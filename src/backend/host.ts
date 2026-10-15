@@ -18,14 +18,33 @@ import { getCurrentWindow } from '@tauri-apps/api/window'
 import { getName, getTauriVersion, getVersion } from '@tauri-apps/api/app'
 import { exists, mkdir, readTextFile, rename, writeTextFile } from '@tauri-apps/plugin-fs'
 import { fetch as tauriFetch } from '@tauri-apps/plugin-http'
+import { open } from '@tauri-apps/plugin-dialog'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import type { AppearanceMode } from '@shared/ipc'
 
 const APP_DATA = BaseDirectory.AppData
 
-/** 应用数据目录的绝对路径，只用于在"关于"里展示。 */
+/** 应用数据目录的绝对路径，只用于展示与当作对话框的起点。 */
 export function userDataPath(): Promise<string> {
   return appDataDir()
+}
+
+/**
+ * 系统原生的"选择文件夹"对话框。
+ *
+ * 只把用户选中的绝对路径交出去，**不**因此获得任何读写权限：能读哪里仍由能力清单里
+ * `$APPDATA/**` 那几条决定，而那几条跟着数据目录的 override 走（见 `src-tauri/src/paths.rs`）。
+ * 按取消返回 `null`——那是一次正常结束的操作，不是错误。
+ */
+export async function pickDirectory(defaultPath: string): Promise<string | null> {
+  // 空串不是"从根开始"，而是"这里没有答案"：那种情况干脆不给起点，让系统停在它自己认为
+  // 合适的位置，也不要传一个空路径过去让对话框报错。
+  const picked = await open({
+    directory: true,
+    multiple: false,
+    ...(defaultPath === '' ? {} : { defaultPath })
+  })
+  return typeof picked === 'string' && picked !== '' ? picked : null
 }
 
 export function appName(): Promise<string> {

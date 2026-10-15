@@ -4,6 +4,7 @@
 //! 转发 IPC、持有更新器与节假日缓存；现在那些判断都搬进了 webview 里的 `src/backend`，
 //! 宿主只剩"窗口、进程、字节"三件事。
 
+mod paths;
 mod replace;
 mod report;
 mod splash;
@@ -41,6 +42,11 @@ pub fn run() {
 
     let shown = Arc::new(AtomicBool::new(false));
 
+    // 数据目录的指向要在任何插件初始化之前定下来：能力清单里 `$APPDATA/**` 那几条是照着配置
+    // 解析的，晚一步改就等于"权限范围在一处、文件在另一处"（见 `src-tauri/src/paths.rs`）。
+    let mut context = tauri::generate_context!();
+    paths::apply_override(context.config_mut());
+
     let outcome = tauri::Builder::default()
         // 单实例必须最先注册：否则第二次启动会先建出一个窗口再被拦掉。
         // 也正因为它的互斥体只按 `identifier` 命名（不含版本号），"拉起新版"绝不能由本进程
@@ -56,13 +62,19 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_opener::init())
+        // 只用来选文件夹（改数据目录）。它不授予任何文件读写权限：能读哪里仍由
+        // `$APPDATA/**` 那几条说了算，而 `$APPDATA` 跟着数据目录的 override 走。
+        .plugin(tauri_plugin_dialog::init())
         .manage(update::UpdaterState::default())
         .invoke_handler(tauri::generate_handler![
             update::download_update,
             update::cancel_update,
             update::delete_update,
             update::install_update,
-            update::update_context
+            update::update_context,
+            paths::reveal_data_dir,
+            paths::inspect_data_dir,
+            paths::set_data_dir
         ])
         .setup(move |app| {
             let handle = app.handle().clone();
@@ -125,7 +137,7 @@ pub fn run() {
 
             Ok(())
         })
-        .run(tauri::generate_context!());
+        .run(context);
 
     if let Err(error) = outcome {
         // setup 里任何一步失败（最常见的是 WebView2 起不来）都不能只留一行 panic：

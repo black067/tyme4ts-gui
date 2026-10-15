@@ -73,6 +73,13 @@ const capability = JSON.parse(
 }
 
 const rustUpdate = readFileSync(join(ROOT, 'src-tauri', 'src', 'update.rs'), 'utf8')
+const rustPaths = readFileSync(join(ROOT, 'src-tauri', 'src', 'paths.rs'), 'utf8')
+
+/** 宿主命令的出处。加一个模块就往这里加一行，下面的对账会自动扩到它。 */
+const COMMAND_SOURCES: ReadonlyArray<readonly [string, string]> = [
+  ['update.rs', rustUpdate],
+  ['paths.rs', rustPaths]
+]
 
 /** 某个源目录下的全部 `.ts` / `.tsx` 文件。 */
 function sources(dir: string): string[] {
@@ -210,21 +217,23 @@ describe('只有 src/backend 知道 Tauri 的存在', () => {
  */
 describe('命令名与事件名在两侧一致', () => {
   it('HOST_COMMAND 的每个值都是 Rust 里的一个 #[tauri::command]', () => {
+    const declaredIn = (source: string): string[] =>
+      [...source.matchAll(/#\[tauri::command\][\s\S]{0,160}?\bfn (\w+)\(/g)]
+        .map((m) => m[1] ?? '')
+        .filter(Boolean)
+    const declared = [...new Set(COMMAND_SOURCES.flatMap(([, source]) => declaredIn(source)))]
+
     for (const command of Object.values(HOST_COMMAND)) {
-      const pattern = new RegExp(`async fn ${command}\\(|fn ${command}\\(`)
-      expect(rustUpdate, `update.rs 缺少命令 ${command}`).toMatch(pattern)
+      expect(declared, `宿主里没有名为 ${command} 的 #[tauri::command]`).toContain(command)
     }
     // 反过来说：Rust 里不该有没被 TS 知道的命令。
-    const declared = [
-      ...new Set(
-        [...rustUpdate.matchAll(/#\[tauri::command\][\s\S]{0,120}?\bfn (\w+)\(/g)]
-          .map((m) => m[1] ?? '')
-          .filter(Boolean)
-      )
-    ].sort()
-    expect(declared, 'update.rs 里的命令都应有 TS 侧的对应名').toEqual(
+    expect(declared.sort(), '命令模块里的命令都应有 TS 侧的对应名').toEqual(
       Object.values(HOST_COMMAND).sort()
     )
+    // 反空转：对账真的扫到了两个模块，否则上面两条在只扫到一个文件时空转。
+    for (const [name, source] of COMMAND_SOURCES) {
+      expect(declaredIn(source).length, `${name} 里应有命令`).toBeGreaterThan(0)
+    }
   })
 
   it('每个命令都真的挂进了 generate_handler!（定义了不等于注册了）', () => {
@@ -233,8 +242,8 @@ describe('命令名与事件名在两侧一致', () => {
     // 的写法完全吞掉：界面少一行字，没人会怀疑到注册表上。
     const rustLib = readFileSync(join(ROOT, 'src-tauri', 'src', 'lib.rs'), 'utf8')
     const handlerList = rustLib.match(/generate_handler!\[([\s\S]*?)\]\)/)?.[1] ?? ''
-    const registered = [...handlerList.matchAll(/update::(\w+)/g)]
-      .map((match) => match[1] ?? '')
+    const registered = [...handlerList.matchAll(/\b(\w+)::(\w+)/g)]
+      .map((match) => match[2] ?? '')
       .sort()
     expect(registered, 'lib.rs 的注册表应与 HOST_COMMAND 一一对应').toEqual(
       Object.values(HOST_COMMAND).sort()
@@ -381,8 +390,10 @@ describe('tauri.conf.json 守住了首帧与数据位置', () => {
     expect(tauriConfig.build.beforeBuildCommand).toBe('npm run build')
   })
 
-  it('数据目录保持在 %APPDATA%\\万年历', () => {
+  it('数据目录的默认位置保持在 %APPDATA%\\万年历', () => {
     // 这是硬性要求：老用户的 settings.json / holidays 缓存原地可用。
+    // 用户后来把它搬走了也不影响这一条：搬走的位置记在指针里，启动时由 `paths.rs` 覆盖，
+    // 配置里的这个值始终是"没有指针时去哪"。
     expect(tauriConfig.app.appDirectoriesOverride?.data).toBe('$DATA/万年历')
   })
 
@@ -467,6 +478,79 @@ describe('能力文件把口子收在应用数据目录与三个域名', () => {
   it('主题命令单独放行，其余窗口能力走 core:default', () => {
     expect(capability.permissions).toContain('core:default')
     expect(capability.permissions).toContain('core:window:allow-set-theme')
+  })
+
+  it('选文件夹的对话框不授予任何路径', () => {
+    // 「修改数据目录」要的是系统原生的选夹对话框。它必须是**唯一**一条与文件有关、
+    // 却没有 scope 的权限：对话框只是问用户要一个字符串，能读写哪里仍然只由上面那几条
+    // `$APPDATA/**` 决定。哪天这条带上了 allow 路径，就说明有人开始用权限指路了。
+    const entry = capability.permissions.find(
+      (permission) =>
+        typeof permission === 'object' && permission.identifier === 'dialog:allow-open'
+    )
+    expect(typeof entry, 'capabilities/default.json 应有 dialog:allow-open').toBe('object')
+    expect((entry as { allow?: unknown[] }).allow, '对话框不该带 scope').toBeUndefined()
+  })
+})
+
+/**
+ * 「换一个数据目录」这条链路的形状。
+ *
+ * 它依赖一个不太显眼的事实：Tauri 的 `$APPDATA/**` 权限范围**跟着 `appDirectoriesOverride`
+ * 走**，所以搬目录不需要放宽任何权限。代价是选中的目录必须专属于本应用——非空的别人目录一旦
+ * 被指进来，整个文件夹就都归 webview 读写了。下面这几条钉的就是这两个方向。
+ */
+describe('数据目录可以搬到别处，权限范围跟着走', () => {
+  const dataDirBackend = readFileSync(join(ROOT, 'src', 'backend', 'data-dir.ts'), 'utf8')
+
+  it('指向在任何插件初始化之前改，改的是配置而不是环境变量', () => {
+    const rustLib = readFileSync(join(ROOT, 'src-tauri', 'src', 'lib.rs'), 'utf8')
+    const apply = rustLib.indexOf('paths::apply_override(')
+    expect(apply, '启动时没人应用指针，指针就是写了个寂寞').toBeGreaterThan(-1)
+    expect(apply, '晚于 Builder 就没用了：能力清单的 $APPDATA 是照着配置解析的').toBeLessThan(
+      rustLib.indexOf('tauri::Builder::default()')
+    )
+    expect(rustLib).toMatch(/\.run\(context\)/)
+  })
+
+  it('指针不写在数据目录里', () => {
+    // 它记的内容就是"数据目录在哪"，写在那个目录里就等于把钥匙锁在屋里。
+    const anchor = rustPaths.match(/fn anchor_dir[\s\S]*?\n\}/)?.[0] ?? ''
+    expect(anchor, '锚点应认得出是配置里的 identifier').toMatch(/config\.identifier/)
+    expect(anchor, '锚点若走 app_data_dir，就跟着要被搬走的目录一起搬走了').not.toMatch(
+      /app_data_dir/
+    )
+    expect(rustPaths).toMatch(/const POINTER_FILE: &str = "location\.json"/)
+  })
+
+  it('先复制并核对，写了指针之后才删旧目录', () => {
+    const body = rustPaths.match(/fn move_data_dir\([\s\S]*?\n\}/)?.[0] ?? ''
+    expect(body).not.toBe('')
+    const copy = body.indexOf('copy_all(')
+    const pointer = body.indexOf('write_pointer(')
+    const remove = body.indexOf('remove_moved(')
+    expect(copy).toBeGreaterThan(-1)
+    expect(pointer, '指针写在复制之后').toBeGreaterThan(copy)
+    expect(remove, '删源文件写在指针之后：任何一步失败都只会退化成"两边都有一份"').toBeGreaterThan(
+      pointer
+    )
+  })
+
+  it('能不能当数据目录是 TS 判断的，Rust 只报事实', () => {
+    // 这条规则有安全含义，所以它必须写在能被读懂、能被测的地方（backend），而不是藏在
+    // 宿主里顺手 return 一个 bool。
+    expect(dataDirBackend).toMatch(/facts\.empty \|\| facts\.marker/)
+    expect(dataDirBackend).toMatch(/'not-dedicated'/)
+    expect(rustPaths.match(/fn facts\([\s\S]*?\n\}/)?.[0] ?? '').not.toMatch(/return Err/)
+  })
+
+  it('两条新命令的参数名两侧对得上', () => {
+    for (const command of ['inspectDataDir', 'setDataDir'] as const) {
+      expect(rustPaths, `${HOST_COMMAND[command]} 的参数应是 path`).toMatch(
+        new RegExp(`fn ${HOST_COMMAND[command]}\\([\\s\\S]*?path: String`)
+      )
+      expect(dataDirBackend).toMatch(new RegExp(`HOST_COMMAND\\.${command},\\s*\\{\\s*path:`))
+    }
   })
 })
 

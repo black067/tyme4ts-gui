@@ -185,6 +185,56 @@ describe('settings screen', () => {
     expect(screen.getByText('/tmp/tyme-app-test')).toBeInTheDocument()
   })
 
+  it('数据目录那一行挂着浏览与修改两个动作', async () => {
+    await openSettings()
+
+    await click(screen.getByRole('button', { name: '浏览' }))
+    await click(screen.getByRole('button', { name: '修改' }))
+
+    expect(bridge.dataDirActions).toEqual(['reveal', 'move'])
+  })
+
+  it('搬完了要说清"重启后生效"，因为本次会话还在旧目录里读写', async () => {
+    await openSettings()
+    bridge.setDataDirMove({
+      kind: 'moved',
+      report: {
+        from: '/tmp/tyme-app-test',
+        to: 'D:/万年历数据',
+        copied: 3,
+        bytes: 4 * 1024 * 1024,
+        removed: 3,
+        leftBehind: 0
+      }
+    })
+
+    await click(screen.getByRole('button', { name: '修改' }))
+
+    const note = await screen.findByText(/重启后生效/)
+    expect(note.textContent).toContain('D:/万年历数据')
+    expect(note.textContent).toContain('4.0 MB')
+    // 旧目录没打扫干净是另一句话，别混进"搬好了"那条里。
+    expect(screen.queryByText(/没删掉/)).toBeNull()
+  })
+
+  it('拒绝一个混着别的东西的文件夹时，说的是换一处，而不是"出错了请重试"', async () => {
+    await openSettings()
+    bridge.setDataDirMove({ kind: 'rejected', reason: 'not-dedicated' })
+
+    await click(screen.getByRole('button', { name: '修改' }))
+
+    expect(await screen.findByText(/已经有别的东西/)).toBeInTheDocument()
+  })
+
+  it('在对话框里按取消什么提示都不留', async () => {
+    await openSettings()
+    bridge.setDataDirMove({ kind: 'cancelled' })
+
+    await click(screen.getByRole('button', { name: '修改' }))
+
+    expect(document.querySelector('.settings-row__note')).toBeNull()
+  })
+
   it('persists the start view choice', async () => {
     await openSettings()
     // Scoped to the settings region: 年视图 also exists as a toolbar tab.

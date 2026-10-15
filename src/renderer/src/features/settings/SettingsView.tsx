@@ -8,6 +8,7 @@ import { HolidaySection } from '@renderer/features/holidays/HolidaySection'
 import { useSettings } from '@renderer/state/settings-context'
 import { useTheme } from '@renderer/theme/theme-context'
 import { THEMES } from '@renderer/theme/themes'
+import { DataDirRow } from './DataDirRow'
 import { ASSET_CREDITS, THIRD_PARTY } from './third-party'
 import './settings-view.css'
 
@@ -184,10 +185,8 @@ export function SettingsView({ onClose }: { onClose: () => void }): ReactElement
               value={info?.author || t.settings.about.missingAuthor}
             />
             <Row label={t.settings.about.runtimeLabel} value={info?.runtime ?? t.common.pending} />
-            <Row
-              label={t.settings.about.dataDirLabel}
-              value={info?.userDataPath ?? t.common.pending}
-            />
+            {/* 这一行不再是只读信息：路径旁边挂着「浏览」与「修改」，见 `DataDirRow`。 */}
+            <DataDirRow path={info?.userDataPath ?? t.common.pending} />
           </dl>
         </Section>
 

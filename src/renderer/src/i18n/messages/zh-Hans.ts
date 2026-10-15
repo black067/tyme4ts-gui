@@ -476,6 +476,30 @@ export const zhHans = {
       runtimeLabel: '运行时',
       dataDirLabel: '数据目录',
       settingsFileLabel: '设置文件',
+      /**
+       * 数据目录那一行的两个动作与四种结果。
+       *
+       * 文案分三组是刻意的：`rejected*` 说的是"你选的这个地方不行，换一个"，`failed*` 说的是
+       * "地方没问题，这次没成"，而 `moved` 必须带上"重启后生效"——本次会话仍在旧目录读写
+       * （宿主命令拿得到的是 `&Config`），少了这半句，用户重启前又改一次设置就会觉得搬丢了。
+       */
+      dataDir: {
+        browse: '浏览',
+        change: '修改',
+        moved: ({ to, files, size }: { to: string; files: number; size: string }) =>
+          `已搬到 ${to}（${files} 个文件，${size}）。重启后生效——在这之前改的设置仍记在旧目录里。`,
+        leftBehind: ({ count }: { count: number }) =>
+          `旧目录里还有 ${count} 个文件没删掉，可以手动删。`,
+        rejectedSame: '这就是当前正在用的目录，不用搬。',
+        rejectedNested: '不能选当前数据目录里面的文件夹：搬进去等于自己套自己。',
+        rejectedNotDedicated:
+          '那个文件夹里已经有别的东西。数据目录得是专门给本应用用的空文件夹——读写权限的范围会跟着它走，混着别的东西的目录不能交出来。',
+        rejectedNotWritable: '那个文件夹写不进去（只读盘、权限不够或已满）。换个位置再试。',
+        failedVerify: '复制过去的文件对不上校验，已保持原样：数据还在老地方，一件没动。',
+        failedDisk: '搬运没完成，数据还在老地方。检查一下磁盘空间与权限再重试。',
+        failedUnknown: '搬运没完成，数据还在老地方。',
+        revealFailed: '打不开那个文件夹。'
+      },
       /** package.json 里没写作者时的占位。 */
       missingAuthor: '（package.json 未填写）'
       // 运行时那一行由宿主直接给字符串（`Tauri 2.12.4 · WebView2 154…`）：
@@ -487,7 +511,8 @@ export const zhHans = {
       title: '第三方许可',
       usage: {
         tyme4ts: '全部历法、节假日与黄历数据（公历 / 农历 / 藏历 / 回历 / 节气 / 宜忌 / 八字）',
-        tauri: '桌面宿主：窗口、单实例、文件与网络能力的来源（含 fs / http / opener 三个官方插件）',
+        tauri:
+          '桌面宿主：窗口、单实例、文件与网络能力的来源（含 fs / http / opener / dialog 四个官方插件）',
         webview2: '系统提供的浏览器引擎，界面与推算都跑在它里面；缺失时联网安装官方运行库',
         rustCrates: '宿主侧的下载、校验与注册表读取；完整清单见 src-tauri/Cargo.lock',
         react: '界面渲染',

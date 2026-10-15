@@ -50,25 +50,29 @@ npm run icon                     # 从 assets/calendar.svg 重新生成 src-taur
   1024×1024 PNG，再交给 `tauri icon` 生成 `.ico` 与几个 PNG；脚本随后删掉用不到的
   android / ios / `.icns` / 商店磁贴。`tauri build` 只认 `src-tauri/icons/` 里现成的文件，
   不会自己转 SVG——这与 electron-builder 直接吃 SVG 的行为不同。
-- **改 `productName` 不再改数据目录**：数据目录由 `tauri.conf.json` 里
-  `app.appDirectoriesOverride.data = "$DATA/万年历"` 钉死，与产品名解耦；改显示名不会让老用户
-  的设置"消失"。反过来，改 `identifier` 会挪动 WebView2 的缓存目录
-  （`%LOCALAPPDATA%\<identifier>\`），那里面只有缓存，没有用户数据。
+- **改 `productName` 不再改数据目录**：数据目录的**默认**位置由 `tauri.conf.json` 里
+  `app.appDirectoriesOverride.data = "$DATA/万年历"` 定下，与产品名解耦；改显示名不会让老用户
+  的设置"消失"。用户后来把它搬到别处时，位置记在 `%APPDATA%\<identifier>\location.json`
+  （见 [architecture.md](architecture.md) 的「数据位置」）。
+- **反过来，改 `identifier` 现在有两处代价**：一是 WebView2 的缓存目录
+  （`%LOCALAPPDATA%\<identifier>\`，里面只有缓存），二是上面那个指针——identifier 一改就找不到
+  它，应用会回到默认目录去。数据本身不会丢（还在用户搬去的那个文件夹里），但"记得它在哪"这件事
+  是跟着 identifier 存的。所以 `identifier` 与 `productName` 一样，发出去之后就不要动。
 
 ### 配置要点
 
 `src-tauri/tauri.conf.json` 里几处不显眼但重要的设置：
 
-| 设置                              | 原因                                                                        |
-| --------------------------------- | --------------------------------------------------------------------------- |
-| `windows[0].create: false`        | 窗口由 Rust 现建，才能先读设置决定主题与底色（骨架屏的前提）                |
-| `windows[0].visible: false`       | 同上：页面加载完成（或 2500 ms 看门狗到点）才显形，不留白窗                 |
-| `windows[0].backgroundColor`      | 与骨架屏的 `--color-bg` 同源，由 `tests/host-boundary.test.ts` 核对         |
-| `appDirectoriesOverride.data`     | 把数据目录保持在 `%APPDATA%\万年历`，老用户的设置与节假日缓存原地可用       |
-| `security.csp: null`              | CSP 只写在 `src/renderer/index.html` 的 meta 里，配置再注入一份就是两个真相 |
-| `security.freezePrototype: false` | `tyme4ts` 与部分序列化路径依赖原型链，冻结会让界面直接报错                  |
-| `bundle.active: false`            | 只发裸 exe，不出安装包；产物名由 `scripts/package.mjs` 决定                 |
-| `version: "../package.json"`      | 版本号只有 `package.json` 一处真相                                          |
+| 设置                              | 原因                                                                                                    |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `windows[0].create: false`        | 窗口由 Rust 现建，才能先读设置决定主题与底色（骨架屏的前提）                                            |
+| `windows[0].visible: false`       | 同上：页面加载完成（或 2500 ms 看门狗到点）才显形，不留白窗                                             |
+| `windows[0].backgroundColor`      | 与骨架屏的 `--color-bg` 同源，由 `tests/host-boundary.test.ts` 核对                                     |
+| `appDirectoriesOverride.data`     | 数据目录的默认位置 `%APPDATA%\万年历`：老用户的设置与节假日缓存原地可用。用户搬走时启动早期会被指针覆盖 |
+| `security.csp: null`              | CSP 只写在 `src/renderer/index.html` 的 meta 里，配置再注入一份就是两个真相                             |
+| `security.freezePrototype: false` | `tyme4ts` 与部分序列化路径依赖原型链，冻结会让界面直接报错                                              |
+| `bundle.active: false`            | 只发裸 exe，不出安装包；产物名由 `scripts/package.mjs` 决定                                             |
+| `version: "../package.json"`      | 版本号只有 `package.json` 一处真相                                                                      |
 
 **依赖全部打进二进制，没有运行时 `node_modules`。** 这条约束从 Electron 时代继承下来，
 但检查的位置变了：Vite 会把 `dependencies` 打进 `dist/`，`tauri build` 再把 `dist/` 嵌进 exe，

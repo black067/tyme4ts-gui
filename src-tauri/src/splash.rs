@@ -110,8 +110,10 @@ fn background_rgb(theme_id: &str, dark: bool) -> [u8; 4] {
 
 /// 应用数据目录，顺手建出来：设置文件的原子写只负责"临时文件 + 改名"两步。
 ///
-/// 这个目录已被 tauri.conf.json 的 `appDirectoriesOverride` 指到 `%APPDATA%\万年历`，
-/// 与 Electron 时代的 `userData` 是同一个地方，老用户的设置与缓存因此原地可用。
+/// 这个目录默认由 tauri.conf.json 的 `appDirectoriesOverride` 指到 `%APPDATA%\万年历`，
+/// 与 Electron 时代的 `userData` 是同一个地方，老用户的设置与缓存因此原地可用；用户在设置里
+/// 把它搬到别处之后，`paths::apply_override()` 已在建窗之前改过指向，这里读到的就是新位置
+/// ——骨架屏的颜色才会与用户实际的设置一致。
 fn data_dir(app: &AppHandle) -> Option<PathBuf> {
     let dir = app.path().app_data_dir().ok()?;
     let _ = std::fs::create_dir_all(&dir);

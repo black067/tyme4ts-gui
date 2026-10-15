@@ -56,7 +56,9 @@ const FALLBACK_DELAY: std::time::Duration = std::time::Duration::from_secs(3);
 const ERR_INSTALL: &str = "install-failed";
 const ERR_DISK: &str = "disk";
 const ERR_NOT_WRITABLE: &str = "target-not-writable";
-const ERR_CHECKSUM: &str = "checksum-mismatch";
+/// 摘要不符。`paths.rs` 搬数据目录时也要问同一个问题（"字节 landed 且一致吗"），
+/// 所以这个码与 [`copy_then_verify`]、[`sha256_file`]、[`probe_writable`] 一起对 crate 内可见。
+pub(crate) const ERR_CHECKSUM: &str = "checksum-mismatch";
 
 /// 本次启动是否来自一次原地更新（由 `--updated-from` 带入，进程内事实，不进设置文件）。
 static UPDATED_FROM: OnceLock<Option<String>> = OnceLock::new();
@@ -309,7 +311,7 @@ fn same_file(a: &Path, b: &Path) -> bool {
 
 /// 用一个必定不存在的新文件试写再删：权限、配额、写保护 U 盘都在这一步暴露，
 /// 而不是在下载完成之后。
-fn probe_writable(dir: &Path) -> Result<(), &'static str> {
+pub(crate) fn probe_writable(dir: &Path) -> Result<(), &'static str> {
     // 必须是 `dir` 里的探针，不是在 `dir` 的名字后面拼一段：后者测的是父目录能不能写，
     // 于是"这个文件夹不让写"这一条恰恰测不出来（单测抓到过一次）。
     let probe = dir.join(".tyme-write-probe");
@@ -326,7 +328,7 @@ fn probe_writable(dir: &Path) -> Result<(), &'static str> {
     }
 }
 
-fn copy_then_verify(
+pub(crate) fn copy_then_verify(
     from: &Path,
     to: &Path,
     expected_bytes: u64,
@@ -351,7 +353,7 @@ fn copy_then_verify(
     }
 }
 
-fn sha256_file(path: &Path) -> Option<String> {
+pub(crate) fn sha256_file(path: &Path) -> Option<String> {
     use std::io::Read;
     let mut file = std::fs::File::open(path).ok()?;
     let mut hasher = Sha256::new();
@@ -383,7 +385,7 @@ fn spawn_wait(target: &Path, updated_from: &str) -> Result<(), &'static str> {
 }
 
 #[cfg(windows)]
-fn detach(command: &mut Command) {
+pub(crate) fn detach(command: &mut Command) {
     use std::os::windows::process::CommandExt;
     // 调试版是控制台子系统，不加这个标志就会闪出一个黑框。
     const CREATE_NO_WINDOW: u32 = 0x0800_0000;
@@ -391,7 +393,7 @@ fn detach(command: &mut Command) {
 }
 
 #[cfg(not(windows))]
-fn detach(_command: &mut Command) {}
+pub(crate) fn detach(_command: &mut Command) {}
 
 #[cfg(windows)]
 fn reveal(path: &Path) {

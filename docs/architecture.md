@@ -91,8 +91,9 @@ tyme4ts ──▶ src/core（DTO + LRU 缓存）──▶ React 组件
 同一个 realm 里，这些文件只是类型与常量，没有序列化边界：`AppInfo`、`UpdateState`
 这些对象直接就是 JS 值，不需要 structured-clone 兼容。
 
-Rust 侧只有五个命令和一个事件，名字在 `src/shared/ipc.ts` 的 `HOST_COMMAND` /
-`HOST_EVENT` 里，`tests/host-boundary.test.ts` 会去 `src-tauri/src` 里逐个核对：
+Rust 侧只有八个命令和一个事件，名字在 `src/shared/ipc.ts` 的 `HOST_COMMAND` /
+`HOST_EVENT` 里，`tests/host-boundary.test.ts` 会去 `src-tauri/src` 里逐个核对（命令分两个模块：
+`update.rs` 管更新产物，`paths.rs` 管数据目录）：
 
 | 名字                | 方向      | 作用                                                        |
 | ------------------- | --------- | ----------------------------------------------------------- |
@@ -101,7 +102,15 @@ Rust 侧只有五个命令和一个事件，名字在 `src/shared/ipc.ts` 的 `H
 | `delete_update`     | JS → Rust | 删掉已下载的文件（文件名先过白名单，只能碰数据目录）        |
 | `install_update`    | JS → Rust | 把新字节换到正在运行的 exe 上，派等待者重启，然后退出本进程 |
 | `update_context`    | JS → Rust | 安装位置，以及本次启动来自哪个版本                          |
+| `reveal_data_dir`   | JS → Rust | 把当前数据目录在系统文件管理器里打开                        |
+| `inspect_data_dir`  | JS → Rust | 报一个候选目录的事实：空不空、有没有标记、写不写得进去      |
+| `set_data_dir`      | JS → Rust | 把数据搬到新目录：先复制并逐个核对，写了指针才删旧文件      |
 | `update://progress` | Rust → JS | 下载进度（字节数与速率），80 ms 节流                        |
+
+`reveal_data_dir` / `inspect_data_dir` / `set_data_dir` 同样遵循"TS 判断、Rust 报事实"：
+`inspect_data_dir` 不回答"能不能搬"，取舍在 `src/backend/data-dir.ts`。搬到别处之后**本次会话
+仍在旧目录读写**（`AppHandle` 只拿得到 `&Config`），新指向下次启动生效——所以界面必须把这句话
+说出来，见下面的「数据位置」。
 
 `install_update` 是这五个里唯一一个「判断成分为零、操作系统语义占满」的命令，所以它整个待在
 宿主里（`src-tauri/src/replace.rs`）：Windows 不允许覆盖正在运行的映像但允许改名，而新实例必须
@@ -112,8 +121,10 @@ Rust 侧只有五个命令和一个事件，名字在 `src/shared/ipc.ts` 的 `H
 
 文件与网络的可达范围由 `src-tauri/capabilities/default.json` 决定：文件只允许
 `$APPDATA/**`（读写、建目录、改名），网络只允许 `api.github.com`、`cdn.jsdelivr.net`、
-`unpkg.com` 三个域，外链只允许 `https`。这五个命令是 `invoke` 的自定义命令，
+`unpkg.com` 三个域，外链只允许 `https`。这八个命令是 `invoke` 的自定义命令，
 不需要出现在能力清单里；`update://progress` 由宿主发出，同样发给 `main` 窗口。
+唯一为"换数据目录"新增的权限是 `dialog:allow-open`——它不授予任何路径，只是让用户自己
+挑一个文件夹（`tests/host-boundary.test.ts` 钉着"它不许带 scope"）。
 
 ## 首帧与窗口生命周期
 
@@ -133,7 +144,24 @@ Rust 侧只有五个命令和一个事件，名字在 `src/shared/ipc.ts` 的 `H
 
 ## 数据位置
 
-`app.appDirectoriesOverride.data = "$DATA/万年历"` 把应用数据目录钉在
+`app.appDirectoriesOverride.data = "$DATA/万年历"` 把应用数据目录默认钉在
 `%APPDATA%\万年历`，与 Electron 时代逐字相同：老用户的 `settings.json` 与
 `holidays/*.json` 原地可读，`tests/host-boundary.test.ts` 也钉着这一条。
 WebView2 自己的缓存与 cookie 落在 `%LOCALAPPDATA%\com.tyme.desktop\`，那部分不是用户数据。
+
+用户可以在设置里把它搬到别处（`src-tauri/src/paths.rs`）。这条链路的四个决定：
+
+- **指针不能存在数据目录里。** 它记的内容就是"数据目录在哪"，而那个目录正是等着被搬走的东西。
+  锚点因此是 `%APPDATA%\com.tyme.desktop\location.json`——按 `identifier` 取名，与 WebView2
+  的缓存同层但不同目录；启动时 `paths::apply_override()` 在 `Builder::run(context)` 之前把它
+  读进 `config_mut()`。
+- **权限不用放宽，也正因为如此要挑一个专属目录。** 能力清单里的 `$APPDATA/**` 是照着最终的
+  override 解析的：改指向，范围自己跟过去。反过来，用户随手指一个混着别的东西的文件夹，就等于
+  把整个文件夹交给 webview 读写——所以非空、又没有本应用标记的目录一律拒绝。
+- **每个本应用持有的目录留一个 `.tyme-data-dir` 标记**，搬走之后旧目录也留着它，于是"再指回去"
+  时那个空壳仍然认得出是自己人。
+- **顺序是先复制、逐个核对、写指针，最后才删旧文件。** 任何一步失败最多退化成"两边各有一份"，
+  不会出现"旧删了、新的没成"。`updates/` 里的下载产物不算数据：可再生的东西不占搬运的体积。
+
+搬完之后本次会话仍在旧目录读写（`AppHandle` 只拿得到 `&Config`），新指向下次启动生效。这一句
+必须显示在界面上，否则用户在重启之前又改了一次设置，就会觉得数据搬丢了。

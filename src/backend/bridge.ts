@@ -21,6 +21,7 @@ import {
   subscribeUpdates
 } from './updater'
 import { getHolidayStatus, refreshHolidays, subscribeHolidays } from './holidays'
+import { moveDataDir, revealDataDir } from './data-dir'
 
 /**
  * 每次检查完都记一笔时间。
@@ -50,6 +51,10 @@ const api: TymeApi = {
   },
   app: {
     getInfo: () => getAppInfo()
+  },
+  dataDir: {
+    reveal: () => revealDataDir(),
+    move: () => moveDataDir()
   },
   updates: {
     getState: () => Promise.resolve(getUpdateState()),
