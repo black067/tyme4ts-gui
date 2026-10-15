@@ -254,6 +254,77 @@ describe('命令名与事件名在两侧一致', () => {
       )
     }
   })
+
+  it('install_update 另外收 sha256：复验的基准由 TS 交下去', () => {
+    // 换掉正在运行的自己之前，最后那道闸是"落到暂存区的字节还是不是那串摘要"。
+    // 基准必须由 TS 提供——Rust 自己不记分，否则判据就搬进了宿主，两侧各判一半。
+    expect(rustUpdate).toMatch(/fn install_update\([\s\S]*?sha256: String/)
+    const bridge = readFileSync(join(ROOT, 'src', 'backend', 'updater.ts'), 'utf8')
+    expect(bridge).toMatch(/HOST_COMMAND\.installUpdate,\s*\{\s*fileName:[\s\S]*?sha256:/)
+  })
+})
+
+/**
+ * 便携版的原地自更新。
+ *
+ * 这一组断言的形状和其他几条不一样：它防的不是拼写，而是"有人把安装改回成 spawn 新 exe"。
+ * 那个写法看起来能跑（下载、校验、启动、退出，一步不缺），实际是必坏——
+ * single-instance 的互斥体只按 identifier 命名，旧进程还活着时拉起的新实例会静默退出。
+ * 所以这里把三条设计约束钉在源码上，而不只在文档里。
+ */
+describe('安装是原地替换，不是"起一个新版然后自杀"', () => {
+  const rustReplace = readFileSync(join(ROOT, 'src-tauri', 'src', 'replace.rs'), 'utf8')
+  const rustLib = readFileSync(join(ROOT, 'src-tauri', 'src', 'lib.rs'), 'utf8')
+
+  it('install_update 交给 replace 模块换字节', () => {
+    expect(rustUpdate).toMatch(/replace::install_in_place\(/)
+    expect(rustReplace).toContain('pub fn install_in_place(')
+  })
+
+  it('不残留"直接启动产物"那条死路', () => {
+    // 曾经的写法：`std::process::Command::new(&path).spawn()` 然后 `handle.exit(0)`。
+    // spawn 本身没错——错的是由"正在退出的一方"来起新版。所以这里要求安装命令里
+    // 一次进程创建都没有，起新版的活整个在 replace.rs。
+    expect(rustUpdate).not.toMatch(/std::process::Command|Command::new/)
+    expect(rustUpdate).toMatch(/fn install_update\([\s\S]*?spawn_blocking/)
+  })
+
+  it('等待者等的是进程句柄，不是那把互斥体', () => {
+    // 握着互斥体的句柄去"等它释放"是行不通的：命名对象只要还有一个句柄开着就仍然存在，
+    // 创建互斥体的调用照样返回"已经存在"，于是新实例还是自己退掉。
+    // 所以断言的是等待者实际绑定了哪些 FFI——注释里当然会提到那把锁，代码里不能有。
+    const bound = [...rustReplace.matchAll(/extern "system"\s*\{([\s\S]*?)\n\s*\}/g)]
+      .map((block) => block[1] ?? '')
+      .join('')
+    expect(bound).toContain('fn WaitForSingleObject(')
+    expect(bound).toContain('fn OpenProcess(')
+    expect(bound).not.toMatch(/Mutex/i)
+  })
+
+  it('等待者模式在建窗口与注册单实例之前分派', () => {
+    const dispatch = rustLib.indexOf('replace::parse_wait_request()')
+    const runtime = rustLib.indexOf('ensure_runtime_or_exit()')
+    const singleInstance = rustLib.indexOf('tauri_plugin_single_instance::init')
+    expect(dispatch).toBeGreaterThan(-1)
+    expect(runtime).toBeGreaterThan(-1)
+    expect(singleInstance).toBeGreaterThan(-1)
+    expect(dispatch, '等待者不该先被 WebView2 检查拦下').toBeLessThan(runtime)
+    expect(dispatch, '等待者不该去碰单实例注册').toBeLessThan(singleInstance)
+  })
+
+  it('看门狗参数是冻结的跨版本契约', () => {
+    // 换完字节之后跑这段代码的是新二进制，而参数是旧版本传出去的：改名字会让
+    // "从上一个版本升上来"的那一次退化成固定等三秒。改之前先读 replace.rs 文件头。
+    expect(rustReplace).toMatch(/WAIT_FLAG: &str = "--__updater-wait"/)
+    expect(rustReplace).toMatch(/UPDATED_FROM_FLAG: &str = "--updated-from"/)
+  })
+
+  it('等待者不从命令行接收"可以删的路径"', () => {
+    // 只看旗标与 PID：暂存文件由旧进程在换完字节之后自己删。
+    // 少一个从命令行取路径去删的原语，就少一个"被旁人拿来删任意文件"的口子。
+    expect(rustReplace).not.toMatch(/ASSET_FLAG/)
+    expect(rustReplace).toMatch(/\.arg\(PID_FLAG\)/)
+  })
 })
 
 describe('tauri.conf.json 守住了首帧与数据位置', () => {

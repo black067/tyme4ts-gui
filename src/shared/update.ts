@@ -23,6 +23,15 @@ export type UpdateErrorCode =
   | 'no-compatible-asset'
   | 'checksum-mismatch'
   | 'disk'
+  /**
+   * The directory holding the running exe cannot be written to.
+   *
+   * Distinct from `install-failed` on purpose: it is the one case the user can act
+   * on (move the program somewhere writable, or leave a read-only medium), whereas
+   * `install-failed` means "we tried to swap the bytes and something else went
+   * wrong". The old flow discovered this only after a full download.
+   */
+  | 'target-not-writable'
   | 'install-failed'
   | 'unknown'
 
@@ -51,6 +60,20 @@ export interface UpdateState {
   errorCode: UpdateErrorCode | null
   /** Whether a download has finished and the installer can be launched. */
   canInstall: boolean
+  /**
+   * Absolute path of the running exe — i.e. where an update is written to.
+   *
+   * A portable app must name its own destination, or the user cannot tell what got
+   * replaced. `''` until the host has answered; see `primeUpdaterContext`.
+   */
+  installPath: string
+  /**
+   * The version this process was updated from, once per update.
+   *
+   * Survives one launch only (`--updated-from` on the command line, not persisted):
+   * it exists so that "重启并安装" ends with something the user can see went well.
+   */
+  updatedFrom: string | null
 }
 
 /** The update surface exposed on `window.tyme.updates`. */
@@ -64,11 +87,15 @@ export interface UpdatesApi {
   /** Abandon an in-flight download. */
   cancel(): Promise<UpdateState>
   /**
-   * Launch the downloaded installer and quit.
+   * Replace the running exe with the downloaded one, relaunch it, and quit.
    *
-   * The app ships as a single-file portable exe, so there is no installer to
-   * run silently in place: the new launcher is started detached and this process
-   * exits, which is the closest thing to an in-place upgrade this target allows.
+   * The app ships as a single-file portable exe, so "install" means swapping bytes at
+   * the path the user launched: the running image is renamed out of the way (Windows
+   * forbids overwriting it but allows renaming it), the new file takes its exact name,
+   * and a detached waiter — the same exe in `--__updater-wait` mode — starts the new
+   * copy only once this process is gone, because the single-instance mutex has no
+   * version in its name. Rejects with a short code when any step fails; in that case
+   * nothing is replaced and this process keeps running.
    */
   install(): Promise<UpdateState>
   /**

@@ -100,6 +100,7 @@ cd src-tauri && cargo check --all-targets
 | 渲染层集成 | `src/renderer/src/__tests__/*`           | jsdom + 伪 `window.tyme`：视图切换、选日、主题、工具页、快捷键                                                                       |
 | 架构契约   | `tests/theme-tokens.test.ts`             | 配色是否越界、主题 token 是否完整                                                                                                    |
 | 宿主契约   | `tests/host-boundary.test.ts`            | 分层禁令、命令/事件/参数名跨语言对账、`tauri.conf.json` 不变式、能力清单范围、产物名与更新器正则同源、打出的 bundle 不留裸 `require` |
+| 后端状态机 | `src/backend/__tests__/*`                | 装不上必须留下可见后果：失败码分得开、重试不必重下一遍、只有摘要不符才丢掉那份字节（`updater-install.test.ts`）                      |
 | 释义契约   | `tests/glossary-contract.test.ts`        | 词条的 key 都在引擎表里、引文逐字可查、缺口显式                                                                                      |
 | 文案契约   | `tests/i18n-contract.test.ts`            | 各语言目录的键对齐、渲染层硬编码中文只减不增                                                                                         |
 | 骨架契约   | `tests/splash-contract.test.ts`          | 首帧骨架的文案与目录逐字一致、配色全在 tokens 里、Rust 侧注入规则与 TS 规范同源                                                      |
@@ -111,3 +112,21 @@ cd src-tauri && cargo check --all-targets
 
 `tests/host-boundary.test.ts` 里那组「打出的 bundle」检查会读 `dist/`，缺产物时自己跑一次
 `npx vite build`；平时先 `npm run build` 再 `npm test`，能省掉这十几秒。
+
+## 自更新只能手动冒烟
+
+## 自更新只能手动冒烟
+
+原地替换跑在**产物**上：它换的是 `current_exe()`，而调试版里那是 `target\debug\` 下的开发二进制，
+那道闸门默认就把它拒绝掉了（`TYME_ALLOW_DEV_IN_PLACE_UPDATE=1` 可以强开，见 `docs/packaging.md`）。
+单元测试覆盖判断与失败清理，覆盖不了"进程没了、过了一会儿新版自己起来了"这一段。
+
+发版前值得跑一遍的三个观察点：
+
+1. 把 `release\chinese-calendar-<旧版>-portable.exe` 放在一个**可写**目录里，启动它，
+   设置 → 更新 → 下载 → 重启并安装。对了的表现是：应用关掉，几秒钟后**自己再打开**，
+   界面上出现「已从 v<旧版> 更新到 v<新版>」；文件名还是原来那个，内容已经是新版。
+2. 换一个**不可写**的位置（就地设只读，或放进写保护的 U 盘）再点安装：应用不该消失，
+   界面上应是「当前所在位置无法写入」，而不是按下按钮之后窗口一关、再无下文。
+3. 装完到 exe 所在目录看一眼：不该留下 `*.old.exe` 或 `*.exe.new`；`%APPDATA%\万年历\updates\`
+   里那一份也已经删掉。有残留说明等待者没跑完，回到第 1 步的现象去查。

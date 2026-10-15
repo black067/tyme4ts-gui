@@ -82,7 +82,8 @@ tyme4ts ──▶ src/core（DTO + LRU 缓存）──▶ React 组件
                                                           ├─ download_update  流式下载 + sha256
                                                           ├─ cancel_update    置取消标志
                                                           ├─ delete_update    删已下载文件
-                                                          └─ install_update   拉起新版并退出
+                                                          ├─ install_update   原地替换自己并派等待者
+                                                          └─ update_context   安装位置 / 刚从哪个版本来
 ```
 
 `window.tyme` 的形状定义在 `src/shared/ipc.ts`（更新部分在 `src/shared/update.ts`，
@@ -90,20 +91,28 @@ tyme4ts ──▶ src/core（DTO + LRU 缓存）──▶ React 组件
 同一个 realm 里，这些文件只是类型与常量，没有序列化边界：`AppInfo`、`UpdateState`
 这些对象直接就是 JS 值，不需要 structured-clone 兼容。
 
-Rust 侧只有四个命令和一个事件，名字在 `src/shared/ipc.ts` 的 `HOST_COMMAND` /
+Rust 侧只有五个命令和一个事件，名字在 `src/shared/ipc.ts` 的 `HOST_COMMAND` /
 `HOST_EVENT` 里，`tests/host-boundary.test.ts` 会去 `src-tauri/src` 里逐个核对：
 
-| 名字                | 方向      | 作用                                                    |
-| ------------------- | --------- | ------------------------------------------------------- |
-| `download_update`   | JS → Rust | 流式下载一个发布资产到数据目录，边下边算 SHA-256        |
-| `cancel_update`     | JS → Rust | 让正在下载的 `download_update` 停下来并返回 `cancelled` |
-| `delete_update`     | JS → Rust | 删掉已下载的文件（文件名先过白名单，只能碰数据目录）    |
-| `install_update`    | JS → Rust | 以独立进程启动新版，成功后退出本进程                    |
-| `update://progress` | Rust → JS | 下载进度（字节数与速率），80 ms 节流                    |
+| 名字                | 方向      | 作用                                                        |
+| ------------------- | --------- | ----------------------------------------------------------- |
+| `download_update`   | JS → Rust | 流式下载一个发布资产到数据目录，边下边算 SHA-256            |
+| `cancel_update`     | JS → Rust | 让正在下载的 `download_update` 停下来并返回 `cancelled`     |
+| `delete_update`     | JS → Rust | 删掉已下载的文件（文件名先过白名单，只能碰数据目录）        |
+| `install_update`    | JS → Rust | 把新字节换到正在运行的 exe 上，派等待者重启，然后退出本进程 |
+| `update_context`    | JS → Rust | 安装位置，以及本次启动来自哪个版本                          |
+| `update://progress` | Rust → JS | 下载进度（字节数与速率），80 ms 节流                        |
+
+`install_update` 是这五个里唯一一个「判断成分为零、操作系统语义占满」的命令，所以它整个待在
+宿主里（`src-tauri/src/replace.rs`）：Windows 不允许覆盖正在运行的映像但允许改名，而新实例必须
+等旧进程结束之后才允许启动——`tauri-plugin-single-instance` 的互斥体只按 `identifier` 命名，
+不含版本号。形状因此是「旧进程换字节 + 同一个 exe 的隐藏等待者负责重启」。为什么非得这样、
+以及它踩过什么坑（应用关了再没打开、用户找不到下载的新版本），写在 `docs/packaging.md`
+的「便携版怎么把自己换掉」。
 
 文件与网络的可达范围由 `src-tauri/capabilities/default.json` 决定：文件只允许
 `$APPDATA/**`（读写、建目录、改名），网络只允许 `api.github.com`、`cdn.jsdelivr.net`、
-`unpkg.com` 三个域，外链只允许 `https`。这四个命令是 `invoke` 的自定义命令，
+`unpkg.com` 三个域，外链只允许 `https`。这五个命令是 `invoke` 的自定义命令，
 不需要出现在能力清单里；`update://progress` 由宿主发出，同样发给 `main` 窗口。
 
 ## 首帧与窗口生命周期

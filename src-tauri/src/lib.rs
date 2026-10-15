@@ -4,6 +4,7 @@
 //! 转发 IPC、持有更新器与节假日缓存；现在那些判断都搬进了 webview 里的 `src/backend`，
 //! 宿主只剩"窗口、进程、字节"三件事。
 
+mod replace;
 mod report;
 mod splash;
 mod update;
@@ -25,6 +26,15 @@ const SHOW_BACKSTOP_MS: u64 = 2500;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // 等待者模式先于一切：不建窗口、不碰单实例、也不去查 WebView2——它唯一的活是等旧进程结束
+    // 然后把已经换好字节的自己拉起来。放在这个位置是必须的：单实例插件的互斥体一注册，
+    // 这个进程就会被当成"第二个实例"处理掉（见 `src-tauri/src/replace.rs`）。
+    if let Some(request) = replace::parse_wait_request() {
+        replace::run_wait(request);
+    }
+    // 普通启动也要认 `--updated-from`：设置页那句"已从 0.1.4 更新到 0.2.0"靠它。
+    replace::record_updated_from_arg();
+
     // 只发 portable 产物，没有安装器替我们装运行库，所以启动前先确保它可用。
     #[cfg(windows)]
     webview::ensure_runtime_or_exit();
@@ -33,6 +43,8 @@ pub fn run() {
 
     let outcome = tauri::Builder::default()
         // 单实例必须最先注册：否则第二次启动会先建出一个窗口再被拦掉。
+        // 也正因为它的互斥体只按 `identifier` 命名（不含版本号），"拉起新版"绝不能由本进程
+        // 顺手做——那时旧进程还握着锁，新实例会在自己的 setup 里静默退出。
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
             // 与今天 second-instance 一致：取消最小化、显示、聚焦。
             if let Some(window) = app.get_webview_window(MAIN_WINDOW) {
@@ -49,10 +61,20 @@ pub fn run() {
             update::download_update,
             update::cancel_update,
             update::delete_update,
-            update::install_update
+            update::install_update,
+            update::update_context
         ])
         .setup(move |app| {
             let handle = app.handle().clone();
+            // 上一次更新留下的 `.old.exe` / `.part` / 过期暂存资产，由这个真正活下来的实例清扫。
+            // 不放在安装成功之后：那一段代码属于正在退出的旧进程，而等待者未必跑完。
+            // 也正因为清扫可能碰到写盘慢的目录（网络盘、U 盘），它不放主线程。
+            let cleaner = handle.clone();
+            tauri::async_runtime::spawn_blocking(move || {
+                replace::cleanup_exe_dir();
+                update::sweep_updates_dir(&cleaner);
+            });
+
             // 骨架屏的参数要在页面加载前定下来：这是"窗口一出现就有反馈"的全部前提。
             let bootstrap = splash::build(&handle);
             let config = handle

@@ -12,8 +12,12 @@
 //! `src/backend/updater.ts`，错误码也仍是 `src/shared/update.ts` 里那几个。Rust 只回答两件事：
 //! "字节落盘了，摘要是这个"和"我没能落盘，原因是这个"。取消、限额（600 MB）、临时文件、
 //! 原子改名，都和 Node 版一一对应。
+//!
+//! "安装"是唯一的例外，而且是有理由的例外：换掉**正在运行的自己**这件事没有任何判断成分，
+//! 却全是操作系统语义（运行中的映像不能覆盖、能改名；新实例必须等旧进程结束），所以它整个属于
+//! 宿主，写在 `src-tauri/src/replace.rs`。这里只负责把暂存文件的路径与基准摘要交过去。
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
@@ -22,6 +26,8 @@ use serde::Serialize;
 use sha2::{Digest, Sha256};
 use tauri::{AppHandle, Emitter, Manager, State};
 use tokio::io::{AsyncWriteExt, BufWriter};
+
+use crate::replace;
 
 /// 与今天 `USER_AGENT` 同一个串：GitHub 用它做流量归因，改了就等于换了个身份。
 const USER_AGENT: &str = "tyme-app-updater (https://github.com/black067/tyme4ts-gui)";
@@ -230,31 +236,90 @@ pub async fn delete_update(app: AppHandle, file_name: String) -> Result<(), Stri
     }
 }
 
-/// 启动产物并退出。TS 侧已经确认过 `canInstall`，这里只补本机事实：文件在、非空。
+/// 安装 = 原地替换掉正在运行的自己 + 派一个等待者，然后本进程退出。
 ///
-/// 失败时像今天 `shell.showItemInFolder` 那样在资源管理器里选中它——用户至少能手动双击。
+/// 与旧版有一处关键差别：**失败时本进程不退**。旧版是"先起新版、四百毫秒后自杀"，
+/// 新版起没起来、为什么没起来都无人知道；现在"换字节"这件事在本进程里做完，
+/// 任何一步不对劲都原样退回错误态，界面上第一次有话说，也留着重试的机会。
+///
+/// `sha256` 是 TS 已经判过一次的那个基准，交回来在**换掉自己之前**复验一次落盘的字节：
+/// 判据仍然在 TS，这里只是把"复制到目标盘是否完整"这个只有本机知道的事实核对掉。
 #[tauri::command]
-pub fn install_update(app: AppHandle, file_name: String) -> Result<(), String> {
+pub async fn install_update(
+    app: AppHandle,
+    file_name: String,
+    sha256: String,
+) -> Result<(), String> {
     let name = safe_file_name(&file_name).ok_or("install-failed")?;
-    let path = updates_dir(&app)?.join(name);
-    let metadata = std::fs::metadata(&path).map_err(|_| "install-failed")?;
-    if metadata.len() == 0 {
-        return Err("install-failed".into());
-    }
-
-    // 子进程独立于本进程：新实例要在旧进程退出之后才允许启动（single-instance 只看窗口）。
-    if std::process::Command::new(&path).spawn().is_err() {
-        let _ = std::process::Command::new("explorer.exe")
-            .arg(format!("/select,{}", path.display()))
-            .spawn();
-        return Err("install-failed".into());
-    }
-
-    // 与今天 `setTimeout(() => app.quit(), 400)` 一样：留一点时间让状态先落地。
+    let staged = updates_dir(&app)?.join(&name);
+    // "我从哪个版本更新来的"只有旧进程知道自己。这个值由等待者带进新进程，供界面自证。
+    let updated_from = app.package_info().version.to_string();
     let handle = app.clone();
+
+    // 复制 10 MB + 算一遍摘要 + 两次 rename 都是同步文件操作，别把它们放在主线程上。
+    let outcome = tauri::async_runtime::spawn_blocking(move || {
+        replace::install_in_place(&staged, &sha256, &updated_from)
+    })
+    .await
+    .map_err(|_| "install-failed".to_string())?;
+    outcome.map_err(|code| code.to_string())?;
+
+    // 这四百毫秒不是在等新版起来——那是等待者的职责（它等的是旧进程的结束）——
+    // 只是让状态与 IPC 应答先落地，再开始拆窗口。
     tauri::async_runtime::spawn(async move {
         tokio::time::sleep(std::time::Duration::from_millis(400)).await;
         handle.exit(0);
     });
     Ok(())
+}
+
+/// 界面需要、但只有本机答得出的两件事。见 `UpdateState.installPath` 与 `updatedFrom`。
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateContext {
+    install_path: String,
+    updated_from: Option<String>,
+}
+
+/// 更新会写到哪个路径、这次启动是不是刚更新完。
+#[tauri::command]
+pub fn update_context() -> UpdateContext {
+    UpdateContext {
+        install_path: replace::install_path().unwrap_or_default(),
+        updated_from: replace::updated_from().map(|tag| tag.to_string()),
+    }
+}
+
+/// `updates\` 里暂存资产的保留期（天）。等待者被杀、用户改了主意、下了却没装，
+/// 都不该让这个目录每版堆 10 MB 长下去。
+pub const STAGED_RETENTION_DAYS: i64 = 7;
+
+/// 清掉暂存区里的垃圾：被中断的 `.part`，以及过了保留期的资产。
+///
+/// `.part` 只有崩溃才会留下（正常路径是原子改名），所以它永远不可能变成"可用的下载"；
+/// 留着只会让人以为下载还停在某个百分比上。
+pub fn sweep_updates_dir(app: &AppHandle) {
+    let Ok(dir) = updates_dir(app) else { return };
+    let Ok(entries) = std::fs::read_dir(&dir) else {
+        return;
+    };
+    for entry in entries.flatten() {
+        let path = entry.path();
+        let text = entry.file_name().to_string_lossy().to_string();
+        if text.ends_with(".part") {
+            let _ = std::fs::remove_file(&path);
+        } else if text.ends_with(".exe") {
+            if let Some(age) = modified_days_ago(&path) {
+                if age > STAGED_RETENTION_DAYS {
+                    let _ = std::fs::remove_file(&path);
+                }
+            }
+        }
+    }
+}
+
+fn modified_days_ago(path: &Path) -> Option<i64> {
+    let modified = std::fs::metadata(path).ok()?.modified().ok()?;
+    let elapsed = std::time::SystemTime::now().duration_since(modified).ok()?;
+    Some(elapsed.as_secs() as i64 / 86_400)
 }

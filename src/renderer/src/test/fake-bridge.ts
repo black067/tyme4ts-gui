@@ -51,7 +51,9 @@ function idleUpdateState(version: string): UpdateState {
     releaseUrl: null,
     progress: null,
     errorCode: null,
-    canInstall: false
+    canInstall: false,
+    installPath: '/tmp/tyme-app/chinese-calendar-0.0.0-test-portable.exe',
+    updatedFrom: null
   }
 }
 

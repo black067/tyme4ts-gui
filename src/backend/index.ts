@@ -9,6 +9,7 @@ import { checkAndRecord, installBridge } from './bridge'
 import { primeAppVersion } from './host'
 import { loadCachedHolidays, refreshHolidays } from './holidays'
 import { readSettings } from './settings'
+import { primeUpdaterContext } from './updater'
 
 /** 与旧版 `boot()` 里的两个 `setTimeout` 一致的延后时长。 */
 const HOLIDAY_REFRESH_DELAY_MS = 1500
@@ -22,6 +23,9 @@ const UPDATE_CHECK_DELAY_MS = 3000
  */
 export async function startBackend(): Promise<void> {
   await primeAppVersion()
+  // 不等它：安装路径与"刚从哪个版本更新来"只影响更新那一栏的措辞，晚一帧到也没人看得见。
+  // 启动路径上多挡一次 IPC，挡的是骨架屏变内容的那段时间。
+  void primeUpdaterContext()
   const settings = await readSettings()
 
   installBridge()

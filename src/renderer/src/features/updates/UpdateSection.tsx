@@ -36,6 +36,8 @@ function errorText(t: Messages, code: UpdateErrorCode | null): string {
       return errors.checksumMismatch
     case 'disk':
       return errors.disk
+    case 'target-not-writable':
+      return errors.targetNotWritable
     case 'install-failed':
       return errors.installFailed
     default:
@@ -96,6 +98,14 @@ export function UpdateSection(): ReactElement | null {
         ) : null}
       </p>
 
+      {/* 原地替换之后，"更新成功了"这件事只剩版本号能说；不写出来就没人知道自己刚从哪个版本
+          换过来。这个提示只跟一次启动：它来自命令行参数，不写进设置文件。 */}
+      {state.updatedFrom !== null && state.updatedFrom !== state.currentVersion ? (
+        <p className="settings-note">
+          {t.settings.updates.justUpdated({ from: state.updatedFrom, to: state.currentVersion })}
+        </p>
+      ) : null}
+
       {state.phase === 'downloading' ? (
         <progress
           className="updates__progress"
@@ -104,7 +114,18 @@ export function UpdateSection(): ReactElement | null {
         />
       ) : null}
 
-      {state.phase === 'ready' ? <p className="settings-note">{t.settings.updates.ready}</p> : null}
+      {/* 下载完成之后说清楚要替换的是哪个文件：便携版的"安装位置"就是用户放它的那地方。
+          旧版这里只有一句「重启后生效」，于是没人知道重启的是哪一个、新版又落在哪里。 */}
+      {state.phase === 'ready' ? (
+        <>
+          <p className="settings-note">{t.settings.updates.ready}</p>
+          {state.installPath !== '' ? (
+            <p className="settings-note updates__path">
+              {t.settings.updates.installTarget({ path: state.installPath })}
+            </p>
+          ) : null}
+        </>
+      ) : null}
 
       {state.phase === 'error' ? (
         <p className="tool__error">{errorText(t, state.errorCode)}</p>

@@ -26,7 +26,8 @@ export const HOST_COMMAND = {
   downloadUpdate: 'download_update',
   cancelUpdate: 'cancel_update',
   deleteUpdate: 'delete_update',
-  installUpdate: 'install_update'
+  installUpdate: 'install_update',
+  updaterContext: 'update_context'
 } as const
 
 /** Events pushed from Rust to the single webview. */

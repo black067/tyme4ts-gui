@@ -41,6 +41,14 @@
   font-size: 12px;
 }
 
+/* 安装位置是一整条 Windows 路径：不给换行点就会撑破设置面板。
+   等宽也让 `C:\Users\…` 这种串好认。 */
+.updates__path {
+  overflow-wrap: anywhere;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
 .updates__progress {
   display: block;
   width: 100%;

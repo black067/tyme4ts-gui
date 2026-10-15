@@ -417,8 +417,16 @@ export const zhHans = {
       downloading: ({ percent }: { percent: number }): string => `下载中 ${percent}%`,
       cancel: '取消',
       install: '重启并安装',
-      /** 下载完成后的提示。 */
-      ready: '下载完成，重启后生效。',
+      /** 下载完成后的提示。便携版没有"装到哪里"可选，所以说的是"替换"。 */
+      ready: '下载完成，可以替换当前正在运行的这个文件。',
+      /**
+       * 便携版没有"装到哪里"的选择：更新就是替换用户双击的那个文件，
+       * 所以这个路径必须在按下之前说出来，而不是事后让人去找。
+       */
+      installTarget: ({ path }: { path: string }): string => `安装位置：${path}`,
+      /** 原地替换之后唯一的自证：这次启动是从哪个版本换过来的。 */
+      justUpdated: ({ from, to }: { from: string; to: string }): string =>
+        `已从 v${from} 更新到 v${to}。`,
       autoCheck: '启动时自动检查更新',
       /** 各错误码的说法，一个错误码一句，不拼接。 */
       error: {
@@ -427,7 +435,9 @@ export const zhHans = {
         noCompatibleAsset: '该版本没有适用于本机的安装文件。',
         checksumMismatch: '下载文件的校验值不符，已丢弃，请重试。',
         disk: '下载失败或写入磁盘出错，请重试。',
-        installFailed: '无法启动新版本，已为你打开文件所在位置。',
+        // 用户做得到的那件事写清楚：这一条不是"程序坏了"，是"这个文件夹不让写"。
+        targetNotWritable: '当前所在位置无法写入，更新没有开始。请把程序移到可写的文件夹后重试。',
+        installFailed: '替换当前文件时出错，已保持原版本不变。请重试，或手动下载新版本。',
         unknown: '更新过程中出现未知错误。'
       }
     },

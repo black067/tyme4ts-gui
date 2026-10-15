@@ -56,7 +56,7 @@ const api: TymeApi = {
     check: () => checkAndRecord(),
     download: () => downloadUpdate(),
     cancel: () => Promise.resolve(cancelUpdate()),
-    install: () => Promise.resolve(installUpdate()),
+    install: () => installUpdate(),
     subscribe: (listener) => subscribeUpdates(listener)
   },
   holidays: {
