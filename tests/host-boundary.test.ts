@@ -227,6 +227,20 @@ describe('命令名与事件名在两侧一致', () => {
     )
   })
 
+  it('每个命令都真的挂进了 generate_handler!（定义了不等于注册了）', () => {
+    // 只在 update.rs 里定义、没列进 lib.rs 的命令，cargo 一声不响，TS 那边 invoke 到的
+    // 是 `command not found`——而这一层的失败被 primeUpdaterContext 那样"拿不到就算了"
+    // 的写法完全吞掉：界面少一行字，没人会怀疑到注册表上。
+    const rustLib = readFileSync(join(ROOT, 'src-tauri', 'src', 'lib.rs'), 'utf8')
+    const handlerList = rustLib.match(/generate_handler!\[([\s\S]*?)\]\)/)?.[1] ?? ''
+    const registered = [...handlerList.matchAll(/update::(\w+)/g)]
+      .map((match) => match[1] ?? '')
+      .sort()
+    expect(registered, 'lib.rs 的注册表应与 HOST_COMMAND 一一对应').toEqual(
+      Object.values(HOST_COMMAND).sort()
+    )
+  })
+
   it('HOST_EVENT 的名字与 Rust 发的那个字符串相同', () => {
     expect(rustUpdate).toMatch(
       new RegExp(`PROGRESS_EVENT: &str = "${HOST_EVENT.downloadProgress}"`)
