@@ -76,6 +76,19 @@ export function UpdateSection(): ReactElement | null {
   const newer = state.latestVersion !== null && !isLatest ? state.latestVersion : null
   const checkedAt = formatStamp(settings.lastUpdateCheckAt)
 
+  // 便携版没有「装到哪里」可选：更新就是把用户双击的那一个文件换掉。所以位置要在按下之前
+  // 说出来，而不是等 10 MB 下完了才提——旧版这里只有一句「重启后生效」，于是没人知道重启的
+  // 是哪一个、新版又落在哪里。`installPath` 为空表示宿主还没答上来，那时这一行干脆不出现。
+  const targetNote =
+    state.installPath === '' ? null : (
+      <p className="settings-note updates__path">
+        {t.settings.updates.installTarget({ path: state.installPath })}
+      </p>
+    )
+  const showsTarget =
+    targetNote !== null &&
+    (state.phase === 'available' || state.phase === 'downloading' || state.phase === 'ready')
+
   return (
     <>
       <div className="settings-field">
@@ -114,18 +127,14 @@ export function UpdateSection(): ReactElement | null {
         />
       ) : null}
 
-      {/* 下载完成之后说清楚要替换的是哪个文件：便携版的"安装位置"就是用户放它的那地方。
-          旧版这里只有一句「重启后生效」，于是没人知道重启的是哪一个、新版又落在哪里。 */}
       {state.phase === 'ready' ? (
         <>
           <p className="settings-note">{t.settings.updates.ready}</p>
-          {state.installPath !== '' ? (
-            <p className="settings-note updates__path">
-              {t.settings.updates.installTarget({ path: state.installPath })}
-            </p>
-          ) : null}
+          {showsTarget ? targetNote : null}
         </>
       ) : null}
+
+      {state.phase !== 'ready' && showsTarget ? targetNote : null}
 
       {state.phase === 'error' ? (
         <p className="tool__error">{errorText(t, state.errorCode)}</p>

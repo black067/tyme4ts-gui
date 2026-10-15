@@ -114,4 +114,41 @@ describe('更新小节', () => {
     // 校验失败要说清楚「已丢弃」，否则用户会以为装上了。
     expect(screen.getByText('下载文件的校验值不符，已丢弃，请重试。')).toBeInTheDocument()
   })
+
+  it('目录写不进去要说成一件做得完的事，而不是「启动失败」', async () => {
+    const bridge = await renderApp()
+    await openSettings()
+
+    act(() => {
+      bridge.setUpdates({ phase: 'error', errorCode: 'target-not-writable' })
+    })
+
+    // 这一条的代价是"把程序挪个地方"，混进 install-failed 就没人知道该改什么。
+    expect(screen.getByText(/无法写入/)).toBeInTheDocument()
+  })
+
+  it('发现新版本时就写出要替换的是哪个文件，不必等下载完', async () => {
+    const bridge = await renderApp()
+    await openSettings()
+
+    act(() => {
+      bridge.setUpdates({ phase: 'available', latestVersion: '9.9.9' })
+    })
+
+    // 便携版没有「装到哪里」可选：更新就是把用户双击的那一个文件换掉。
+    // 这条同时也是 `update_context` 那条命令在界面上的落点——它没答上来时这里应当是空的。
+    expect(screen.getByText(/^安装位置：/)).toBeInTheDocument()
+  })
+
+  it('刚更新完的那一次说明是从哪个版本换过来的', async () => {
+    const bridge = await renderApp()
+    await openSettings()
+
+    // 原地替换之后文件名不变，版本号是唯一能自证「换了」的信号。
+    act(() => {
+      bridge.setUpdates({ updatedFrom: '0.1.4' })
+    })
+
+    expect(screen.getByText('已从 v0.1.4 更新到 v0.0.0-test。')).toBeInTheDocument()
+  })
 })
