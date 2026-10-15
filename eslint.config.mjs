@@ -78,6 +78,15 @@ export default tseslint.config(
     }
   },
 
+  // The splash bootstrap is a plain browser script served verbatim from
+  // `public/`; it runs before any module, so it gets the browser globals.
+  {
+    files: ['src/renderer/public/**/*.js'],
+    languageOptions: {
+      globals: { ...globals.browser }
+    }
+  },
+
   // Architectural boundary: the renderer must go through the core facade and
   // must never touch tyme4ts directly, so that the calendar engine stays
   // swappable and its DTOs stay serializable.

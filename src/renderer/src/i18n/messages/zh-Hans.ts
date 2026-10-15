@@ -32,7 +32,13 @@ export const zhHans = {
     title: '万年历',
     /** 标题行 + 版本号，如「万年历 v0.1.3」。 */
     titleWithVersion: ({ version }: { version: string }): string => `万年历 v${version}`,
-    loading: '正在载入…',
+    /**
+     * 骨架屏文案。`index.html` 里有逐字一致的 `data-locale` 副本节点，由
+     * `tests/splash-contract.test.ts` 钉住——改这里不同步改 HTML，测试会红。
+     */
+    splash: '正在载入…',
+    /** 磁盘上没有 settings.json 时的骨架文案（首启含解包/初始化，明显更慢）。 */
+    splashFirstRun: '首次启动，正在准备运行环境…',
     /** 副标题里"星期"的前缀，后接星期名（日/一/…）。 */
     weekdayPrefix: '星期',
     /** 读屏器播报当前选中日期时的前缀。 */

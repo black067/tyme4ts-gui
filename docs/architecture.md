@@ -9,8 +9,9 @@ src/
 ├─ shared/      主进程与渲染进程共用的 IPC 契约与类型
 ├─ core/        纯 TypeScript 历法内核（零 Electron / React / DOM 依赖）
 │  └─ glossary/ 术语释义：纯数据 + 查表，同样不依赖引擎
-└─ renderer/    React 界面：视图、组件、主题、语言、hooks
-tests/          读取源码树的架构契约测试（配色 / token、打包前提、术语释义、语言）
+└─ renderer/    React 界面：视图、组件、主题、语言、hooks；index.html 带零脚本
+                依赖的首帧骨架屏，public/splash.js 在首帧前写入主题/语言/首启
+tests/          读取源码树的架构契约测试（配色 / token、打包前提、术语释义、语言、骨架）
 tests/fixtures/ 术语释义校验用的公版原文与其它测试数据（不进包）
 scripts/        开发辅助脚本（clean.mjs、截图验证、术语抓取、语言基线）
 docs/           本目录
@@ -40,6 +41,11 @@ vendor/tyme4ts/ 只读 git submodule，用于查阅 tyme4ts 源码
    引擎的权威名单由 `tests/glossary-contract.test.ts` 交叉校验。
 7. `src/renderer/src/i18n/**` 是**唯一的文案来源**：渲染层不得再写死中文，由
    `tests/i18n-contract.test.ts` 按文件守住"只减不增"（见 [i18n.md](i18n.md)）。
+8. `src/renderer/index.html` 的首帧骨架屏是 i18n 目录与 `tokens.css` 的**受契约
+   副本**：文案逐字一致、颜色只许用既有 token 值、非 module 脚本只许
+   `public/splash.js` 一个，由 `tests/splash-contract.test.ts` 守住（见
+   [i18n.md](i18n.md)）。它存在的理由：窗口出现的第一帧必须已有内容，而那时
+   React 与文案层还没起来。
 
 这些规则都写在 `eslint.config.mjs` 里，违反时会直接报错而不是警告。
 

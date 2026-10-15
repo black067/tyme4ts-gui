@@ -1,4 +1,4 @@
-import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { app } from 'electron'
 import {
@@ -68,6 +68,25 @@ function settingsPath(): string {
   return join(app.getPath('userData'), 'settings.json')
 }
 
+/**
+ * Whether a settings file existed on disk when this process first looked —
+ * the difference between a genuine first run and a user who simply has not
+ * saved anything. Cached, because a later write in the same session must not
+ * re-flag the launch as first-run.
+ */
+let hadStoredFile: boolean | null = null
+
+export function hasStoredSettings(): boolean {
+  if (hadStoredFile === null) {
+    try {
+      hadStoredFile = existsSync(settingsPath())
+    } catch {
+      hadStoredFile = false
+    }
+  }
+  return hadStoredFile
+}
+
 export function readSettings(): AppSettings {
   if (cached !== null) return cached
   try {
@@ -92,4 +111,5 @@ function persist(settings: AppSettings): void {
   const temp = `${target}.tmp`
   writeFileSync(temp, `${JSON.stringify(settings, null, 2)}\n`, 'utf8')
   renameSync(temp, target)
+  hadStoredFile = true
 }

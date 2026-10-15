@@ -1,6 +1,7 @@
 {
   "app.currentSelectionPrefix": "string",
-  "app.loading": "string",
+  "app.splash": "string",
+  "app.splashFirstRun": "string",
   "app.title": "string",
   "app.titleWithVersion": "function",
   "app.weekdayPrefix": "string",

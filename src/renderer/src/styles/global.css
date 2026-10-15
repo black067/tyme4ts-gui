@@ -82,15 +82,6 @@ h3 {
   font-size: var(--font-size-sm);
 }
 
-.app-loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  color: var(--color-text-subtle);
-  font-size: var(--font-size-sm);
-}
-
 .app-toolbar {
   display: flex;
   align-items: center;

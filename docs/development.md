@@ -78,6 +78,7 @@ npm install
 | 打包契约   | `tests/packaging-contract.test.ts`       | 主进程 / preload 没有引入运行时要 `require` 的 `dependencies`       |
 | 释义契约   | `tests/glossary-contract.test.ts`        | 词条的 key 都在引擎表里、引文逐字可查、缺口显式                     |
 | 文案契约   | `tests/i18n-contract.test.ts`            | 各语言目录的键对齐、渲染层硬编码中文只减不增                        |
+| 骨架契约   | `tests/splash-contract.test.ts`          | 首帧骨架的文案与目录逐字一致、配色全在 tokens 里、脚本面守住 CSP    |
 
 `perf.test.ts` 用宽松上限（约实测值的 10 倍）守住数量级回退，例如网格单元不得退化成构建完整黄历。
 

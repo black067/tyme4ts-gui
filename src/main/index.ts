@@ -3,7 +3,8 @@ import { join } from 'node:path'
 import { app, BrowserWindow, ipcMain, nativeTheme, shell } from 'electron'
 import { electronApp, is, optimizer } from '@electron-toolkit/utils'
 import { IPC, type AppInfo, type AppSettings, type AppearanceMode } from '@shared/ipc'
-import { readSettings, updateSettings } from './settings'
+import { splashBackground, splashSearch } from '@shared/splash'
+import { hasStoredSettings, readSettings, updateSettings } from './settings'
 import {
   getHolidayStatus,
   loadCachedHolidays,
@@ -102,6 +103,17 @@ function broadcast(channel: string, payload: unknown): void {
 }
 
 function createWindow(): void {
+  const settings = readSettings()
+  // `applyNativeAppearance()` has already pinned Electron's source, so under
+  // `system` this is the appearance the user is actually about to see.
+  const dark =
+    settings.appearance === 'system'
+      ? nativeTheme.shouldUseDarkColors
+      : settings.appearance === 'dark'
+  // The skeleton reads theme / locale / first-run from this query string,
+  // synchronously, before its very first frame — see public/splash.js.
+  const search = splashSearch(settings.themeId, settings.locale, dark, !hasStoredSettings())
+
   const mainWindow = new BrowserWindow({
     width: 1240,
     height: 860,
@@ -110,7 +122,7 @@ function createWindow(): void {
     show: false,
     autoHideMenuBar: true,
     title: '万年历',
-    backgroundColor: '#f6f6f4',
+    backgroundColor: splashBackground(settings.themeId, dark),
     // No `icon` here on purpose: Electron's nativeImage cannot decode SVG, and
     // that is the only icon source in the repo. A packaged build carries the
     // icon inside the executable via electron-builder's `win.icon`, so only the
@@ -134,58 +146,83 @@ function createWindow(): void {
   })
 
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
-    void mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
+    const url = new URL(process.env['ELECTRON_RENDERER_URL'])
+    url.search = search
+    void mainWindow.loadURL(url.toString())
   } else {
-    void mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
+    void mainWindow.loadFile(join(__dirname, '../renderer/index.html'), { search })
   }
 }
 
-app.whenReady().then(() => {
-  electronApp.setAppUserModelId('com.tyme.app')
+/** Everything below runs only in the process that owns the single-instance lock. */
+function boot(): void {
+  app.whenReady().then(() => {
+    electronApp.setAppUserModelId('com.tyme.app')
 
-  app.on('browser-window-created', (_, window) => {
-    optimizer.watchWindowShortcuts(window)
+    app.on('browser-window-created', (_, window) => {
+      optimizer.watchWindowShortcuts(window)
+    })
+
+    applyNativeAppearance(readSettings().appearance)
+    registerIpcHandlers()
+
+    // Push updater snapshots to every open window: download progress has to be
+    // live, and polling it from the renderer would need a timer.
+    subscribeUpdates((state) => {
+      broadcast(IPC.updatesStateChanged, state)
+    })
+
+    subscribeHolidays((status) => {
+      broadcast(IPC.holidaysStatusChanged, status)
+    })
+
+    createWindow()
+
+    // Install the cached holiday table before the first window paints, so an
+    // offline launch still shows 休/班 rather than waiting for a fetch.
+    loadCachedHolidays()
+    if (readSettings().autoUpdateHolidays) {
+      setTimeout(() => {
+        void refreshHolidays()
+      }, 1500)
+    }
+
+    // Check shortly after launch rather than during it, so a slow or unreachable
+    // GitHub never delays the window appearing.
+    if (readSettings().checkForUpdatesOnStart) {
+      setTimeout(() => {
+        void checkForUpdates().finally(() => {
+          updateSettings({ lastUpdateCheckAt: new Date().toISOString() })
+        })
+      }, 3000)
+    }
+
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) createWindow()
+    })
   })
 
-  applyNativeAppearance(readSettings().appearance)
-  registerIpcHandlers()
-
-  // Push updater snapshots to every open window: download progress has to be
-  // live, and polling it from the renderer would need a timer.
-  subscribeUpdates((state) => {
-    broadcast(IPC.updatesStateChanged, state)
+  app.on('window-all-closed', () => {
+    if (process.platform !== 'darwin') app.quit()
   })
+}
 
-  subscribeHolidays((status) => {
-    broadcast(IPC.holidaysStatusChanged, status)
-  })
+// While the portable executable is still unpacking, a second double-click used
+// to open a second window an instant later; hand the focus to the first
+// instance instead. Dev mode skips the lock: electron-vite restarts the main
+// process itself, and a stale lock would break that cycle.
+const ownsInstance = is.dev || app.requestSingleInstanceLock()
 
-  createWindow()
-
-  // Install the cached holiday table before the first window paints, so an
-  // offline launch still shows 休/班 rather than waiting for a fetch.
-  loadCachedHolidays()
-  if (readSettings().autoUpdateHolidays) {
-    setTimeout(() => {
-      void refreshHolidays()
-    }, 1500)
+if (!ownsInstance) {
+  app.quit()
+} else {
+  if (!is.dev) {
+    app.on('second-instance', () => {
+      const [window] = BrowserWindow.getAllWindows()
+      if (!window || window.isDestroyed()) return
+      if (window.isMinimized()) window.restore()
+      window.focus()
+    })
   }
-
-  // Check shortly after launch rather than during it, so a slow or unreachable
-  // GitHub never delays the window appearing.
-  if (readSettings().checkForUpdatesOnStart) {
-    setTimeout(() => {
-      void checkForUpdates().finally(() => {
-        updateSettings({ lastUpdateCheckAt: new Date().toISOString() })
-      })
-    }, 3000)
-  }
-
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
-  })
-})
-
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit()
-})
+  boot()
+}

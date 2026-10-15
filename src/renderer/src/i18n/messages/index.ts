@@ -4,9 +4,11 @@
  * `zh-Hans` 是参考目录：`Messages` 类型由它推导，因此其它语言只要结构不一致
  * 就会在编译期失败，键的完整性另有 `tests/i18n-contract.test.ts` 断言。
  *
- * 新增一种语言只需两步：
+ * 新增一种语言只需三步：
  * 1. 在这里 import 新目录并加进 `CATALOGS`；
- * 2. 在 `@shared/ipc` 的 `Locale` 联合与 `LOCALES` 里加上它。
+ * 2. 在 `@shared/ipc` 的 `Locale` 联合与 `LOCALES` 里加上它；
+ * 3. 在 `src/renderer/index.html` 加骨架屏文案节点与两条显示规则
+ *    （`tests/splash-contract.test.ts` 会拦住漏加）。
  * `Messages` 的类型会立刻要求新目录补齐所有键。
  */
 import type { Locale } from '@shared/ipc'

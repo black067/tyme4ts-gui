@@ -14,6 +14,7 @@ import {
 import { ViewTabs, type ViewTab } from './components/ViewTabs'
 import { TermTipProvider } from './components/TermTip'
 import { LocaleProvider, useMessages } from './i18n'
+import { dismissSplash } from './splash'
 import { UpdateProvider } from './features/updates/UpdateProvider'
 import { HolidayProvider } from './features/holidays/HolidayProvider'
 import { SettingsProvider } from './state/SettingsProvider'
@@ -65,11 +66,13 @@ export function App(): ReactElement {
  *
  * Reading them takes one IPC round trip, and mounting only afterwards lets the
  * shell seed its state from real values instead of syncing them in an effect.
+ * While that round trip is in flight the user is not looking at a blank page:
+ * the first frame is the static skeleton in `index.html`, and `AppShell`
+ * dismisses it once the real UI has committed.
  */
-function AppContent(): ReactElement {
+function AppContent(): ReactElement | null {
   const { ready } = useSettings()
-  const t = useMessages()
-  if (!ready) return <div className="app-loading">{t.app.loading}</div>
+  if (!ready) return null
   return <AppShell />
 }
 
@@ -108,6 +111,12 @@ function AppShell(): ReactElement {
     return () => {
       cancelled = true
     }
+  }, [])
+
+  // The shell has committed to the DOM, so the first-frame skeleton has done
+  // its job: fade it out and remove it (idempotent — see src/splash.ts).
+  useEffect(() => {
+    dismissSplash()
   }, [])
 
   // Persist the selection, debounced so rapid navigation stays cheap. The

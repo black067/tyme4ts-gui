@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN" data-theme="minimal-light">
+<html lang="zh-CN" data-theme="minimal-light" data-locale="zh-Hans">
   <head>
     <meta charset="UTF-8" />
     <title>万年历</title>
@@ -8,9 +8,256 @@
       http-equiv="Content-Security-Policy"
       content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:"
     />
+    <!--
+      首帧引导：把主进程查询串里的主题/语言/首启标记同步写进 <html>，
+      骨架屏从第一帧起就是用户真正的设置。唯一允许的非 module 脚本，
+      且只从本站加载（CSP `script-src 'self'`）——由
+      tests/splash-contract.test.ts 钉住这两点。
+    -->
+    <script src="./splash.js"></script>
+    <style>
+      /*
+       * 首帧骨架屏。React 挂载之前它就是用户看到的一切，因此刻意：
+       * - 零脚本依赖：静态 HTML + 内联 CSS（CSP 允许 'unsafe-inline' 样式）；
+       * - 颜色只用 tokens.css 已有的字面量（splash-contract 测试逐色核对）；
+       * - 文案是 i18n 目录的受契约副本：每个语言一组 data-locale 节点，
+       *   与 messages/<locale>.ts 的 app.splash / app.splashFirstRun 逐字一致；
+       * - 主题按 <html data-theme> 属性选择（splash.js 首帧写入；读不到时
+       *   退回本文件声明的 minimal-light 默认值，绝不白屏）。
+       */
+      #splash {
+        --splash-bg: #f6f6f4;
+        --splash-base: #f1f1ee;
+        --splash-shine: #ffffff;
+        --splash-text: #9aa1aa;
+        --splash-accent: #c2453c;
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        padding: 24px;
+        background: var(--splash-bg);
+        opacity: 1;
+      }
+      html[data-theme*='-dark'] #splash {
+        --splash-bg: #15171b;
+        --splash-base: #1d2025;
+        --splash-shine: #24282e;
+        --splash-text: #6f7883;
+        --splash-accent: #e0655a;
+      }
+      html[data-theme*='classic-light'] #splash {
+        --splash-bg: #f3ecdd;
+        --splash-base: #f2e9d7;
+        --splash-shine: #fbf6ea;
+        --splash-text: #93866f;
+        --splash-accent: #a8322a;
+      }
+      html[data-theme*='classic-dark'] #splash {
+        --splash-bg: #191512;
+        --splash-base: #2c241d;
+        --splash-shine: #231d18;
+        --splash-text: #857767;
+        --splash-accent: #c9553f;
+      }
+      #splash .splash-shimmer {
+        background-image: linear-gradient(
+          90deg,
+          var(--splash-base) 25%,
+          var(--splash-shine) 50%,
+          var(--splash-base) 75%
+        );
+        background-size: 200% 100%;
+        animation: splash-sweep 1.6s ease-in-out infinite;
+      }
+      @keyframes splash-sweep {
+        from {
+          background-position: 150% 0;
+        }
+        to {
+          background-position: -50% 0;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #splash .splash-shimmer {
+          animation: none;
+        }
+      }
+      #splash .splash-header {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        width: 340px;
+      }
+      #splash .splash-bar {
+        border-radius: 4px;
+      }
+      #splash .splash-title {
+        height: 28px;
+        width: 160px;
+      }
+      #splash .splash-subtitle {
+        height: 14px;
+      }
+      #splash .splash-toolbar {
+        display: flex;
+        gap: 8px;
+      }
+      #splash .splash-pill {
+        height: 30px;
+        width: 88px;
+        border-radius: 999px;
+      }
+      #splash .splash-body {
+        display: flex;
+        flex: 1;
+        gap: 16px;
+        min-height: 0;
+      }
+      #splash .splash-grid {
+        flex: 1;
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        grid-template-rows: 18px repeat(6, 1fr);
+        gap: 8px;
+      }
+      #splash .splash-week {
+        border-radius: 4px;
+      }
+      #splash .splash-cell {
+        border-radius: 8px;
+      }
+      #splash .splash-cell--today {
+        background-image: none;
+        background-color: var(--splash-accent);
+        animation: none;
+      }
+      #splash .splash-panel {
+        width: 300px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      #splash .splash-panel .splash-bar {
+        height: 16px;
+      }
+      #splash .splash-panel .splash-bar:nth-child(even) {
+        width: 78%;
+      }
+      #splash .splash-status {
+        margin: 0;
+        text-align: center;
+        color: var(--splash-text);
+        font-size: 13px;
+      }
+      /*
+       * 语言显示规则：所有文案节点默认隐藏，只有 <html data-locale> 匹配的
+       * 一组显示；首启标记切换 default/first 哪条可用。新增语言时每个语言
+       * 恰好这两条规则——漏了会被 tests/splash-contract.test.ts 拦住。
+       */
+      #splash .splash-line {
+        display: none;
+      }
+      html:not([data-first='1'])[data-locale='zh-Hans']
+        #splash
+        .splash-line--default[data-locale='zh-Hans'] {
+        display: block;
+      }
+      html[data-first='1'][data-locale='zh-Hans']
+        #splash
+        .splash-line--first[data-locale='zh-Hans'] {
+        display: block;
+      }
+      /* 交接：AppShell 首次 commit 后由 src/splash.ts 加上本类淡出再移除。 */
+      #splash.splash--hiding {
+        opacity: 0;
+        transition: opacity 200ms ease;
+      }
+    </style>
   </head>
 
   <body>
+    <div id="splash" aria-hidden="true">
+      <div class="splash-header">
+        <div class="splash-bar splash-title splash-shimmer"></div>
+        <div class="splash-bar splash-subtitle splash-shimmer"></div>
+      </div>
+      <div class="splash-toolbar">
+        <div class="splash-pill splash-shimmer"></div>
+        <div class="splash-pill splash-shimmer"></div>
+        <div class="splash-pill splash-shimmer"></div>
+        <div class="splash-pill splash-shimmer"></div>
+      </div>
+      <div class="splash-body">
+        <div class="splash-grid">
+          <div class="splash-week splash-shimmer"></div>
+          <div class="splash-week splash-shimmer"></div>
+          <div class="splash-week splash-shimmer"></div>
+          <div class="splash-week splash-shimmer"></div>
+          <div class="splash-week splash-shimmer"></div>
+          <div class="splash-week splash-shimmer"></div>
+          <div class="splash-week splash-shimmer"></div>
+          <div class="splash-cell splash-shimmer"></div>
+          <div class="splash-cell splash-shimmer"></div>
+          <div class="splash-cell splash-shimmer"></div>
+          <div class="splash-cell splash-shimmer"></div>
+          <div class="splash-cell splash-shimmer"></div>
+          <div class="splash-cell splash-shimmer"></div>
+          <div class="splash-cell splash-shimmer"></div>
+          <div class="splash-cell splash-shimmer"></div>
+          <div class="splash-cell splash-shimmer"></div>
+          <div class="splash-cell splash-shimmer"></div>
+          <div class="splash-cell splash-shimmer"></div>
+          <div class="splash-cell splash-shimmer"></div>
+          <div class="splash-cell splash-shimmer"></div>
+          <div class="splash-cell splash-shimmer"></div>
+          <div class="splash-cell splash-shimmer"></div>
+          <div class="splash-cell splash-shimmer"></div>
+          <div class="splash-cell splash-shimmer"></div>
+          <div class="splash-cell splash-shimmer"></div>
+          <div class="splash-cell splash-shimmer"></div>
+          <div class="splash-cell splash-shimmer"></div>
+          <div class="splash-cell splash-shimmer"></div>
+          <div class="splash-cell splash-shimmer"></div>
+          <div class="splash-cell splash-cell--today splash-shimmer"></div>
+          <div class="splash-cell splash-shimmer"></div>
+          <div class="splash-cell splash-shimmer"></div>
+          <div class="splash-cell splash-shimmer"></div>
+          <div class="splash-cell splash-shimmer"></div>
+          <div class="splash-cell splash-shimmer"></div>
+          <div class="splash-cell splash-shimmer"></div>
+          <div class="splash-cell splash-shimmer"></div>
+          <div class="splash-cell splash-shimmer"></div>
+          <div class="splash-cell splash-shimmer"></div>
+          <div class="splash-cell splash-shimmer"></div>
+          <div class="splash-cell splash-shimmer"></div>
+          <div class="splash-cell splash-shimmer"></div>
+          <div class="splash-cell splash-shimmer"></div>
+          <div class="splash-cell splash-shimmer"></div>
+          <div class="splash-cell splash-shimmer"></div>
+          <div class="splash-cell splash-shimmer"></div>
+          <div class="splash-cell splash-shimmer"></div>
+          <div class="splash-cell splash-shimmer"></div>
+          <div class="splash-cell splash-shimmer"></div>
+        </div>
+        <div class="splash-panel">
+          <div class="splash-bar splash-shimmer"></div>
+          <div class="splash-bar splash-shimmer"></div>
+          <div class="splash-bar splash-shimmer"></div>
+          <div class="splash-bar splash-shimmer"></div>
+          <div class="splash-bar splash-shimmer"></div>
+          <div class="splash-bar splash-shimmer"></div>
+          <div class="splash-bar splash-shimmer"></div>
+        </div>
+      </div>
+      <p class="splash-status">
+        <span class="splash-line splash-line--default" data-locale="zh-Hans">正在载入…</span>
+        <span class="splash-line splash-line--first" data-locale="zh-Hans"
+          >首次启动，正在准备运行环境…</span
+        >
+      </p>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
