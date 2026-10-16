@@ -54,6 +54,10 @@ npm run icon                     # 从 assets/calendar.svg 重新生成 src-taur
   `app.appDirectoriesOverride.data = "$DATA/万年历"` 定下，与产品名解耦；改显示名不会让老用户
   的设置"消失"。用户后来把它搬到别处时，位置记在 `%APPDATA%\<identifier>\location.json`
   （见 [architecture.md](architecture.md) 的「数据位置」）。
+- **第一次启动不建目录，而是问一句**，其中一项是 exe 同级的 `.chinese-calendar`。裸 exe 的
+  意义正在这儿：把文件拷进 U 盘、选这一项，数据就跟着程序走（`release/` 里因此可能多出这么一个
+  目录，它不是构建产物，`.gitignore` 已排除）。反过来说，只有 exe 的机器上写不进去时（只读介质、
+  权限受限的目录），那一项在界面上是灰的，而不是按下去才知道不行。
 - **反过来，改 `identifier` 现在有两处代价**：一是 WebView2 的缓存目录
   （`%LOCALAPPDATA%\<identifier>\`，里面只有缓存），二是上面那个指针——identifier 一改就找不到
   它，应用会回到默认目录去。数据本身不会丢（还在用户搬去的那个文件夹里），但"记得它在哪"这件事
@@ -187,6 +191,13 @@ webview 里），Rust 只干一件事：`download_update` 把字节流写进文�
 - **`--updated-from` 只跟一次启动**，来自命令行而不是设置文件：它的用途是让"重启并安装"
   这个按钮第一次有了可观测的结果（界面显示"已从 v0.1.4 更新到 v0.2.0"），持久化它只会多一个
   需要清空的脏状态。
+- **换数据位置用的是同一个等待者，但少带一个参数。** 选定位置、搬运、删除三条链路做完之后都
+  要重起来一次（原因见 [architecture.md](architecture.md) 的「数据位置」），走的是
+  `replace::relaunch` → `spawn_wait(target, "")`：没有新字节要换，也就没有 `.old.exe` 要删，
+  而**不能带 `--updated-from`**——那会让新版界面凭空说一句"已从 vX 更新到 vY"。同样不能图省事用
+  `tauri::process::restart()`：它先建新进程再退出旧的，而新进程会被自己那把互斥体挡掉，表现还是
+  "应用关了再没打开"。调试版拒绝自动重启（回 `dev` 一个码），界面因此说的是另一句话；要在那儿
+  试这条链路，设 `TYME_ALLOW_DEV_RELAUNCH=1`。
 
 **调试版默认拒绝原地替换**：换掉 `src-tauri/target/debug/chinese-calendar.exe` 会让 cargo 以为
 那个文件还是它刚产出的。要在本机验证这条链路，用 `npm run package` 的产物；实在需要在调试版上跑，

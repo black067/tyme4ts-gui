@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { act, cleanup, fireEvent, screen, within } from '@testing-library/react'
 import type { AppSettings } from '@shared/ipc'
 import type { FakeBridge } from '../test/fake-bridge'
-import { click, renderApp, setField } from '../test/harness'
+import { click, renderApp, setField, toastTexts, waitForToasts } from '../test/harness'
 
 let bridge: FakeBridge
 
@@ -194,7 +194,7 @@ describe('settings screen', () => {
     expect(bridge.dataDirActions).toEqual(['reveal', 'move'])
   })
 
-  it('搬完了要说清"重启后生效"，因为本次会话还在旧目录里读写', async () => {
+  it('搬完了说的是正在重启：这一次进程里的读写还在旧目录', async () => {
     await openSettings()
     bridge.setDataDirMove({
       kind: 'moved',
@@ -210,11 +210,35 @@ describe('settings screen', () => {
 
     await click(screen.getByRole('button', { name: '修改' }))
 
-    const note = await screen.findByText(/重启后生效/)
-    expect(note.textContent).toContain('D:/万年历数据')
-    expect(note.textContent).toContain('4.0 MB')
+    const notes = await waitForToasts()
+    expect(notes).toContain('已搬到 D:/万年历数据，正在重启')
+    // 指向只能在进程开始之前定下来，所以"搬好了"必须接着说"正在重启"；只报前一半，
+    // 用户会以为现在改的设置已经写进新目录了。
+    expect(bridge.dataDirActions).toContain('relaunch')
     // 旧目录没打扫干净是另一句话，别混进"搬好了"那条里。
-    expect(screen.queryByText(/没删掉/)).toBeNull()
+    expect(notes.join(' ')).not.toMatch(/没删掉/)
+  })
+
+  it('旧目录没打扫干净时单独说一句，并且不把责任推给"重启后"', async () => {
+    await openSettings()
+    bridge.setDataDirMove({
+      kind: 'moved',
+      report: {
+        from: '/tmp/tyme-app-test',
+        to: 'D:/万年历数据',
+        copied: 3,
+        bytes: 4 * 1024 * 1024,
+        removed: 2,
+        leftBehind: 1
+      }
+    })
+
+    await click(screen.getByRole('button', { name: '修改' }))
+
+    const notes = await waitForToasts()
+    expect(notes).toContain('已搬到 D:/万年历数据，正在重启')
+    // 数字要说得出来：那是一个还得自己删一次的文件夹。
+    expect(notes).toContain('旧目录还剩 1 个文件')
   })
 
   it('拒绝一个混着别的东西的文件夹时，说的是换一处，而不是"出错了请重试"', async () => {
@@ -223,7 +247,7 @@ describe('settings screen', () => {
 
     await click(screen.getByRole('button', { name: '修改' }))
 
-    expect(await screen.findByText(/已经有别的东西/)).toBeInTheDocument()
+    expect(await waitForToasts()).toContain('换一个空文件夹，或本应用用过的文件夹')
   })
 
   it('在对话框里按取消什么提示都不留', async () => {
@@ -232,7 +256,26 @@ describe('settings screen', () => {
 
     await click(screen.getByRole('button', { name: '修改' }))
 
+    expect(toastTexts()).toEqual([])
     expect(document.querySelector('.settings-row__note')).toBeNull()
+  })
+
+  it('删除要按两下，第一下只把要做什么写在路径下面', async () => {
+    await openSettings()
+    const remove = screen.getByRole('button', { name: '删除' })
+
+    await click(remove)
+
+    // 第一下不碰盘：一次误触的代价是整个目录，而这一屏上没有撤销。
+    expect(bridge.dataDirActions).toEqual([])
+    // 要做什么写在路径下面，不在屏幕另一个角落：用户得对着这一行确认自己在删哪个目录。
+    expect(screen.getByText(/回到选择位置那一屏/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '确认删除' })).toBeInTheDocument()
+
+    await click(screen.getByRole('button', { name: '确认删除' }))
+
+    expect(bridge.dataDirActions).toContain('remove')
+    expect(await waitForToasts()).toContain('数据已移到回收站，正在重启')
   })
 
   it('persists the start view choice', async () => {

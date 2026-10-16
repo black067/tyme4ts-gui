@@ -544,13 +544,130 @@ describe('数据目录可以搬到别处，权限范围跟着走', () => {
     expect(rustPaths.match(/fn facts\([\s\S]*?\n\}/)?.[0] ?? '').not.toMatch(/return Err/)
   })
 
-  it('两条新命令的参数名两侧对得上', () => {
+  it('两条新命令的参数名两侧对得上', async () => {
     for (const command of ['inspectDataDir', 'setDataDir'] as const) {
       expect(rustPaths, `${HOST_COMMAND[command]} 的参数应是 path`).toMatch(
         new RegExp(`fn ${HOST_COMMAND[command]}\\([\\s\\S]*?path: String`)
       )
       expect(dataDirBackend).toMatch(new RegExp(`HOST_COMMAND\\.${command},\\s*\\{\\s*path:`))
     }
+  })
+})
+
+/**
+ * 「启动时不建目录」这一条的形状。
+ *
+ * 这四条要求里最容易被后来人无意推翻的是它：建目录的代码就在手边，`app_data_dir()` 顺手一调
+ * 就会把 `%APPDATA%\万年历` 造出来，而那正是"没有用户目录时先问一句"要拦的事。所以这里不问
+ * 行为（行为由 `paths.rs` 那 17 个 Rust 用例管），只钉**源码里不许出现那几个调用形状**。
+ */
+describe('启动不建用户目录：位置是用户定的', () => {
+  const rustSplash = readFileSync(join(ROOT, 'src-tauri', 'src', 'splash.rs'), 'utf8')
+  const dataDirBackend = readFileSync(join(ROOT, 'src', 'backend', 'data-dir.ts'), 'utf8')
+
+  it('骨架屏不碰盘；启动时的清扫用的是"不在就算了"那个读法', () => {
+    // `app_data_dir()` 本身不建目录，所以允许出现；要拦的是建目录与写文件那两类调用。
+    expect(rustSplash).not.toMatch(/create_dir_all|File::create|fs::write/)
+    const sweep = rustUpdate.match(/fn sweep_updates_dir[\s\S]*?\n\}/)?.[0] ?? ''
+    expect(sweep, '清扫应存在').not.toBe('')
+    expect(sweep).toMatch(/existing_updates_dir/)
+    // 建目录的那一份只跟着"用户按了下载"。
+    expect(rustUpdate.match(/fn existing_updates_dir[\s\S]*?\n\}/)?.[0]).not.toMatch(
+      /create_dir_all/
+    )
+    expect(rustUpdate.match(/fn updates_dir[\s\S]*?\n\}/)?.[0]).toMatch(/create_dir_all/)
+  })
+
+  it('只有选定位置那一条链路会建目录：启动路径上一个 create_dir_all 都没有', () => {
+    // 建目录的代码就在手边，`app_data_dir()` 顺手一调就把 %APPDATA%\万年历 造出来了——
+    // 而那正是"没有用户目录时先问一句"要拦的事。行为由 `paths.rs` 的用例管，这里只钉形状。
+    for (const name of [
+      'apply_override',
+      'apply_override_at',
+      'locations',
+      'recorded_pointer',
+      'default_data_dir',
+      'anchor_dir',
+      'read_pointer',
+      'only_data_changed',
+      'setup_plan',
+      'adopt'
+    ]) {
+      const body = rustPaths.match(new RegExp(`fn ${name}\\([\\s\\S]*?\\n\\}`))?.[0]
+      expect(body, `paths.rs 里找不到 ${name}`).not.toBeUndefined()
+      expect(body, `${name} 不该在盘上建出目录`).not.toMatch(/create_dir_all/)
+    }
+    // 唯一的例外是指针自己：那个锚点目录不是用户数据。
+    expect(rustPaths.match(/fn write_pointer[\s\S]*?\n\}/)?.[0]).toMatch(/create_dir_all/)
+    expect(rustPaths.match(/fn choose_data_dir_at[\s\S]*?\n\}/)?.[0]).toMatch(/create_dir_all/)
+  })
+
+  it('apply_override 在 Builder 之前，且把结果交出去而不只是改配置', () => {
+    const rustLib = readFileSync(join(ROOT, 'src-tauri', 'src', 'lib.rs'), 'utf8')
+    const apply = rustLib.indexOf('paths::apply_override(')
+    expect(apply, '没人应用指针，指针就是写了个寂寞').toBeGreaterThan(-1)
+    expect(apply, '晚于 Builder 就没用了').toBeLessThan(
+      rustLib.indexOf('tauri::Builder::default()')
+    )
+    expect(rustLib).toMatch(/handle\.manage\(startup\)/)
+    expect(rustPaths).toMatch(/pub fn apply_override\(config: &mut Config\) -> StartupPlan/)
+  })
+
+  it('要用户选位置时不跑清扫：那棵树还没被认下来', () => {
+    const rustLib = readFileSync(join(ROOT, 'src-tauri', 'src', 'lib.rs'), 'utf8')
+    // 扫 `updates` 顺路就会把"目录不存在"变成"目录被建出来"，正是这一屏要拦的事。
+    const guard = rustLib.match(/if !choosing \{[\s\S]*?\n\s{12}\}/)?.[0] ?? ''
+    expect(guard, '选位置那一屏不该有任何后台写盘').not.toBe('')
+    expect(guard).toMatch(/cleanup_exe_dir/)
+    expect(guard).toMatch(/sweep_updates_dir/)
+  })
+
+  it('选位置那一屏由同一个 main 窗口承载，窗口清单不变', () => {
+    expect(capability.windows).toEqual(['main'])
+    const rustLib = readFileSync(join(ROOT, 'src-tauri', 'src', 'lib.rs'), 'utf8')
+    expect(rustLib).toMatch(/if choosing \{[\s\S]*?SETUP_WINDOW/)
+    expect(rustSplash).toMatch(/setup: bool|first_run: bool/)
+  })
+
+  it('四条新命令都注册了，参数名两侧一致', () => {
+    const rustLib = readFileSync(join(ROOT, 'src-tauri', 'src', 'lib.rs'), 'utf8')
+    const handlerList = rustLib.match(/generate_handler!\[([\s\S]*?)\]\)/)?.[1] ?? ''
+    for (const command of ['setup_plan', 'choose_data_dir', 'delete_data_dir', 'relaunch']) {
+      expect(handlerList, `${command} 定义了但没注册`).toContain(`paths::${command}`)
+    }
+    expect(rustPaths).toMatch(/fn choose_data_dir\(app: AppHandle, path: String\)/)
+    expect(dataDirBackend).toMatch(/HOST_COMMAND\.chooseDataDir,\s*\{\s*path:/)
+    expect(dataDirBackend).toMatch(/HOST_COMMAND\.deleteDataDir/)
+    expect(dataDirBackend).toMatch(/HOST_COMMAND\.relaunch/)
+  })
+
+  it('删除走回收站，不是就地删掉', () => {
+    const rustRecycle = readFileSync(join(ROOT, 'src-tauri', 'src', 'recycle.rs'), 'utf8')
+    expect(rustRecycle).toMatch(/FOF_ALLOWUNDO/)
+    const body = rustPaths.match(/fn delete_data_dir_at\([\s\S]*?\n\}/)?.[0] ?? ''
+    expect(body, '找不到 delete_data_dir_at').not.toBe('')
+    expect(body).toMatch(/recycle::to_bin/)
+    // 就地删掉的那条路一次都不许出现：用户点的是"删掉"，不是"永久销毁"。
+    expect(body).not.toMatch(/remove_dir_all|File::delete/)
+  })
+
+  it('重启用的是那个隐藏等待者，不是 process::restart', () => {
+    const rustReplace = readFileSync(join(ROOT, 'src-tauri', 'src', 'replace.rs'), 'utf8')
+    const rustLib = readFileSync(join(ROOT, 'src-tauri', 'src', 'lib.rs'), 'utf8')
+    expect(rustReplace).toMatch(/pub fn relaunch/)
+    expect(rustReplace).toMatch(/spawn_wait/)
+    expect(`${rustLib}\n${rustPaths}`).not.toMatch(/process::restart/)
+  })
+
+  it('渲染层按骨架屏那颗标记分叉，选位置那一屏只装桥', () => {
+    const mainTsx = readFileSync(join(ROOT, 'src', 'renderer', 'src', 'main.tsx'), 'utf8')
+    const index = readFileSync(join(ROOT, 'src', 'backend', 'index.ts'), 'utf8')
+    expect(mainTsx).toMatch(/__TAYME_SPLASH__\?\.setup/)
+    expect(mainTsx).toMatch(/startSetupBackend\(\)/)
+    const setup = index.match(/export async function startSetupBackend\(\)[\s\S]*?\n\}/)?.[0] ?? ''
+    expect(setup, 'backend/index.ts 应有 startSetupBackend').not.toBe('')
+    // 那一句"不读设置、不排定时器"是这一屏的全部纪律，只能这样钉住。
+    expect(setup).not.toMatch(/setInterval|loadSettings|startBackend\(\)/)
   })
 })
 

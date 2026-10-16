@@ -7,7 +7,7 @@
  */
 import { afterEach, describe, expect, it } from 'vitest'
 import { act, cleanup, screen } from '@testing-library/react'
-import { click, renderApp } from '@renderer/test/harness'
+import { click, renderApp, toastTexts } from '@renderer/test/harness'
 
 afterEach(cleanup)
 
@@ -111,8 +111,9 @@ describe('更新小节', () => {
       bridge.setUpdates({ phase: 'error', errorCode: 'checksum-mismatch' })
     })
 
-    // 校验失败要说清楚「已丢弃」，否则用户会以为装上了。
-    expect(screen.getByText('下载文件的校验值不符，已丢弃，请重试。')).toBeInTheDocument()
+    // 校验失败要说清楚「已丢弃」，否则用户会以为装上了。说法走 toast：一次失败不该在
+    // 这一页留下擦不掉的痕迹（切走再回来，那段红的还在那儿）。
+    expect(toastTexts()).toContain('校验不符，已丢弃')
   })
 
   it('目录写不进去要说成一件做得完的事，而不是「启动失败」', async () => {
@@ -124,7 +125,7 @@ describe('更新小节', () => {
     })
 
     // 这一条的代价是"把程序挪个地方"，混进 install-failed 就没人知道该改什么。
-    expect(screen.getByText(/无法写入/)).toBeInTheDocument()
+    expect(toastTexts()).toContain('程序所在位置不能写，换个文件夹再更新')
   })
 
   it('发现新版本时就写出要替换的是哪个文件，不必等下载完', async () => {
@@ -140,7 +141,7 @@ describe('更新小节', () => {
     expect(screen.getByText(/^安装位置：/)).toBeInTheDocument()
   })
 
-  it('刚更新完的那一次说明是从哪个版本换过来的', async () => {
+  it('刚更新完的那一次说一声现在是什么版本', async () => {
     const bridge = await renderApp()
     await openSettings()
 
@@ -149,6 +150,7 @@ describe('更新小节', () => {
       bridge.setUpdates({ updatedFrom: '0.1.4' })
     })
 
-    expect(screen.getByText('已从 v0.1.4 更新到 v0.0.0-test。')).toBeInTheDocument()
+    // 说完就走：这是一次发生过的事件，不是这一页此后一直成立的状态。
+    expect(toastTexts()).toContain('已更新到 v0.0.0-test')
   })
 })

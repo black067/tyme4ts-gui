@@ -107,7 +107,7 @@
   word-break: break-all;
 }
 
-/* 数据目录那一行：路径 + 结果说明 + 两个动作（见 `DataDirRow`）。 */
+/* 数据目录那一行：路径 + 三个动作（见 `DataDirRow`）。 */
 .settings-row--data {
   gap: var(--space-2);
 }
@@ -126,6 +126,24 @@
   display: flex;
   gap: var(--space-2);
   align-self: center;
+}
+
+/*
+ * 删除的第一下按完之后，那句说明出现在路径下面——它必须挨着路径：用户要对着这一行字确认
+ * 自己到底在删哪个目录，而不是在屏幕另一个角落读一句"确定要删吗"。
+ */
+.data-dir__confirm {
+  display: block;
+  margin-top: 2px;
+  color: var(--color-danger);
+  font-family: inherit;
+  word-break: normal;
+  overflow-wrap: anywhere;
+}
+
+/* 这一页只有一个动作是收不回来的，所以它用 danger 色而不是跟着别的链接走。 */
+.text-button.data-dir__delete {
+  color: var(--color-danger);
 }
 
 /* Credits ------------------------------------------------------------------ */

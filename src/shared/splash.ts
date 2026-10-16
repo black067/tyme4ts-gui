@@ -16,15 +16,21 @@
 import type { Locale } from './ipc'
 
 /**
- * 递给骨架屏的三个输入。
+ * 递给首帧的四个输入。
  *
  * `dt` 就是 `<html data-theme>` 的取值，必须和 `theme/themes/*` 的 `variants` 同格式，
  * 否则 React 起来之后会换装。
+ *
+ * `setup` 是"这一轮启动还没有选定的用户目录"。它不是骨架屏自己的事——选位置那一屏要的是
+ * **没有骨架屏**的窗口，于是 `splash.js` 把它落成 `<html data-setup>`，样式表据此隐藏
+ * `#splash`，`main.tsx` 据此装载另一个应用。一个键、三处用途，比第二个初始化脚本诚实：
+ * 两段脚本谁先跑在页面里是看不见的，一个对象的键是可以被测试逐个数出来的。
  */
 export interface SplashBootstrap {
   dt: string
   locale: Locale
   first: boolean
+  setup: boolean
 }
 
 /**
@@ -51,18 +57,21 @@ export function splashBackground(themeId: string, dark: boolean): string {
 }
 
 /**
- * 组装三个输入。旧版的 `splashSearch()` 换成这里，语义完全一致：
- * 首次启动（盘上没有设置文件）才置 `first`，语言取设置里的值，深浅色由宿主判定。
+ * 组装四个输入。旧版的 `splashSearch()` 换成这里，语义一致：首次启动（盘上没有设置文件）才
+ * 置 `first`，语言取设置里的值，深浅色由宿主判定；`setup` 取宿主的启动计划——这一轮到底有没有
+ * 认下一个用户目录。
  */
 export function splashBootstrap(
   themeId: string,
   locale: Locale,
   dark: boolean,
-  firstRun: boolean
+  firstRun: boolean,
+  setup: boolean
 ): SplashBootstrap {
   return {
     dt: resolvedSplashTheme(themeId, dark),
     locale,
-    first: firstRun
+    first: firstRun,
+    setup
   }
 }

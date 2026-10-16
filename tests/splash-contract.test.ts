@@ -20,10 +20,15 @@
  * 另外钉住主题串格式：`resolvedSplashTheme()` 与 `theme/themes/*` 的
  * `variants` 必须给出一样的 `data-theme` 值，否则首帧与 React 起来之后会换装。
  *
- * 4. **宿主这一半**——窗口现在由 Rust 创建（`src-tauri/src/splash.rs`），首帧的三个输入
+ * 4. **宿主这一半**——窗口现在由 Rust 创建（`src-tauri/src/splash.rs`），首帧的四个输入
  *    由它经一段初始化脚本递给页面。底色字面量、`window.__TAYME_SPLASH__` 这个键名、
  *    主题串的拼法，都是跨语言抄了一遍的同一套规则：抄错不会编译失败，只会首帧闪错色。
  *    所以这里直接读 Rust 源文本，跟 `src/shared/splash.ts` 逐项对账。
+ *
+ * 其中第四个 `setup` 与前三件不同：前三件说"首帧长什么样"，它说"这一轮根本没有日历可看"。
+ * 盘上还没有用户目录时，画一个月历格子是在演一场没发生的事，所以骨架屏要整个隐掉。隐掉它的
+ * 那条规则在 `index.html`，写属性的代码在 `splash.js`，决定值的是 Rust——三处分开，谁漏改
+ * 一边都只有这里能发现。
  */
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -140,15 +145,19 @@ describe('骨架屏配色不许自成一套', () => {
     }
   })
 
-  it('递给骨架屏的三个输入把主题、语言、首启都带上', () => {
-    const bootstrap = splashBootstrap('classic', 'zh-Hans', true, true)
+  it('递给骨架屏的四个输入把主题、语言、首启、以及要不要选目录都带上', () => {
+    const bootstrap = splashBootstrap('classic', 'zh-Hans', true, true, true)
     expect(bootstrap.dt).toBe('classic-dark')
     expect(bootstrap.locale).toBe('zh-Hans')
     expect(bootstrap.first).toBe(true)
+    expect(bootstrap.setup).toBe(true)
+    // 键名也要钉：`splash.js` 与 `global.d.ts` 都是照字面读的，多一个少一个都静默失效。
+    expect(Object.keys(bootstrap).sort()).toEqual(['dt', 'first', 'locale', 'setup'])
 
-    const quiet = splashBootstrap('minimal', 'zh-Hans', false, false)
+    const quiet = splashBootstrap('minimal', 'zh-Hans', false, false, false)
     expect(quiet.dt).toBe('minimal-light')
     expect(quiet.first).toBe(false)
+    expect(quiet.setup).toBe(false)
   })
 })
 
@@ -213,16 +222,27 @@ describe('宿主（Rust）抄的这套规则与 TS 规范一致', () => {
     expect(rust).toMatch(/let variant = if dark \{ "dark" \} else \{ "light" \}/)
   })
 
-  it('三个输入经 window.__TAYME_SPLASH__ 递交，键名三处一致', () => {
+  it('四个输入经 window.__TAYME_SPLASH__ 递交，键名三处一致', () => {
     expect(rust).toContain('window.__TAYME_SPLASH__')
     expect(splashJs).toContain('window.__TAYME_SPLASH__')
     // TS 侧那份声明（宿主注入的对象形状）。
     const globals = readFileSync(join(ROOT, 'src', 'backend', 'global.d.ts'), 'utf8')
     expect(globals).toContain('__TAYME_SPLASH__')
-    for (const key of ['dt', 'locale', 'first']) {
+    for (const key of ['dt', 'locale', 'first', 'setup']) {
       expect(rust).toMatch(new RegExp(`"${key}"`))
       expect(splashJs).toMatch(new RegExp(`\\.${key}\\b`))
+      expect(globals).toMatch(new RegExp(`${key}\\?:`))
     }
+  })
+
+  /**
+   * `setup` 这一件是三处分开写的：Rust 决定值、`splash.js` 写属性、`index.html` 按属性隐掉
+   * 骨架屏。任何一处改名都只会让选目录那一屏压在一个月历格子上，而那不是一次崩溃，是一次
+   * "界面卡住了"的误会——所以三处一起对账。
+   */
+  it('setup 为真时骨架屏整个隐掉：写属性与隐形的规则都在', () => {
+    expect(splashJs).toContain(`setAttribute('data-setup', '1')`)
+    expect(styleBlocks).toMatch(/html\[data-setup\]\s+#splash\s*\{\s*display:\s*none/)
   })
 
   it('查询串仍是回退路径（浏览器里直接跑 dev:web 时仍然可用）', () => {

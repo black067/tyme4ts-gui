@@ -5,6 +5,7 @@
 //! 宿主只剩"窗口、进程、字节"三件事。
 
 mod paths;
+mod recycle;
 mod replace;
 mod report;
 mod splash;
@@ -20,10 +21,20 @@ use tauri::webview::PageLoadEvent;
 use tauri::{Manager, WebviewWindow, WebviewWindowBuilder};
 
 /// 窗口 label：单实例回调、骨架屏注入、看门狗都靠它找到主窗口。
+///
+/// 首启那个选目录的小窗口用的是**同一个 label**：能力清单按 label 授权（`windows:["main"]`），
+/// 换名字就等于给一个还没选好目录的窗口发全套权限。共用一个 label，两侧拿到的能力完全相同，
+/// 而选目录的窗口只是没有那些按钮。
 const MAIN_WINDOW: &str = "main";
 
 /// 页面迟迟没有加载完成时也把窗口显形，时限与 Electron 时代的 `ready-to-show` 相当。
 const SHOW_BACKSTOP_MS: u64 = 2500;
+
+/// 选择数据目录那个小窗口的尺寸。它只放三个选项和一个按钮，跟日历不是一个量级；
+/// 让它明显比主窗口小，也是在告诉用户"这一步过了就换地方了"。
+const SETUP_WINDOW: (f64, f64) = (560.0, 520.0);
+/// 小窗口的下限：文案换行、缩放比例都要留余地。
+const SETUP_WINDOW_MIN: (f64, f64) = (460.0, 420.0);
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -44,8 +55,24 @@ pub fn run() {
 
     // 数据目录的指向要在任何插件初始化之前定下来：能力清单里 `$APPDATA/**` 那几条是照着配置
     // 解析的，晚一步改就等于"权限范围在一处、文件在另一处"（见 `src-tauri/src/paths.rs`）。
+    //
+    // 同一次调用也回答"这次到底有没有既有的用户目录"。没有的话建的是那个选目录的小窗口，
+    // 而不是在用户的机器上凭空造一个他没选过的目录（`npm test` 之外还有一条契约测试盯着：
+    // `apply_override` 必须出现在 `Builder::default()` 之前）。
     let mut context = tauri::generate_context!();
-    paths::apply_override(context.config_mut());
+    let startup = paths::apply_override(context.config_mut());
+    // 这一行 stderr 是手工冒烟时判断"为什么出现的是选目录的小窗口"的第一个线索，
+    // 也是 `npm run dev` 后台任务唯一的启动说明。
+    let choosing = match &startup {
+        paths::StartupPlan::Adopted { path } => {
+            eprintln!("[tyme-app] 用户目录：{}", path.display());
+            false
+        }
+        paths::StartupPlan::NeedsChoice { reason, .. } => {
+            eprintln!("[tyme-app] 没有既有的用户目录（{reason:?}），这一轮先让用户选位置。");
+            true
+        }
+    };
 
     let outcome = tauri::Builder::default()
         // 单实例必须最先注册：否则第二次启动会先建出一个窗口再被拦掉。
@@ -62,8 +89,9 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_opener::init())
-        // 只用来选文件夹（改数据目录）。它不授予任何文件读写权限：能读哪里仍由
-        // `$APPDATA/**` 那几条说了算，而 `$APPDATA` 跟着数据目录的 override 走。
+        // 只用来选文件夹：首启小窗口的「浏览」、设置里的「修改数据目录」、自定义那一栏。
+        // 它不授予任何文件读写权限：能读哪里仍由 `$APPDATA/**` 那几条说了算，
+        // 而 `$APPDATA` 跟着数据目录的 override 走。
         .plugin(tauri_plugin_dialog::init())
         .manage(update::UpdaterState::default())
         .invoke_handler(tauri::generate_handler![
@@ -74,21 +102,35 @@ pub fn run() {
             update::update_context,
             paths::reveal_data_dir,
             paths::inspect_data_dir,
-            paths::set_data_dir
+            paths::set_data_dir,
+            paths::setup_plan,
+            paths::choose_data_dir,
+            paths::delete_data_dir,
+            paths::relaunch
         ])
         .setup(move |app| {
             let handle = app.handle().clone();
+            // 决定本身交给命令读：`setup_plan` 要知道该显示哪三项、"自定义"里预填什么。
+            handle.manage(startup);
+
             // 上一次更新留下的 `.old.exe` / `.part` / 过期暂存资产，由这个真正活下来的实例清扫。
             // 不放在安装成功之后：那一段代码属于正在退出的旧进程，而等待者未必跑完。
             // 也正因为清扫可能碰到写盘慢的目录（网络盘、U 盘），它不放主线程。
-            let cleaner = handle.clone();
-            tauri::async_runtime::spawn_blocking(move || {
-                replace::cleanup_exe_dir();
-                update::sweep_updates_dir(&cleaner);
-            });
+            //
+            // 没选定位置之前**不扫**：`updates` 在数据目录里，而那棵树还没被认下来，
+            // 扫它只会顺路把"目录不存在"变成"目录被建出来"。
+            if !choosing {
+                let cleaner = handle.clone();
+                tauri::async_runtime::spawn_blocking(move || {
+                    replace::cleanup_exe_dir();
+                    update::sweep_updates_dir(&cleaner);
+                });
+            }
 
             // 骨架屏的参数要在页面加载前定下来：这是"窗口一出现就有反馈"的全部前提。
-            let bootstrap = splash::build(&handle);
+            // 选目录的那一屏不走骨架屏——它要用户读字并做决定，而骨架屏的意义恰恰是
+            // "等着，马上就完"。两件事共用同一个注入（`setup` 只是其中一个键）。
+            let bootstrap = splash::build(&handle, choosing);
             let config = handle
                 .config()
                 .app
@@ -98,11 +140,20 @@ pub fn run() {
                 .ok_or("tauri.conf.json 必须声明一个窗口")?;
 
             let on_load_shown = Arc::clone(&shown);
-            let window = WebviewWindowBuilder::from_config(&handle, &config)?
+            let mut builder = WebviewWindowBuilder::from_config(&handle, &config)?
                 // 底色必须等于该主题在 tokens.css 里的 --color-bg，否则首帧会闪一下错的灰。
                 .background_color(Color::from(bootstrap.rgb))
                 .theme(bootstrap.window_theme)
-                .initialization_script(bootstrap.script)
+                .initialization_script(bootstrap.script);
+            if choosing {
+                builder = builder
+                    .inner_size(SETUP_WINDOW.0, SETUP_WINDOW.1)
+                    .min_inner_size(SETUP_WINDOW_MIN.0, SETUP_WINDOW_MIN.1)
+                    // 第一次见到的窗口出现在屏幕正中：它旁边还没有一个"用户以为属于这里"的
+                    // 位置可以参照，靠记忆恢复的坐标只会让它出现在一个说不清的地方。
+                    .center();
+            }
+            let window = builder
                 .on_page_load(move |window, payload| {
                     if !matches!(payload.event(), PageLoadEvent::Finished) {
                         return;

@@ -37,8 +37,8 @@ export const zhHans = {
      * `tests/splash-contract.test.ts` 钉住——改这里不同步改 HTML，测试会红。
      */
     splash: '正在载入…',
-    /** 磁盘上没有 settings.json 时的骨架文案（首启含解包/初始化，明显更慢）。 */
-    splashFirstRun: '首次启动，正在准备运行环境…',
+    /** 磁盘上还没有用户目录时的骨架文案（那一轮要解包、要初始化，明显更慢）。 */
+    splashFirstRun: '正在准备你的日历…',
     /** 副标题里"星期"的前缀，后接星期名（日/一/…）。 */
     weekdayPrefix: '星期',
     /** 读屏器播报当前选中日期时的前缀。 */
@@ -367,6 +367,8 @@ export const zhHans = {
     label: '设置',
     title: '设置',
     close: '返回',
+    /** 写设置失败。改动还在屏幕上，但下次启动会回到老样子——只说这一句，剩下让人自己判断。 */
+    saveFailed: '这个改动没存下来',
 
     appearance: {
       title: '外观',
@@ -377,10 +379,10 @@ export const zhHans = {
         minimal: '现代简约',
         classic: '中国传统'
       },
-      /** 主题族的说明。 */
+      /** 主题族的说明。两句都要在"换了之后看得出来"这个范围内说话，不写观感形容词。 */
       themeDescriptions: {
-        minimal: '浅色卡片、克制的朱红点缀，信息密度高，长时间阅读不累眼。',
-        classic: '宣纸底色、朱红与墨色，衬线字体与更宽的留白，更接近老黄历的观感。'
+        minimal: '浅色卡片、朱红点缀，密度高，适合长时间看',
+        classic: '宣纸底、朱红与墨色，衬线字，更像老黄历'
       },
       /** 「当前生效：现代简约 · minimal」。 */
       current: ({ theme, resolved }: { theme: string; resolved: string }): string =>
@@ -417,28 +419,32 @@ export const zhHans = {
       downloading: ({ percent }: { percent: number }): string => `下载中 ${percent}%`,
       cancel: '取消',
       install: '重启并安装',
-      /** 下载完成后的提示。便携版没有"装到哪里"可选，所以说的是"替换"。 */
-      ready: '下载完成，可以替换当前正在运行的这个文件。',
+      /** 下载完成。紧挨着就是"重启并安装"那颗按钮，不必再复述它能干什么。 */
+      ready: '下载完成',
       /**
        * 便携版没有"装到哪里"的选择：更新就是替换用户双击的那个文件，
        * 所以这个路径必须在按下之前说出来，而不是事后让人去找。
        */
       installTarget: ({ path }: { path: string }): string => `安装位置：${path}`,
       /** 原地替换之后唯一的自证：这次启动是从哪个版本换过来的。 */
-      justUpdated: ({ from, to }: { from: string; to: string }): string =>
-        `已从 v${from} 更新到 v${to}。`,
+      updated: ({ version }: { version: string }): string => `已更新到 v${version}`,
       autoCheck: '启动时自动检查更新',
-      /** 各错误码的说法，一个错误码一句，不拼接。 */
+      /**
+       * 各错误码的说法，一个错误码一句，不拼接。
+       *
+       * 都是 toast，所以统一不带句号，也只说"发生了什么、接下来该干什么"：一次失败不需要
+       * 复述一遍程序的内部策略（"已保持原版本不变"这类话是写给开发者看的，用户看得见的是
+       * 应用还在跑）。
+       */
       error: {
-        network: '无法连接到 GitHub，请检查网络后重试。',
-        rateLimited: 'GitHub 接口访问次数已达上限，请稍后再试。',
-        noCompatibleAsset: '该版本没有适用于本机的安装文件。',
-        checksumMismatch: '下载文件的校验值不符，已丢弃，请重试。',
-        disk: '下载失败或写入磁盘出错，请重试。',
-        // 用户做得到的那件事写清楚：这一条不是"程序坏了"，是"这个文件夹不让写"。
-        targetNotWritable: '当前所在位置无法写入，更新没有开始。请把程序移到可写的文件夹后重试。',
-        installFailed: '替换当前文件时出错，已保持原版本不变。请重试，或手动下载新版本。',
-        unknown: '更新过程中出现未知错误。'
+        network: '连不上 GitHub，稍后再试',
+        rateLimited: 'GitHub 请求太频繁，稍后再试',
+        noCompatibleAsset: '这个版本没有适合本机的文件',
+        checksumMismatch: '校验不符，已丢弃',
+        disk: '下载没完成',
+        targetNotWritable: '程序所在位置不能写，换个文件夹再更新',
+        installFailed: '替换失败，仍在当前版本',
+        unknown: '更新失败'
       }
     },
 
@@ -450,15 +456,15 @@ export const zhHans = {
       /** 最近一次成功更新的时间。 */
       lastUpdated: ({ time }: { time: string }): string => `上次更新：${time}`,
       /** 还没有数据时的状态。 */
-      never: '尚未更新过。',
+      never: '还没有数据',
       /** 覆盖了哪些年份。 */
       years: ({ years }: { years: string }): string => `已覆盖年份：${years}`,
-      /** 各错误码的说法。 */
+      /** 各错误码的说法。都是 toast，所以不带句号；"仍用本地这份"是用户最想知道的那半句。 */
       error: {
-        network: '无法获取节假日数据，将继续使用已有数据。',
-        invalidData: '节假日数据格式无法识别，已保留原有数据。',
-        disk: '写入节假日缓存失败。',
-        unknown: '更新节假日数据时出现未知错误。'
+        network: '没取到节假日数据，仍用本地这份',
+        invalidData: '数据格式不认识，仍用本地这份',
+        disk: '缓存没写进去',
+        unknown: '更新失败'
       }
     },
 
@@ -476,30 +482,6 @@ export const zhHans = {
       runtimeLabel: '运行时',
       dataDirLabel: '数据目录',
       settingsFileLabel: '设置文件',
-      /**
-       * 数据目录那一行的两个动作与四种结果。
-       *
-       * 文案分三组是刻意的：`rejected*` 说的是"你选的这个地方不行，换一个"，`failed*` 说的是
-       * "地方没问题，这次没成"，而 `moved` 必须带上"重启后生效"——本次会话仍在旧目录读写
-       * （宿主命令拿得到的是 `&Config`），少了这半句，用户重启前又改一次设置就会觉得搬丢了。
-       */
-      dataDir: {
-        browse: '浏览',
-        change: '修改',
-        moved: ({ to, files, size }: { to: string; files: number; size: string }) =>
-          `已搬到 ${to}（${files} 个文件，${size}）。重启后生效——在这之前改的设置仍记在旧目录里。`,
-        leftBehind: ({ count }: { count: number }) =>
-          `旧目录里还有 ${count} 个文件没删掉，可以手动删。`,
-        rejectedSame: '这就是当前正在用的目录，不用搬。',
-        rejectedNested: '不能选当前数据目录里面的文件夹：搬进去等于自己套自己。',
-        rejectedNotDedicated:
-          '那个文件夹里已经有别的东西。数据目录得是专门给本应用用的空文件夹——读写权限的范围会跟着它走，混着别的东西的目录不能交出来。',
-        rejectedNotWritable: '那个文件夹写不进去（只读盘、权限不够或已满）。换个位置再试。',
-        failedVerify: '复制过去的文件对不上校验，已保持原样：数据还在老地方，一件没动。',
-        failedDisk: '搬运没完成，数据还在老地方。检查一下磁盘空间与权限再重试。',
-        failedUnknown: '搬运没完成，数据还在老地方。',
-        revealFailed: '打不开那个文件夹。'
-      },
       /** package.json 里没写作者时的占位。 */
       missingAuthor: '（package.json 未填写）'
       // 运行时那一行由宿主直接给字符串（`Tauri 2.12.4 · WebView2 154…`）：
@@ -529,6 +511,75 @@ export const zhHans = {
         calendarIcon: '应用图标（日历）'
       }
     }
+  },
+
+  /**
+   * 数据目录那一行的动作与结果。
+   *
+   * 原来这批文案挂在 `settings.about.dataDir` 底下。"关于"只是提一下数据目录在哪，而这几个
+   * 键讲的是"东西放在哪儿、能不能改、改完怎么说"——那是用户自己的地盘，不该埋在版本号旁边。
+   *
+   * 三组话不能混：`rejected*` 是"这个位置不行，换一个"，`move*`/`delete*` 的失败是"位置没
+   * 问题，这次没成"，而两句成功都带"正在重启"——指向只能在进程开始之前改
+   * （`src-tauri/src/paths.rs` 的头部记着这件事），不写这半句，用户会以为搬完了，
+   * 然后在新位置找不到东西。
+   */
+  dataDir: {
+    browse: '浏览',
+    change: '修改',
+    delete: '删除',
+    /** 第二下才是不可逆的那一下，按钮上得写清楚现在按下去会发生什么。 */
+    confirmDelete: '确认删除',
+    /** 删除按钮旁边的说明。整屏只留这一句解释，所以它是唯一带句号的一句。 */
+    deleteNote: '把整个目录移到回收站，重启后回到选择位置那一屏。',
+    moved: ({ to }: { to: string }): string => `已搬到 ${to}，正在重启`,
+    /** 两边都留一份不算失败，只是没打扫干净：报个数就够，不解释来龙去脉。 */
+    leftBehind: ({ count }: { count: number }): string => `旧目录还剩 ${count} 个文件`,
+    rejectedSame: '这就是当前目录',
+    rejectedNested: '不能选它自己的子目录',
+    rejectedRoot: '不能选磁盘根目录',
+    rejectedNotDedicated: '换一个空文件夹，或本应用用过的文件夹',
+    rejectedNotWritable: '这个文件夹写不进去',
+    /** 校验不符、磁盘不行、认不出来——对用户是同一件事，不必分成三句话骗人。 */
+    moveFailed: '搬运失败，数据还在原处',
+    /** 选定位置时"地方没错、这次没成"那一种。首启那一屏与设置里那行共用。 */
+    chooseFailed: '这个位置建不起来，换个地方再试',
+    revealFailed: '打不开这个文件夹',
+    deleted: '数据已移到回收站，正在重启',
+    deleteNoBin: '这个位置没有回收站，先把程序移到本机硬盘再删',
+    deleteBusy: '有文件正被占用，关掉占用它的程序再删',
+    deleteMissing: '这个目录已经不在了',
+    deleteFailed: '没能移到回收站，数据还在原处',
+    /** 调试版按规矩不自动重启：位置已经记下，自己重开一次就生效。这不是失败，所以另有那句话。 */
+    restartLater: '位置已经记下，重启后生效'
+  },
+
+  /** 首启那一屏：盘上还没有选定的用户目录，先请用户挑一个位置。 */
+  setup: {
+    title: '选择用户目录',
+    intro: '日历的设置和数据都放在这一个目录里。选一个位置，或者自己填一个。',
+    /** 选项标题。完整路径显示在它旁边：按下确定之前该知道东西会落在哪儿。 */
+    userDir: '用户目录',
+    exeDir: '可执行文件所在目录',
+    custom: '自定义',
+    customPlaceholder: '粘贴，或浏览选一个文件夹',
+    browse: '浏览…',
+    confirm: '确定',
+    /** 按下去之后到重启之间的那句话：这一轮会建目录、写标记，然后整个程序重开。 */
+    preparing: '正在准备…',
+    /** 指针记着的位置不在盘上了（U 盘被拔走）。把原路径显示出来，让人知道不是丢了。 */
+    recordedMissing: '上次记在这里：',
+    /** 选项旁的小标记：这里已经有东西，选它不会动别人的文件。 */
+    hasData: '已有数据',
+    /** 灰掉那一项的原因。 */
+    unwritable: '不能写',
+    /** 连"有哪些位置可选"都问不到。这时这一屏什么都做不了，只能重开。 */
+    loadFailed: '问不到可用的位置，重开一次试试'
+  },
+
+  /** 应用内提示。自己会消失，但读屏器与键盘用户需要一条立刻关掉的退路。 */
+  toast: {
+    dismiss: '关闭'
   },
 
   common: {

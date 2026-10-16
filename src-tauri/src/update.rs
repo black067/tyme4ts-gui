@@ -62,13 +62,27 @@ pub struct UpdaterState {
 
 /// 落点：`%APPDATA%\万年历\updates`。目录名与今天完全一致，
 /// 老用户留在盘上的半成品因此还能被认出来。
+///
+/// 会建目录：只有"用户按了下载"才走到这里。启动路径上的清扫用 [`existing_updates_dir`]，
+/// 否则第一次启动会在用户还没选定位置时就造出一个 `updates` 来。
 fn updates_dir(app: &AppHandle) -> Result<PathBuf, String> {
-    let dir = app
-        .path()
-        .app_data_dir()
-        .map_err(|_| "disk".to_string())?
-        .join("updates");
+    let dir = data_dir(app)?.join("updates");
     std::fs::create_dir_all(&dir).map_err(|_| "disk".to_string())?;
+    Ok(dir)
+}
+
+/// 同一个落点，但**不建**：目录不在就是"没有暂存过任何东西"。
+///
+/// `Err` 与 `Ok(None)` 都算没有——调用方关心的只是"有没有垃圾要扫"。
+fn existing_updates_dir(app: &AppHandle) -> Option<PathBuf> {
+    let dir = data_dir(app).ok()?.join("updates");
+    dir.is_dir().then_some(dir)
+}
+
+/// 数据目录的绝对路径。`app_data_dir()` 本身不建目录，但目录不存在时这里回 `None`，
+/// 让调用方自己决定"没有这个目录"是错误还是空操作。
+fn data_dir(app: &AppHandle) -> Result<PathBuf, String> {
+    let dir = app.path().app_data_dir().map_err(|_| "disk".to_string())?;
     Ok(dir)
 }
 
@@ -227,7 +241,11 @@ pub fn cancel_update(state: State<'_, UpdaterState>) -> Result<(), String> {
 #[tauri::command]
 pub async fn delete_update(app: AppHandle, file_name: String) -> Result<(), String> {
     let name = safe_file_name(&file_name).ok_or("disk")?;
-    let path = updates_dir(&app)?.join(name);
+    // 暂存区不存在 = 没有东西可删，这是成功而不是失败（下面"文件本来就不在"同一意义）。
+    let Some(dir) = existing_updates_dir(&app) else {
+        return Ok(());
+    };
+    let path = dir.join(name);
     match tokio::fs::remove_file(&path).await {
         Ok(()) => Ok(()),
         // 文件本来就不在，等同于删除成功。
@@ -299,7 +317,10 @@ pub const STAGED_RETENTION_DAYS: i64 = 7;
 /// `.part` 只有崩溃才会留下（正常路径是原子改名），所以它永远不可能变成"可用的下载"；
 /// 留着只会让人以为下载还停在某个百分比上。
 pub fn sweep_updates_dir(app: &AppHandle) {
-    let Ok(dir) = updates_dir(app) else { return };
+    // 启动路径上跑的正是这一个：目录不在就是没东西可扫，绝不能"为了扫而把它建出来"。
+    let Some(dir) = existing_updates_dir(app) else {
+        return;
+    };
     let Ok(entries) = std::fs::read_dir(&dir) else {
         return;
     };

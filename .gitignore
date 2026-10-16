@@ -7,6 +7,9 @@ release/
 release-*/
 .vite/
 
+# 便携版把数据放在 exe 同级时的那一项（首启选位置里的 `.chinese-calendar`）
+.chinese-calendar/
+
 # Rust 宿主的构建产物与自动生成的权限 schema（`tauri build` 每次都会重写后者）
 src-tauri/target/
 src-tauri/gen/schemas/

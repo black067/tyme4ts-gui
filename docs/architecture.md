@@ -9,9 +9,10 @@ src/
 ├─ shared/      跨层共用的契约与类型：window.tyme 的形状、命令名、事件名
 ├─ backend/     能力层：实现 window.tyme。跑在 webview 里，是唯一知道 Tauri 存在的地方
 ├─ renderer/    React 界面：视图、组件、主题、语言、hooks；index.html 带零脚本
-│               依赖的首帧骨架屏，public/splash.js 在首帧前写入主题/语言/首启
-src-tauri/      Rust 宿主：窗口、单实例、更新下载、WebView2 运行库
-│  ├─ src/      lib.rs 装配 + splash.rs 首帧 + update.rs 下载 + webview.rs 运行库
+│               依赖的首帧骨架屏，public/splash.js 在首帧前写入主题/语言/首启/是否要选位置
+src-tauri/      Rust 宿主：窗口、单实例、更新下载、数据位置、WebView2 运行库
+│  ├─ src/      lib.rs 装配 + splash.rs 首帧 + paths.rs 数据位置 + recycle.rs 回收站
+│  │            + replace.rs 原地自换 + update.rs 下载 + webview.rs 运行库
 │  ├─ capabilities/default.json  文件与网络的权限清单
 │  ├─ tauri.conf.json            窗口默认值、devUrl、数据目录覆盖
 │  └─ icons/                     由 scripts/make-icon.mjs 从 assets/calendar.svg 生成
@@ -91,26 +92,36 @@ tyme4ts ──▶ src/core（DTO + LRU 缓存）──▶ React 组件
 同一个 realm 里，这些文件只是类型与常量，没有序列化边界：`AppInfo`、`UpdateState`
 这些对象直接就是 JS 值，不需要 structured-clone 兼容。
 
-Rust 侧只有八个命令和一个事件，名字在 `src/shared/ipc.ts` 的 `HOST_COMMAND` /
+Rust 侧只有十二个命令和一个事件，名字在 `src/shared/ipc.ts` 的 `HOST_COMMAND` /
 `HOST_EVENT` 里，`tests/host-boundary.test.ts` 会去 `src-tauri/src` 里逐个核对（命令分两个模块：
 `update.rs` 管更新产物，`paths.rs` 管数据目录）：
 
-| 名字                | 方向      | 作用                                                        |
-| ------------------- | --------- | ----------------------------------------------------------- |
-| `download_update`   | JS → Rust | 流式下载一个发布资产到数据目录，边下边算 SHA-256            |
-| `cancel_update`     | JS → Rust | 让正在下载的 `download_update` 停下来并返回 `cancelled`     |
-| `delete_update`     | JS → Rust | 删掉已下载的文件（文件名先过白名单，只能碰数据目录）        |
-| `install_update`    | JS → Rust | 把新字节换到正在运行的 exe 上，派等待者重启，然后退出本进程 |
-| `update_context`    | JS → Rust | 安装位置，以及本次启动来自哪个版本                          |
-| `reveal_data_dir`   | JS → Rust | 把当前数据目录在系统文件管理器里打开                        |
-| `inspect_data_dir`  | JS → Rust | 报一个候选目录的事实：空不空、有没有标记、写不写得进去      |
-| `set_data_dir`      | JS → Rust | 把数据搬到新目录：先复制并逐个核对，写了指针才删旧文件      |
-| `update://progress` | Rust → JS | 下载进度（字节数与速率），80 ms 节流                        |
+| 名字                | 方向      | 作用                                                           |
+| ------------------- | --------- | -------------------------------------------------------------- |
+| `download_update`   | JS → Rust | 流式下载一个发布资产到数据目录，边下边算 SHA-256               |
+| `cancel_update`     | JS → Rust | 让正在下载的 `download_update` 停下来并返回 `cancelled`        |
+| `delete_update`     | JS → Rust | 删掉已下载的文件（文件名先过白名单，只能碰数据目录）           |
+| `install_update`    | JS → Rust | 把新字节换到正在运行的 exe 上，派等待者重启，然后退出本进程    |
+| `update_context`    | JS → Rust | 安装位置，以及本次启动来自哪个版本                             |
+| `reveal_data_dir`   | JS → Rust | 把当前数据目录在系统文件管理器里打开                           |
+| `inspect_data_dir`  | JS → Rust | 报一个候选目录的事实：空不空、有没有标记、写不写得进去         |
+| `set_data_dir`      | JS → Rust | 把数据搬到新目录：先复制并逐个核对，写了指针才删旧文件         |
+| `setup_plan`        | JS → Rust | 首启那一屏的原料：两个固定位置的完整路径、有没有数据、能不能写 |
+| `choose_data_dir`   | JS → Rust | 记下用户选的位置并建出目录——**全仓库唯一建用户目录的地方**     |
+| `delete_data_dir`   | JS → Rust | 把整份用户数据移进回收站，并清掉指针                           |
+| `relaunch`          | JS → Rust | 让同一个 exe 重起来一次，好让刚定下来的指向生效                |
+| `update://progress` | Rust → JS | 下载进度（字节数与速率），80 ms 节流                           |
 
-`reveal_data_dir` / `inspect_data_dir` / `set_data_dir` 同样遵循"TS 判断、Rust 报事实"：
-`inspect_data_dir` 不回答"能不能搬"，取舍在 `src/backend/data-dir.ts`。搬到别处之后**本次会话
-仍在旧目录读写**（`AppHandle` 只拿得到 `&Config`），新指向下次启动生效——所以界面必须把这句话
-说出来，见下面的「数据位置」。
+`reveal_data_dir` / `inspect_data_dir` / `set_data_dir` / `choose_data_dir` 同样遵循"TS 判断、
+Rust 报事实"：`inspect_data_dir` 不回答"能不能搬"，取舍在 `src/backend/data-dir.ts`。
+
+**改完之后一定要重起来一次。** `$APPDATA` 这个变量在插件初始化（早于任何 `setup` 钩子）时就被
+解析完了，而命令能碰到的一切都在那之后——"当场生效"唯一的办法是让同一个 exe 重新起来。所以选定
+位置、搬运、删除三条链路后面都跟着 `relaunch`：界面说"正在重启"而不是"好了"。重启用的是与
+`install_update` 同一个隐藏等待者（`src-tauri/src/replace.rs` 的 `relaunch`），不用
+`tauri::process::restart()`——那个 API 会先建新进程，而它会被单实例互斥体挡在外面，结果是应用
+关了再没打开。调试版按规矩不自动重启（那个 exe 连的是 dev 服务器），于是 `relaunch` 回 `dev`
+一个码，`src/backend/data-dir.ts` 把它收成 `manual`：位置已经记下，自己重开一次就生效。
 
 `install_update` 是这五个里唯一一个「判断成分为零、操作系统语义占满」的命令，所以它整个待在
 宿主里（`src-tauri/src/replace.rs`）：Windows 不允许覆盖正在运行的映像但允许改名，而新实例必须
@@ -121,26 +132,40 @@ Rust 侧只有八个命令和一个事件，名字在 `src/shared/ipc.ts` 的 `H
 
 文件与网络的可达范围由 `src-tauri/capabilities/default.json` 决定：文件只允许
 `$APPDATA/**`（读写、建目录、改名），网络只允许 `api.github.com`、`cdn.jsdelivr.net`、
-`unpkg.com` 三个域，外链只允许 `https`。这八个命令是 `invoke` 的自定义命令，
+`unpkg.com` 三个域，外链只允许 `https`。这十二个命令是 `invoke` 的自定义命令，
 不需要出现在能力清单里；`update://progress` 由宿主发出，同样发给 `main` 窗口。
-唯一为"换数据目录"新增的权限是 `dialog:allow-open`——它不授予任何路径，只是让用户自己
-挑一个文件夹（`tests/host-boundary.test.ts` 钉着"它不许带 scope"）。
+唯一为"挑一个文件夹"新增的权限是 `dialog:allow-open`——它不授予任何路径，只是让用户自己
+选一个文件夹（`tests/host-boundary.test.ts` 钉着"它不许带 scope"）。首启那一屏与设置里的
+「修改」用的是同一个窗口、同一份能力，所以能力清单里的 `windows` 始终是 `["main"]`。
 
 ## 首帧与窗口生命周期
 
 窗口在 `tauri.conf.json` 里声明但 `create: false`、`visible: false`：真正建窗的是
-`src-tauri/src/lib.rs`，因为只有它能先读 `%APPDATA%\万年历\settings.json` 决定主题与底色。
+`src-tauri/src/lib.rs`，因为只有它能先读 `<数据目录>\settings.json` 决定主题与底色。
 
-1. `splash::build()` 读设置，得出「主题 id-深浅色 / 语言 / 是否首启」，拼成一段
-   `window.__TAYME_SPLASH__ = {...}` 的初始化脚本，并算出窗口底色（与骨架屏同一个
-   `--color-bg`，见 `tests/splash-contract.test.ts` 里两侧规则的对账）。
+0. 在读设置之前，`paths::apply_override(context.config_mut())` 先看一眼盘上有没有用户目录，
+   回一个 `StartupPlan`：`Adopted`（沿用现有的，包括指针指过去的）或 `NeedsChoice`。启动**不建
+   目录**——没有目录时该问一句，而不是替用户决定。这一条是整个首帧流程的分叉点。
+1. `splash::build(&handle, choosing)` 读设置，得出「主题 id-深浅色 / 语言 / 是否首启 / 是否要
+   选位置」，拼成一段 `window.__TAYME_SPLASH__ = {...}` 的初始化脚本，并算出窗口底色（与骨架屏
+   同一个 `--color-bg`，见 `tests/splash-contract.test.ts` 里两侧规则的对账）。目录不存在时读不到
+   设置，那一路走默认主题与默认语言——骨架屏要能画，不代表它得猜出一个数据目录来。
 2. `WebviewWindowBuilder::from_config()` 复用配置里的窗口参数，加上
    `background_color`、`theme`、`initialization_script`。这一步让窗口出现的第一帧就是
-   正确底色，`public/splash.js` 则在 React 起来之前画出骨架屏。
+   正确底色，`public/splash.js` 则在 React 起来之前画出骨架屏。要选位置时窗口换成 560×520
+   的小尺寸（`visible:false` 之前设好，没有尺寸从大到小跳一下的过程），而骨架屏整个不显示：
+   `setup:true` 时 `splash.js` 在 `<html>` 上落 `data-setup`，`index.html` 里
+   `html[data-setup] #splash { display: none; }` 那条规则把它藏掉——那一屏不该先闪一张"日历
+   正在准备"的假画。
 3. `on_page_load(Finished)` 里 `show()`；另有 2500 ms 看门狗兜底，页面加载失败也不会
    留一个永远不出现的窗口。`show()` 用 `AtomicBool` 保证只执行一次。
 4. `on_document_title_changed` 把 `document.title` 同步到原生标题栏，界面层照常
    `useEffect` 设标题即可（含版本号），不需要额外的命令。
+
+渲染层按 `__TAYME_SPLASH__.setup` 分叉成两棵树（`src/renderer/src/main.tsx`）：日历走
+`startBackend()` + `<App />`，选位置走 `startSetupBackend()` + `<SetupApp />`。后者只装桥，
+不读设置、不排定时器、不碰节假日缓存——那一刻还没有能读的目录，读它就是去建一个。它也不带
+`SettingsProvider`，所以语言与文案那一层用的是 `StaticLocaleProvider`。
 
 ## 数据位置
 
@@ -149,19 +174,30 @@ Rust 侧只有八个命令和一个事件，名字在 `src/shared/ipc.ts` 的 `H
 `holidays/*.json` 原地可读，`tests/host-boundary.test.ts` 也钉着这一条。
 WebView2 自己的缓存与 cookie 落在 `%LOCALAPPDATA%\com.tyme.desktop\`，那部分不是用户数据。
 
-用户可以在设置里把它搬到别处（`src-tauri/src/paths.rs`）。这条链路的四个决定：
+用户可以选一个位置（首启那一屏），也可以搬走或删掉（设置里的「数据目录」那一行，
+`src-tauri/src/paths.rs`）。这条链路的六个决定：
 
+- **启动不建目录。** 建目录的代码就在手边，`app_data_dir()` 顺手一调就把 `%APPDATA%\万年历`
+  造出来了，而用户还没说他要放哪儿。唯一会建用户目录的是 `choose_data_dir`——因为那一下是他按的。
+  搬运的落点与 `reveal_data_dir` 也建目录，但那些同样是用户点出来的。
 - **指针不能存在数据目录里。** 它记的内容就是"数据目录在哪"，而那个目录正是等着被搬走的东西。
   锚点因此是 `%APPDATA%\com.tyme.desktop\location.json`——按 `identifier` 取名，与 WebView2
-  的缓存同层但不同目录；启动时 `paths::apply_override()` 在 `Builder::run(context)` 之前把它
-  读进 `config_mut()`。
+  的缓存同层但不同目录；启动时 `paths::apply_override()` 在 `Builder::default()` 之前把它
+  读进 `config_mut()`。锚点目录自己可以被建出来：那不是用户数据。
+- **选中的位置也记在同一个指针里**，所以第二次启动不问第二遍：`Adopted` 之后一切照旧。反过来，
+  指针指着一个不在了的位置（U 盘被拔走）时，`NeedsChoice{RecordedMissing}` 带着那条路径去问，
+  首启那一屏把它原样填在"自定义"里——插回盘就能按确定，不用重找一遍。
 - **权限不用放宽，也正因为如此要挑一个专属目录。** 能力清单里的 `$APPDATA/**` 是照着最终的
   override 解析的：改指向，范围自己跟过去。反过来，用户随手指一个混着别的东西的文件夹，就等于
   把整个文件夹交给 webview 读写——所以非空、又没有本应用标记的目录一律拒绝。
 - **每个本应用持有的目录留一个 `.tyme-data-dir` 标记**，搬走之后旧目录也留着它，于是"再指回去"
-  时那个空壳仍然认得出是自己人。
+  时那个空壳仍然认得出是自己人。老目录没有标记文件，那份 `settings.json` 是第二份证据。
 - **顺序是先复制、逐个核对、写指针，最后才删旧文件。** 任何一步失败最多退化成"两边各有一份"，
   不会出现"旧删了、新的没成"。`updates/` 里的下载产物不算数据：可再生的东西不占搬运的体积。
+- **删除是移到回收站，不是就地删掉**（`src-tauri/src/recycle.rs`：`SHFileOperationW` +
+  `FOF_ALLOWUNDO`）。U 盘、网络盘上没有回收站，那一次会被拒（`no-recycle-bin`）而不是悄悄
+  销毁——宁可让用户先把程序挪到本机硬盘，也不做一件收不回来的事。删完指针一起清掉，于是重启
+  之后回到选位置那一屏。
 
-搬完之后本次会话仍在旧目录读写（`AppHandle` 只拿得到 `&Config`），新指向下次启动生效。这一句
-必须显示在界面上，否则用户在重启之前又改了一次设置，就会觉得数据搬丢了。
+搬完、选完、删完都要重起来一次才能生效，原因见上面「十二个命令」那一段：`$APPDATA` 在插件
+初始化时就解析完了。界面上因此说"正在重启"，而调试版说"重启后生效"。

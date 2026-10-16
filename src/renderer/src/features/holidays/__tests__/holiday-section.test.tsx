@@ -7,7 +7,7 @@
  */
 import { afterEach, describe, expect, it } from 'vitest'
 import { act, cleanup, screen } from '@testing-library/react'
-import { click, renderApp } from '@renderer/test/harness'
+import { click, renderApp, toastTexts } from '@renderer/test/harness'
 
 afterEach(cleanup)
 
@@ -21,7 +21,7 @@ describe('节假日数据小节', () => {
     await renderApp()
     await openSettings()
 
-    expect(screen.getByText('尚未更新过。')).toBeInTheDocument()
+    expect(screen.getByText('还没有数据')).toBeInTheDocument()
     // 没有覆盖年份时不该出现年份行。
     expect(screen.queryByText(/已覆盖年份/)).toBeNull()
   })
@@ -77,7 +77,8 @@ describe('节假日数据小节', () => {
     // 关键点：报错的同时年份仍在——旧数据比没有数据有用得多。
     // 用完整句子匹配，`/2026/` 会同时命中月视图的日期格子。
     expect(screen.getByText('已覆盖年份：2026')).toBeInTheDocument()
-    expect(screen.getByText('无法获取节假日数据，将继续使用已有数据。')).toBeInTheDocument()
+    // 失败的说法走 toast：它讲的是"这一次没成"，而年份与时间讲的是"现在有什么"。
+    expect(toastTexts()).toContain('没取到节假日数据，仍用本地这份')
   })
 
   it('时间戳被改坏时不显示 Invalid Date', async () => {
@@ -89,6 +90,6 @@ describe('节假日数据小节', () => {
     })
 
     expect(screen.queryByText(/Invalid Date/)).toBeNull()
-    expect(screen.getByText('尚未更新过。')).toBeInTheDocument()
+    expect(screen.getByText('还没有数据')).toBeInTheDocument()
   })
 })

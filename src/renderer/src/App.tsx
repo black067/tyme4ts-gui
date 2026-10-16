@@ -13,6 +13,8 @@ import {
 } from '@core'
 import { ViewTabs, type ViewTab } from './components/ViewTabs'
 import { TermTipProvider } from './components/TermTip'
+import { ToastProvider } from './components/ToastProvider'
+import { useToast } from './components/toast-context'
 import { LocaleProvider, useMessages } from './i18n'
 import { dismissSplash } from './splash'
 import { UpdateProvider } from './features/updates/UpdateProvider'
@@ -48,13 +50,15 @@ export function App(): ReactElement {
     <SettingsProvider>
       <LocaleProvider>
         <ThemeProvider>
-          <UpdateProvider>
-            <HolidayProvider>
-              <TermTipProvider>
-                <AppContent />
-              </TermTipProvider>
-            </HolidayProvider>
-          </UpdateProvider>
+          <ToastProvider>
+            <UpdateProvider>
+              <HolidayProvider>
+                <TermTipProvider>
+                  <AppContent />
+                </TermTipProvider>
+              </HolidayProvider>
+            </UpdateProvider>
+          </ToastProvider>
         </ThemeProvider>
       </LocaleProvider>
     </SettingsProvider>
@@ -87,6 +91,7 @@ function AppContent(): ReactElement | null {
 function AppShell(): ReactElement {
   const { settings, update, error } = useSettings()
   const t = useMessages()
+  const toast = useToast()
   const today = useMemo(() => todayKey(), [])
   const [selected, setSelected] = useState<DateKey>(
     () => fromIsoDate(settings.lastViewedDate) ?? today
@@ -118,6 +123,17 @@ function AppShell(): ReactElement {
   useEffect(() => {
     dismissSplash()
   }, [])
+
+  // 设置存不下去（磁盘、权限）不是一条该钉在标题栏下面的消息。旧版那条 `app-error` 会一直
+  // 挂在那儿，直到用户改下一项才消失——于是"有一次没存上"看起来像这个应用的永久状态。
+  // 说一次就走才是它该有的样子，而原始异常那句话留给控制台，不进界面。
+  useEffect(() => {
+    if (error === null) return
+    // 原始那句异常留给控制台：它是给下一个读代码的人用的，不是给用户看的（界面只说
+    // "这个改动没存下来"，因为用户做得到的那件事与异常内容无关）。
+    console.warn('[tyme-app] settings could not be saved', error)
+    toast.notify(t.settings.saveFailed, 'error')
+  }, [error, toast, t])
 
   // Persist the selection, debounced so rapid navigation stays cheap. The
   // first run is skipped because it would only rewrite the restored value.
@@ -170,9 +186,9 @@ function AppShell(): ReactElement {
 
   const todaySummary = useMemo(() => buildDaySummary(today), [today])
 
-  // 宿主把 document.title 同步进原生标题栏（src-tauri/src/lib.rs 里的
-  // on_document_title_changed），所以在这里改标题就等于让标题栏跟着界面语言一起变。
   useEffect(() => {
+    // 宿主把 document.title 同步进原生标题栏（src-tauri/src/lib.rs 里的
+    // on_document_title_changed），所以在这里改标题就等于让标题栏跟着界面语言一起变。
     document.title = info === null ? t.app.title : t.app.titleWithVersion({ version: info.version })
   }, [info, t])
 
@@ -197,7 +213,6 @@ function AppShell(): ReactElement {
           <span className="app-subtitle__sep">·</span>
           <span className="app-subtitle__lunar">{todaySummary.lunar.full}</span>
         </p>
-        {error ? <p className="app-error">{error}</p> : null}
       </header>
 
       <div className="app-toolbar">

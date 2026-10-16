@@ -21,7 +21,15 @@ import {
   subscribeUpdates
 } from './updater'
 import { getHolidayStatus, refreshHolidays, subscribeHolidays } from './holidays'
-import { moveDataDir, revealDataDir } from './data-dir'
+import {
+  chooseDataDir,
+  deleteDataDir,
+  moveDataDir,
+  pickDataDir,
+  relaunchDataDir,
+  revealDataDir,
+  setupPlan
+} from './data-dir'
 
 /**
  * 每次检查完都记一笔时间。
@@ -54,7 +62,13 @@ const api: TymeApi = {
   },
   dataDir: {
     reveal: () => revealDataDir(),
-    move: () => moveDataDir()
+    move: () => moveDataDir(),
+    remove: () => deleteDataDir(),
+    // 对话框只回一个路径字符串：它不授予任何读写权限，能读哪里仍由 `$APPDATA/**` 那几条说了算。
+    pick: () => pickDataDir(),
+    plan: () => setupPlan(),
+    choose: (path: string) => chooseDataDir(path),
+    relaunch: () => relaunchDataDir()
   },
   updates: {
     getState: () => Promise.resolve(getUpdateState()),

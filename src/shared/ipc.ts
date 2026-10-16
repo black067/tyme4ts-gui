@@ -24,17 +24,22 @@ export type { HolidayErrorCode, HolidayStatus, HolidaysApi } from './holidays'
 
 export type {
   DataDirApi,
+  DataDirCandidate,
+  DataDirChooseOutcome,
+  DataDirDeleteOutcome,
   DataDirErrorCode,
   DataDirFacts,
   DataDirFailureReason,
   DataDirMoveOutcome,
   DataDirMoveReport,
   DataDirReason,
-  DataDirRejectReason
+  DataDirRejectReason,
+  DataDirRelaunchOutcome,
+  SetupPlanView
 } from './data-dir'
-export { classifyDataDirError, formatBytes, isRejectReason } from './data-dir'
+export { classifyDataDirError, formatBytes, isRejectReason, RESTART_REFUSED } from './data-dir'
 
-/** 宿主侧命令名：`update.rs` 管更新产物，`paths.rs` 管数据目录。 */
+/** 宿主侧命令名：`update.rs` 管更新产物，`paths.rs` 管数据目录（包括选位置与删位置）。 */
 export const HOST_COMMAND = {
   downloadUpdate: 'download_update',
   cancelUpdate: 'cancel_update',
@@ -43,7 +48,11 @@ export const HOST_COMMAND = {
   updaterContext: 'update_context',
   revealDataDir: 'reveal_data_dir',
   inspectDataDir: 'inspect_data_dir',
-  setDataDir: 'set_data_dir'
+  setDataDir: 'set_data_dir',
+  setupPlan: 'setup_plan',
+  chooseDataDir: 'choose_data_dir',
+  deleteDataDir: 'delete_data_dir',
+  relaunch: 'relaunch'
 } as const
 
 /** Events pushed from Rust to the single webview. */

@@ -40,7 +40,7 @@
     },
     {
       "identifier": "dialog:allow-open",
-      "description": "只用于「修改数据目录」：把选哪个文件夹的决定交给用户自己，选完之后能读写哪里仍由 $APPDATA/** 决定。"
+      "description": "用于首启选位置和设置里的「修改」：把选哪个文件夹的决定交给用户自己，选完之后能读写哪里仍由 $APPDATA/** 决定。"
     }
   ]
 }

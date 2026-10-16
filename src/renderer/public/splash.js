@@ -30,7 +30,8 @@ function fromQuery() {
     dt: query.get('dt'),
     locale: query.get('locale'),
     // 查询串里是字符串，初始化脚本里是布尔：两种写法都认。
-    first: query.get('first') === '1'
+    first: query.get('first') === '1',
+    setup: query.get('setup') === '1'
   }
 }
 
@@ -41,6 +42,12 @@ try {
   applyAttribute('data-locale', injected?.locale ?? fallback.locale)
   if (injected?.first === true || fallback.first) {
     document.documentElement.setAttribute('data-first', '1')
+  }
+  if (injected?.setup === true || fallback.setup) {
+    // 这一轮启动还没有选定的用户目录。骨架屏承诺的是"等着，马上就完"，而这一屏要的是用户
+    // 读字、做决定——两者放在一起只会让人以为界面卡住了。样式表按这个属性把 #splash 藏起来
+    // （`index.html`，由 tests/splash-contract.test.ts 钉住），`main.tsx` 读的是同一个注入。
+    document.documentElement.setAttribute('data-setup', '1')
   }
 } catch {
   // 读不到输入：静态默认值已经生效，什么都不用做。

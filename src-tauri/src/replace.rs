@@ -27,6 +27,7 @@ use std::process::Command;
 use std::sync::OnceLock;
 
 use sha2::{Digest, Sha256};
+use tauri::AppHandle;
 
 /// 同一个 exe 的第二种身份：被更新的应用，以及替新版把门打开的等待者。
 ///
@@ -381,6 +382,41 @@ fn spawn_wait(target: &Path, updated_from: &str) -> Result<(), &'static str> {
     detach(&mut command);
     // 丢弃 Child：关闭句柄而不终止它。
     command.spawn().map_err(|_| ERR_INSTALL)?;
+    Ok(())
+}
+
+/// [`relaunch`] 的两种失败。**不该重试**（调试版闸门）与**可以重试**（等待者起不来），
+/// 界面说的是两句话。错误码字符串不在这里：那批码的归属地是 `paths.rs`（契约在数据目录那一侧）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RelaunchError {
+    /// 被本模块的规矩挡下，不是故障。
+    Refused,
+    /// 拿不到自己的路径，或者等待者起不来。
+    Failed,
+}
+
+/// 让**同一个 exe 以普通身份**重新起来一次，用的是给更新收尾的那个隐藏等待者。
+///
+/// 为什么不用 `tauri::process::restart()`：它是"先 spawn 再 exit"，而本文件头部第 2 条写明的
+/// 正是这个顺序会坏——旧进程还握着单实例互斥体，新实例在自己的 plugin setup 里就被当成第二个
+/// 实例退掉了，连窗口都不会有。等待者等的是**进程句柄**，它拉起来的那一刻锁已经放开。
+///
+/// 与更新那一次唯一的区别是不带 [`UPDATED_FROM_FLAG`]：这次重启不是更新，界面不该说"已更新到"。
+pub fn relaunch(app: &AppHandle) -> Result<(), RelaunchError> {
+    let target = std::env::current_exe().map_err(|_| RelaunchError::Failed)?;
+    // 调试版重启的是 `target/debug` 里那个开发二进制：它连的是 devUrl，而 `npm run dev`
+    // 在我们退出之后未必还留着那个 vite 服务——用户看到的是"应用没了"，比不重启更糟。
+    // 想在本机验证这条链路，用 `npm run package` 的产物，或临时设 TYME_ALLOW_DEV_RELAUNCH=1
+    // （与 TYME_ALLOW_DEV_IN_PLACE_UPDATE 同一套规矩，见 docs/development.md）。
+    if cfg!(debug_assertions) && std::env::var_os("TYME_ALLOW_DEV_RELAUNCH").is_none() {
+        eprintln!("万年历：调试版不自动重启（位置已经记下，自己重开一次就生效）。");
+        return Err(RelaunchError::Refused);
+    }
+    if spawn_wait(&target, "").is_err() {
+        return Err(RelaunchError::Failed);
+    }
+    // 派出去了就交给它：本进程退出，锁随之放开。
+    app.exit(0);
     Ok(())
 }
 

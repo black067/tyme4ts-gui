@@ -1,7 +1,8 @@
-import type { ReactElement } from 'react'
+import { useEffect, useRef, type ReactElement } from 'react'
 import type { UpdateErrorCode } from '@shared/update'
 import { useMessages, type Messages } from '@renderer/i18n'
 import { Toggle } from '@renderer/components/Toggle'
+import { useToast } from '@renderer/components/toast-context'
 import { useSettings } from '@renderer/state/settings-context'
 import { useUpdateState } from './update-context'
 import './updates.css'
@@ -62,8 +63,35 @@ function errorText(t: Messages, code: UpdateErrorCode | null): string {
  */
 export function UpdateSection(): ReactElement | null {
   const t = useMessages()
+  const toast = useToast()
   const { settings, update } = useSettings()
   const { state, check, download, cancel, install } = useUpdateState()
+  // 一句失败只说一次。`errorCode` 会留在状态里（它是"上一次为什么没成"的事实），但界面不该
+  // 把它渲染成一条擦不掉的红色段落：切走再回来还在，读起来就像这个应用坏了，而实际上只坏过一次。
+  const announced = useRef<UpdateErrorCode | null>(null)
+  const toldUpdate = useRef(false)
+
+  useEffect(() => {
+    const code = state === null || state.phase !== 'error' ? null : state.errorCode
+    if (code === null) {
+      announced.current = null
+      return
+    }
+    if (announced.current === code) return
+    announced.current = code
+    toast.notify(errorText(t, code), 'error')
+  }, [state, t, toast])
+
+  // 原地替换之后，"更新成功了"这件事只剩版本号能说：不写出来就没人知道自己刚从哪个版本换过来。
+  // 它是一次发生过的事件，不是这个区块的状态，所以说完就该消失——`updatedFrom` 来自命令行参数，
+  // 本来也只跟一次启动。
+  useEffect(() => {
+    if (state === null || toldUpdate.current) return
+    const from = state.updatedFrom
+    if (from === null || from === state.currentVersion) return
+    toldUpdate.current = true
+    toast.notify(t.settings.updates.updated({ version: state.currentVersion }))
+  }, [state, t, toast])
 
   if (state === null) return null
 
@@ -111,14 +139,6 @@ export function UpdateSection(): ReactElement | null {
         ) : null}
       </p>
 
-      {/* 原地替换之后，"更新成功了"这件事只剩版本号能说；不写出来就没人知道自己刚从哪个版本
-          换过来。这个提示只跟一次启动：它来自命令行参数，不写进设置文件。 */}
-      {state.updatedFrom !== null && state.updatedFrom !== state.currentVersion ? (
-        <p className="settings-note">
-          {t.settings.updates.justUpdated({ from: state.updatedFrom, to: state.currentVersion })}
-        </p>
-      ) : null}
-
       {state.phase === 'downloading' ? (
         <progress
           className="updates__progress"
@@ -135,10 +155,6 @@ export function UpdateSection(): ReactElement | null {
       ) : null}
 
       {state.phase !== 'ready' && showsTarget ? targetNote : null}
-
-      {state.phase === 'error' ? (
-        <p className="tool__error">{errorText(t, state.errorCode)}</p>
-      ) : null}
 
       <div className="updates__row">
         {state.phase === 'available' ? (

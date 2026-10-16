@@ -52,16 +52,16 @@ npm run package   # → release/chinese-calendar-<version>-portable.exe
 
 ## 文档
 
-| 文档                                               | 内容                                     |
-| -------------------------------------------------- | ---------------------------------------- |
-| [docs/usage.md](docs/usage.md)                     | 视图、设置项、键盘快捷键                 |
-| [docs/development.md](docs/development.md)         | 环境准备、脚本、VS Code 任务与调试、测试 |
-| [docs/architecture.md](docs/architecture.md)       | 目录结构、模块边界、数据流               |
-| [docs/packaging.md](docs/packaging.md)             | 打包细节与 GitHub Actions 发版流程       |
-| [docs/theming.md](docs/theming.md)                 | 新增一个主题                             |
-| [docs/i18n.md](docs/i18n.md)                       | 文案层与新增一种语言                     |
-| [docs/data-boundaries.md](docs/data-boundaries.md) | tyme4ts 的能力边界与降级行为             |
-| [docs/licensing.md](docs/licensing.md)             | 第三方许可清单与资产署名                 |
+| 文档                                               | 内容                                               |
+| -------------------------------------------------- | -------------------------------------------------- |
+| [docs/usage.md](docs/usage.md)                     | 视图、第一次启动与选位置、设置项、键盘快捷键       |
+| [docs/development.md](docs/development.md)         | 环境准备、脚本、VS Code 任务与调试、测试、手动冒烟 |
+| [docs/architecture.md](docs/architecture.md)       | 目录结构、模块边界、命令面与数据位置               |
+| [docs/packaging.md](docs/packaging.md)             | 打包细节、发版流程、便携版怎么把自己换掉           |
+| [docs/theming.md](docs/theming.md)                 | 新增一个主题                                       |
+| [docs/i18n.md](docs/i18n.md)                       | 文案层、消息往哪儿说、新增一种语言                 |
+| [docs/data-boundaries.md](docs/data-boundaries.md) | tyme4ts 的能力边界、降级行为、什么算用户数据       |
+| [docs/licensing.md](docs/licensing.md)             | 第三方许可清单与资产署名                           |
 
 ## 许可
 

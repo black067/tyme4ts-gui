@@ -1,95 +1,56 @@
-import { useState, type ReactElement } from 'react'
-import { formatBytes, type DataDirMoveOutcome } from '@shared/data-dir'
-import type { DataDirFailureReason, DataDirRejectReason } from '@shared/data-dir'
-import { useMessages } from '@renderer/i18n'
-
-/** 一次操作之后要说的那句话，以及该用哪种语气。 */
-interface Note {
-  text: string
-  tone: 'note' | 'error'
-}
-
-/** 文案目录里这一小块的类型。写成派生类型，是为了让下面的 switch 只能引用真实存在的键。 */
-type Copy = ReturnType<typeof useMessages>['settings']['about']['dataDir']
-
-function rejectText(copy: Copy, reason: DataDirRejectReason): string {
-  switch (reason) {
-    case 'same':
-      return copy.rejectedSame
-    case 'nested':
-      return copy.rejectedNested
-    case 'not-dedicated':
-      return copy.rejectedNotDedicated
-    case 'not-writable':
-      return copy.rejectedNotWritable
-  }
-}
-
-function failText(copy: Copy, reason: DataDirFailureReason): string {
-  switch (reason) {
-    case 'verify':
-      return copy.failedVerify
-    case 'disk':
-      return copy.failedDisk
-    case 'unknown':
-      return copy.failedUnknown
-  }
-}
+import { useEffect, useState, type ReactElement } from 'react'
+import type { DataDirDeleteOutcome, DataDirMoveOutcome } from '@shared/data-dir'
+import { useMessages, type Messages } from '@renderer/i18n'
+import { useToast, type ToastApi } from '@renderer/components/toast-context'
+import { failureText, rejectText } from './data-dir-text'
 
 /**
- * 把一次搬运的结果说成一句话。
+ * 「关于」里数据目录那一行：路径 + 浏览 / 修改 / 删除。
  *
- * 取消不留任何提示：那是一次正常结束的操作，写一行"已取消"反而让人以为自己动坏了什么。
- */
-function describe(t: ReturnType<typeof useMessages>, outcome: DataDirMoveOutcome): Note | null {
-  const copy = t.settings.about.dataDir
-  switch (outcome.kind) {
-    case 'cancelled':
-      return null
-    case 'moved': {
-      const { to, copied, bytes, leftBehind } = outcome.report
-      const main = copy.moved({ to, files: copied, size: formatBytes(bytes) })
-      return {
-        text: leftBehind > 0 ? `${main}${copy.leftBehind({ count: leftBehind })}` : main,
-        tone: 'note'
-      }
-    }
-    case 'rejected':
-      return { text: rejectText(copy, outcome.reason), tone: 'error' }
-    case 'failed':
-      return { text: failText(copy, outcome.reason), tone: 'error' }
-  }
-}
-
-/**
- * 「关于」里数据目录那一行。
+ * 三句话都走 toast，不再挂在路径下面。以前那种写法有个具体的坏处：一次搬完之后的"重启后
+ * 生效"会一直留在那儿，用户下一次打开设置页以为这个应用只能靠重启活着；而一次拒绝的理由
+ * 说完了也不会消失，占了那一行的位置，把路径本身挤得看不见。
  *
- * 它不是只读信息了，所以从 `Row` 里分出来：路径旁边挂着两个动作——**浏览**把当前目录在系统
- * 文件管理器里打开，**修改**用系统原生的选夹对话框换一个新的数据目录。
- *
- * 结果那句话挂在路径下面而不是弹提示：用户接下来要做的事（重启、或者换一个文件夹再选一次）
- * 都跟这一行有关，离开这一行说就没有意义了。
+ * 删除是这一行唯一不可逆的动作（它把整个目录移到回收站，然后重启回选位置那一屏），所以它
+ * 要按两下：第一下列出要做什么，第二下才动手。确认状态会自己过期——放着不按就等于取消。
  */
 export function DataDirRow({ path }: { path: string }): ReactElement {
   const t = useMessages()
-  const copy = t.settings.about.dataDir
-  const [note, setNote] = useState<Note | null>(null)
+  const toast = useToast()
   const [busy, setBusy] = useState(false)
+  const [confirming, setConfirming] = useState(false)
+
+  // 确认状态放着不管就自己收回：第二下的意义是"现在真的要删"，隔了十分钟的那一下不算。
+  useEffect(() => {
+    if (!confirming) return
+    const timer = setTimeout(() => setConfirming(false), 8000)
+    return () => clearTimeout(timer)
+  }, [confirming])
 
   const reveal = (): void => {
-    setNote(null)
-    void window.tyme.dataDir.reveal().catch(() => {
-      setNote({ text: copy.revealFailed, tone: 'error' })
-    })
+    void window.tyme.dataDir.reveal().catch(() => toast.notify(t.dataDir.revealFailed, 'error'))
   }
 
   const move = (): void => {
-    setNote(null)
     setBusy(true)
     void window.tyme.dataDir
       .move()
-      .then((outcome) => setNote(describe(t, outcome)))
-      .catch(() => setNote({ text: copy.failedUnknown, tone: 'error' }))
+      .then((outcome) => describeMove(t, outcome, toast))
+      .catch(() => toast.notify(t.dataDir.moveFailed, 'error'))
+      .finally(() => setBusy(false))
+  }
+
+  const remove = (): void => {
+    if (!confirming) {
+      setConfirming(true)
+      return
+    }
+    setConfirming(false)
+    setBusy(true)
+    void window.tyme.dataDir
+      .remove()
+      .then((outcome) => describeDelete(t, outcome, toast))
+      .catch(() => toast.notify(t.dataDir.deleteFailed, 'error'))
       .finally(() => setBusy(false))
   }
 
@@ -98,26 +59,82 @@ export function DataDirRow({ path }: { path: string }): ReactElement {
       <dt>{t.settings.about.dataDirLabel}</dt>
       <dd>
         <span className="settings-row__value">{path}</span>
-        {note ? (
-          <span
-            className={
-              note.tone === 'error'
-                ? 'settings-row__note tool__error'
-                : 'settings-row__note settings-note'
-            }
-          >
-            {note.text}
-          </span>
-        ) : null}
+        {confirming ? <span className="data-dir__confirm">{t.dataDir.deleteNote}</span> : null}
       </dd>
       <span className="settings-row__actions">
         <button type="button" className="text-button" onClick={reveal} disabled={busy}>
-          {copy.browse}
+          {t.dataDir.browse}
         </button>
         <button type="button" className="text-button" onClick={move} disabled={busy}>
-          {copy.change}
+          {t.dataDir.change}
+        </button>
+        <button
+          type="button"
+          className="text-button data-dir__delete"
+          onClick={remove}
+          disabled={busy}
+        >
+          {confirming ? t.dataDir.confirmDelete : t.dataDir.delete}
         </button>
       </span>
     </div>
   )
+}
+
+/**
+ * 搬运之后的那句话。
+ *
+ * 取消不留任何提示：那是一次正常结束的操作，写一条"已取消"反而让人以为自己动坏了什么。
+ * 成功之后紧跟一次重启，所以"正在重启"就是这句话的重点；旧的那句话还多带了半句"重启前改的
+ * 设置仍记在旧目录里"，而新流程里已经没有那种时刻——文件搬完，进程就让位了。
+ */
+function describeMove(t: Messages, outcome: DataDirMoveOutcome, toast: ToastApi): void {
+  switch (outcome.kind) {
+    case 'cancelled':
+      return
+    case 'moved': {
+      const { to, leftBehind } = outcome.report
+      toast.notify(t.dataDir.moved({ to }))
+      if (leftBehind > 0) {
+        toast.notify(t.dataDir.leftBehind({ count: leftBehind }), 'error')
+      }
+      restart(t, toast)
+      return
+    }
+    case 'rejected':
+      toast.notify(rejectText(t, outcome.reason), 'error')
+      return
+    case 'failed':
+      toast.notify(failureText(t, 'move', outcome.reason), 'error')
+  }
+}
+
+/** 删除之后的那句话。成功就是"已进回收站 + 正在重启"，其余都留在这个界面里。 */
+function describeDelete(t: Messages, outcome: DataDirDeleteOutcome, toast: ToastApi): void {
+  switch (outcome.kind) {
+    case 'deleted':
+      toast.notify(t.dataDir.deleted)
+      restart(t, toast)
+      return
+    case 'rejected':
+      toast.notify(rejectText(t, outcome.reason), 'error')
+      return
+    case 'failed':
+      toast.notify(failureText(t, 'delete', outcome.reason), 'error')
+  }
+}
+
+/**
+ * 请宿主重启一次，让刚定下来的指向生效；不成的时候说人话。
+ *
+ * 调试版按规矩不自动重启（那个 exe 连的是 dev 服务器），而重启本身也可能失败。两种情况下
+ * 事情都做了一半——新位置已经记下来了——所以都是那一句"重启后生效"，而不是"失败了"。
+ */
+function restart(t: Messages, toast: ToastApi): void {
+  void window.tyme.dataDir
+    .relaunch()
+    .then((outcome) => {
+      if (outcome.kind !== 'restarting') toast.notify(t.dataDir.restartLater)
+    })
+    .catch(() => toast.notify(t.dataDir.restartLater))
 }

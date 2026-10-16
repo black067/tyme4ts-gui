@@ -1,0 +1,79 @@
+/*
+ * 应用内提示：右下角一叠，几秒自己走。
+ *
+ * 只用 tokens，不写颜色字面量（tests/theme-tokens.test.ts 管着这件事）：气泡会出现在任何一个
+ * 主题的任何一个变体上面，写死的颜色总有一个变体读不清。
+ */
+
+.toast-stack {
+  position: fixed;
+  right: var(--space-4);
+  bottom: var(--space-4);
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-width: min(420px, 60vw);
+  /* 空的那一叠不该拦住鼠标：它常驻在 DOM 里（读屏器要一个先就在那儿的活动区），
+     没有气泡时底下是日历，不能被一层透明的容器挡住。 */
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  /* 左边一条色带就是"语气"。不用图标：图标要么从 assets 里长出来，要么用 emoji，
+     两种都比一条边框线贵。 */
+  border-left: 3px solid var(--color-accent);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-md);
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  pointer-events: auto;
+  animation: toast-in var(--transition-base);
+}
+
+.toast--error {
+  border-left-color: var(--color-danger);
+}
+
+.toast__text {
+  flex: 1;
+  /* 一句 Windows 路径能在任意一处断开，不然气泡会被撑成一条横穿屏幕的带子。 */
+  overflow-wrap: anywhere;
+}
+
+.toast__dismiss {
+  padding: 0 var(--space-1);
+  border: none;
+  background: none;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-md);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.toast__dismiss:hover {
+  color: var(--color-text);
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    animation: none;
+  }
+}

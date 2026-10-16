@@ -1,0 +1,135 @@
+/*
+ * 首启那一屏。
+ *
+ * 窗口只有 560×520（`src-tauri/src/lib.rs` 的 SETUP_WINDOW），里面只放一个表单：
+ * 没有侧栏、没有页签、没有骨架屏。颜色一律走 tokens——这一屏会在任何一个主题的任何
+ * 一个变体下出现，写死的颜色总有一个变体读不清（tests/theme-tokens.test.ts 也拦着字面量）。
+ */
+
+.setup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-6) var(--space-5);
+}
+
+.setup__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--font-size-xl);
+  font-weight: 600;
+}
+
+.setup__intro {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+}
+
+/* 上次记在这里的那个路径（U 盘被拔走时才有这一行）。 */
+.setup__recorded {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+/* `fieldset` 的默认边框与内边距在四个主题里长得不一样，一律清掉，用自己的边框。 */
+.setup__options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.setup__option {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.setup__option--on {
+  border-color: var(--color-accent);
+}
+
+.setup__option-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.setup__option-label {
+  font-size: var(--font-size-md);
+}
+
+/* 完整路径：一行 Windows 路径能在任意一处断开，不给换行点就会把小窗口撑破。 */
+.setup__path {
+  overflow-wrap: anywhere;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+}
+
+.setup__tag {
+  margin-left: auto;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  line-height: 18px;
+}
+
+.setup__tag--off {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+.setup__custom {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.setup__input {
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+}
+
+.setup__input:focus-visible {
+  border-color: var(--color-accent);
+  outline: none;
+}
+
+.setup__actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.setup__note {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.setup__error {
+  margin: 0;
+}

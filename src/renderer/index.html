@@ -9,7 +9,7 @@
       content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:"
     />
     <!--
-      首帧引导：把主进程查询串里的主题/语言/首启标记同步写进 <html>，
+      首帧引导：把主进程查询串里的主题/语言/首启标记/是否要选用户目录同步写进 <html>，
       骨架屏从第一帧起就是用户真正的设置。唯一允许的非 module 脚本，
       且只从本站加载（CSP `script-src 'self'`）——由
       tests/splash-contract.test.ts 钉住这两点。
@@ -60,6 +60,14 @@
         --splash-shine: #231d18;
         --splash-text: #857767;
         --splash-accent: #c9553f;
+      }
+      /*
+       * 选用户目录那一屏（`<html data-setup>`，由 splash.js 落）没有骨架屏。
+       * 骨架屏说的是"等着，马上就完"，而那一屏要的是用户读字、做决定：两者同时出现，
+       * 读起来就像界面卡住了。这里只改可见性，不带任何颜色——底色仍是窗口自己那层。
+       */
+      html[data-setup] #splash {
+        display: none;
       }
       #splash .splash-shimmer {
         background-image: linear-gradient(
@@ -253,9 +261,7 @@
       </div>
       <p class="splash-status">
         <span class="splash-line splash-line--default" data-locale="zh-Hans">正在载入…</span>
-        <span class="splash-line splash-line--first" data-locale="zh-Hans"
-          >首次启动，正在准备运行环境…</span
-        >
+        <span class="splash-line splash-line--first" data-locale="zh-Hans">正在准备你的日历…</span>
       </p>
     </div>
     <div id="root"></div>

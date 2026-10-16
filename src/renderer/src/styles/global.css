@@ -72,15 +72,11 @@ h3 {
   color: var(--color-lunar);
 }
 
-.app-error {
-  margin: 0;
-  flex-basis: 100%;
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-sm);
-  background: var(--color-accent-soft);
-  color: var(--color-danger);
-  font-size: var(--font-size-sm);
-}
+/*
+ * 设置没存下来时的话改由 toast 说（`components/ToastProvider.tsx`）。这里原本挂着一条
+ * `.app-error`，它的问题是位置而不是颜色：一句"这次没成"钉在标题栏下面，直到用户改下一项
+ * 才消失，读起来就像应用坏了，而实际上只坏了一次。
+ */
 
 .app-toolbar {
   display: flex;

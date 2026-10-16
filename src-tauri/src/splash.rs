@@ -2,8 +2,9 @@
 //!
 //! Electron 时代这件事在主进程做：读 `settings.json`、问 `nativeTheme` 当前是不是深色，
 //! 把 `?dt=&locale=&first=` 拼进要加载的 URL。Tauri 这边窗口在 Rust 里创建，于是同样的
-//! 三个值改由一段初始化脚本递给页面——它在任何前端代码之前执行，开发模式（devUrl）与
-//! 生产模式（内嵌资源）走同一条路，不必改动 URL。
+//! 值改由一段初始化脚本递给页面——它在任何前端代码之前执行，开发模式（devUrl）与
+//! 生产模式（内嵌资源）走同一条路，不必改动 URL。今天它多带一个 `setup`：这一轮启动
+//! 是不是"还没选定用户目录"。
 //!
 //! `src/shared/splash.ts` 仍是这套规则的唯一规范来源，这里是它的受契约副本：主题串格式
 //! `{theme_id}-{variant}`、四个底色字面量、首次启动的判据，三样都由
@@ -41,7 +42,7 @@ pub struct Bootstrap {
     pub window_theme: Option<Theme>,
 }
 
-pub fn build(app: &AppHandle) -> Bootstrap {
+pub fn build(app: &AppHandle, setup: bool) -> Bootstrap {
     let dir = data_dir(app);
     // "首次启动"的判据与旧版一致：盘上没有设置文件才算第一次。
     // 文件在但读不出（格式坏了）不算——旧版的 `hasStoredSettings()` 只看存在性。
@@ -76,12 +77,18 @@ pub fn build(app: &AppHandle) -> Bootstrap {
     Bootstrap {
         // 值由 serde_json 序列化：themeId 是用户可写的自由字符串，交给 JSON 转义，
         // 不自己拼引号。splash.js 读到时仍会用它的字面量白名单再过一遍。
+        //
+        // `setup` 是这一整段注入里唯一的"模式开关"：选目录的那一屏要的是**没有骨架屏**的
+        // 窗口（`#splash` 隐藏、`main.tsx` 装载 SetupApp），因为它不是"等一下"而是"你要决定"。
+        // 用它而不是第二个 initialization_script：两个脚本的执行顺序在页面里不可见，
+        // 而一个对象多一个键是能被 `tests/splash-contract.test.ts` 逐键核对的东西。
         script: format!(
             "window.__TAYME_SPLASH__ = {};",
             json!({
               "dt": format!("{theme_id}-{variant}"),
               "locale": locale,
-              "first": first
+              "first": first,
+              "setup": setup
             })
         ),
         rgb: background_rgb(&theme_id, dark),
@@ -108,16 +115,18 @@ fn background_rgb(theme_id: &str, dark: bool) -> [u8; 4] {
     }
 }
 
-/// 应用数据目录，顺手建出来：设置文件的原子写只负责"临时文件 + 改名"两步。
+/// 应用数据目录——**只读，不建**。
 ///
 /// 这个目录默认由 tauri.conf.json 的 `appDirectoriesOverride` 指到 `%APPDATA%\万年历`，
 /// 与 Electron 时代的 `userData` 是同一个地方，老用户的设置与缓存因此原地可用；用户在设置里
 /// 把它搬到别处之后，`paths::apply_override()` 已在建窗之前改过指向，这里读到的就是新位置
 /// ——骨架屏的颜色才会与用户实际的设置一致。
+///
+/// 目录不在（第一次启动、还没选位置）就回 `None`：骨架屏按默认主题上色，等页面自己出现。
+/// 在这里建目录正是需求要治的那个毛病——"用户还没选完，机器上就已经有一个他没选过的目录"。
 fn data_dir(app: &AppHandle) -> Option<PathBuf> {
     let dir = app.path().app_data_dir().ok()?;
-    let _ = std::fs::create_dir_all(&dir);
-    Some(dir)
+    dir.is_dir().then_some(dir)
 }
 
 fn has_settings(dir: &Path) -> bool {

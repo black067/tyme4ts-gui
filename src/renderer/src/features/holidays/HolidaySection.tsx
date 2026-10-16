@@ -1,7 +1,8 @@
-import type { ReactElement } from 'react'
+import { useEffect, useRef, type ReactElement } from 'react'
 import type { HolidayErrorCode } from '@shared/holidays'
 import { useMessages, type Messages } from '@renderer/i18n'
 import { Toggle } from '@renderer/components/Toggle'
+import { useToast } from '@renderer/components/toast-context'
 import { useSettings } from '@renderer/state/settings-context'
 import { useHolidays } from './holiday-context'
 import './holidays.css'
@@ -45,8 +46,23 @@ function errorText(t: Messages, code: HolidayErrorCode | null): string {
  */
 export function HolidaySection(): ReactElement | null {
   const t = useMessages()
+  const toast = useToast()
   const { settings, update } = useSettings()
   const { status, refresh } = useHolidays()
+  // 同一个错误码只说一次。`errorCode` 留在 store 里是给状态用的：以前它渲染成设置页上一条
+  // 擦不掉的红色横幅，于是"上次没更上"看起来像这个功能的永久属性——切个页签回来它还在。
+  const announced = useRef<HolidayErrorCode | null>(null)
+
+  useEffect(() => {
+    const code = status?.errorCode ?? null
+    if (code === null) {
+      announced.current = null
+      return
+    }
+    if (announced.current === code) return
+    announced.current = code
+    toast.notify(errorText(t, code), 'error')
+  }, [status, t, toast])
 
   if (status === null) return null
 
@@ -71,10 +87,6 @@ export function HolidaySection(): ReactElement | null {
           ? t.settings.holidays.never
           : t.settings.holidays.lastUpdated({ time: updatedAt })}
       </p>
-
-      {status.errorCode !== null ? (
-        <p className="tool__error">{errorText(t, status.errorCode)}</p>
-      ) : null}
 
       <div className="holidays__actions">
         <button

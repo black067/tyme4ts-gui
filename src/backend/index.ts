@@ -16,6 +16,18 @@ const HOLIDAY_REFRESH_DELAY_MS = 1500
 const UPDATE_CHECK_DELAY_MS = 3000
 
 /**
+ * 选用户目录那一屏的启动序列。
+ *
+ * 它与 `startBackend()` 的差别只有一件、但很重要：**这一轮启动还没有一个可写的用户目录**。
+ * 读设置、写缓存、排那两个会写盘的定时器，任何一件都会把"目录还不存在"变成"目录被建出来了"，
+ * 而那一屏存在的意义恰恰是不替用户做这个决定。所以这里只装门面：界面用 `dataDir.plan()`
+ * 问该显示什么，用 `dataDir.choose()` 落定，之后交给一次重启去跑完整的应用。
+ */
+export async function startSetupBackend(): Promise<void> {
+  installBridge()
+}
+
+/**
  * 在 React 挂载之前把应用跑起来。
  *
  * 返回时 `window.tyme` 已经可用、节假日缓存已经读进引擎，界面第一次渲染就能看见数据。
